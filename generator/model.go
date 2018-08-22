@@ -1,0 +1,94 @@
+package generator
+
+import (
+	"go/types"
+	"strings"
+
+	"github.com/go-courier/codegen"
+	"github.com/go-courier/packagesx"
+	"github.com/go-courier/sqlx/builder"
+)
+
+func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string, cfg *Config) *Model {
+	m := Model{}
+	m.Config = cfg
+	m.Config.SetDefaults()
+
+	m.TypeName = typeName
+
+	m.Table = builder.T(nil, cfg.TableName)
+
+	p := pkg.Pkg(typeName.Pkg().Path())
+
+	forEachStructField(typeName.Type().Underlying().Underlying().(*types.Struct), func(structVal *types.Var, columnName string, tpe string) {
+		col := builder.Col(m.Table, columnName).Field(structVal.Name()).Type(tpe)
+
+		for id, o := range p.TypesInfo.Defs {
+			if o == structVal {
+				doc := pkg.CommentsOf(id)
+				col.Comment = strings.Split(doc, "\n")[0]
+			}
+		}
+
+		m.addColumn(col, structVal)
+	})
+
+	m.HasSoftDelete = m.Table.F(m.FieldKeySoftDelete) != nil
+	m.HasCreatedAt = m.Table.F(m.FieldKeyCreatedAt) != nil
+	m.HasUpdatedAt = m.Table.F(m.FieldKeyUpdatedAt) != nil
+
+	m.Keys = parseKeysFromDoc(comments)
+	if m.HasSoftDelete {
+		m.Keys.PatchUniqueIndexesWithSoftDelete(m.FieldKeySoftDelete)
+	}
+	m.Keys.Bind(m.Table)
+
+	if autoIncrementCol := m.Table.AutoIncrement(); autoIncrementCol != nil {
+		m.HasAutoIncrement = true
+		m.FieldKeyAutoIncrement = autoIncrementCol.FieldName
+	}
+
+	return &m
+}
+
+type Model struct {
+	*types.TypeName
+	*Config
+	*Keys
+	*builder.Table
+	Fields                map[string]*types.Var
+	FieldKeyAutoIncrement string
+	HasSoftDelete         bool
+	HasCreatedAt          bool
+	HasUpdatedAt          bool
+	HasAutoIncrement      bool
+}
+
+func (m *Model) addColumn(col *builder.Column, tpe *types.Var) {
+	m.Table.Columns.Add(col)
+	if m.Fields == nil {
+		m.Fields = map[string]*types.Var{}
+	}
+	m.Fields[col.FieldName] = tpe
+}
+
+func (m *Model) WriteTo(file *codegen.File) {
+	m.WriteTableInterfaces(file)
+	m.WriteTableKeyInterfaces(file)
+	m.WriteCRUD(file)
+	m.WriteList(file)
+	m.WriteCount(file)
+	m.WriteBatchList(file)
+}
+
+func (m *Model) Type() codegen.SnippetType {
+	return codegen.Type(m.StructName)
+}
+
+func (m *Model) PtrType() codegen.SnippetType {
+	return codegen.Star(m.Type())
+}
+
+func (m *Model) VarTable() string {
+	return m.StructName + "Table"
+}
