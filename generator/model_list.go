@@ -25,6 +25,7 @@ func (m *Model) WriteCount(file *codegen.File) {
 count := -1
 
 table := m.T()
+_ = table
 `),
 
 				func() codegen.Snippet {
@@ -83,6 +84,7 @@ func (m *Model) WriteList(file *codegen.File) {
 list := make([]`+m.StructName+`, 0)
 
 table := m.T()
+_ = table
 `),
 
 				func() codegen.Snippet {
