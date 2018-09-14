@@ -74,7 +74,9 @@ if err == nil {
 		)
 	}
 
-	return nil
+	return codegen.Expr(`
+_ = result
+`)
 }
 
 func (m *Model) SnippetSetUpdatedAtIfNeed(file *codegen.File) codegen.Snippet {
