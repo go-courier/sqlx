@@ -61,7 +61,7 @@ func (s *loggerStmt) Exec(args []driver.Value) (driver.Result, error) {
 		return nil, err
 	}
 
-	s.logger.WithField("cost", cost()).Debugf(color.YellowString(s.query))
+	s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(s.query))
 	return result, nil
 }
 
@@ -87,7 +87,7 @@ func (s *loggerStmt) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 
-	s.logger.WithField("cost", cost()).Debugf(color.GreenString(s.query))
+	s.logger.WithField("cost", cost().String()).Debugf(color.GreenString(s.query))
 	return rows, nil
 }
 
