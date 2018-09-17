@@ -46,6 +46,8 @@ func SyncEnum(database *Database, db *DB) error {
 	stmtForInsert := builder.Insert().Into(metaEnumTable)
 	vals := make([]interface{}, 0)
 
+	columns := &builder.Columns{}
+
 	for _, table := range database.Tables {
 		table.Columns.Range(func(col *builder.Column, idx int) {
 			if col.IsEnum() {
@@ -61,15 +63,17 @@ func SyncEnum(database *Database, db *DB) error {
 					}
 
 					fieldValues := builder.FieldValuesFromStructByNonZero(sqlMetaEnum, "Value")
-					_, values := metaEnumTable.ColumnsAndValuesByFieldValues(fieldValues)
+					cols, values := metaEnumTable.ColumnsAndValuesByFieldValues(fieldValues)
 					vals = append(vals, values...)
+					columns = cols
 				}
 			}
 		})
 	}
 
 	if len(vals) > 0 {
-		stmtForInsert = stmtForInsert.Values(metaEnumTable.Columns, vals...)
+		stmtForInsert = stmtForInsert.Values(columns, vals...)
+
 		task = task.With(func(db *DB) error {
 			_, err := db.ExecExpr(stmtForInsert)
 			return err

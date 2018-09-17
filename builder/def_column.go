@@ -28,7 +28,8 @@ func Col(table *Table, columnName string) *Column {
 	}
 }
 
-func Cols(t *Table, columnNames ...string) (cols Columns) {
+func Cols(t *Table, columnNames ...string) (*Columns) {
+	cols := &Columns{}
 	for _, columnName := range columnNames {
 		cols.Add(Col(t, columnName))
 	}

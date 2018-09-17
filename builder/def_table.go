@@ -129,13 +129,16 @@ func (t *Table) Cond(query string, args ...interface{}) *Condition {
 
 type FieldValues map[string]interface{}
 
-func (t *Table) ColumnsAndValuesByFieldValues(fieldValues FieldValues) (columns Columns, args []interface{}) {
+func (t *Table) ColumnsAndValuesByFieldValues(fieldValues FieldValues) (columns *Columns, args []interface{}) {
 	fieldNames := make([]string, 0)
 	for fieldName := range fieldValues {
 		fieldNames = append(fieldNames, fieldName)
 	}
 
 	sort.Strings(fieldNames)
+
+
+	columns = &Columns{}
 
 	for _, fieldName := range fieldNames {
 		if col := t.F(fieldName); col != nil {

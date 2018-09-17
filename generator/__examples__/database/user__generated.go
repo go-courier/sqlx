@@ -1,8 +1,8 @@
 package database
 
 import (
-	"fmt"
-	"time"
+	fmt "fmt"
+	time "time"
 
 	github_com_go_courier_sqlx "github.com/go-courier/sqlx"
 	github_com_go_courier_sqlx_builder "github.com/go-courier/sqlx/builder"
@@ -171,15 +171,15 @@ func (User) UniqueIndexes() github_com_go_courier_sqlx_builder.Indexes {
 
 func (User) Comments() map[string]string {
 	return map[string]string{
-		"Birthday":  "",
-		"Boolean":   "",
-		"CreatedAt": "",
-		"Name":      "姓名",
-		"Username":  "",
-		"Nickname":  "",
-		"Enabled":   "",
 		"ID":        "",
+		"Name":      "姓名",
+		"Nickname":  "",
+		"Boolean":   "",
+		"Enabled":   "",
+		"Username":  "",
 		"Gender":    "",
+		"Birthday":  "",
+		"CreatedAt": "",
 		"UpdatedAt": "",
 	}
 }
@@ -566,6 +566,7 @@ func (m *User) List(db *github_com_go_courier_sqlx.DB, condition *github_com_go_
 	list := make([]User, 0)
 
 	table := m.T()
+	_ = table
 
 	condition = github_com_go_courier_sqlx_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_datatypes.BOOL_TRUE))
 
@@ -593,6 +594,7 @@ func (m *User) Count(db *github_com_go_courier_sqlx.DB, condition *github_com_go
 	count := -1
 
 	table := m.T()
+	_ = table
 
 	condition = github_com_go_courier_sqlx_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_datatypes.BOOL_TRUE))
 

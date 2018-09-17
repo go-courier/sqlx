@@ -21,7 +21,7 @@ func (s StmtInsert) Into(table *Table, additions ...Addition) *StmtInsert {
 	return &s
 }
 
-func (s StmtInsert) Values(cols Columns, values ...interface{}) *StmtInsert {
+func (s StmtInsert) Values(cols *Columns, values ...interface{}) *StmtInsert {
 	s.assignments = Assignments{ColumnsAndValues(cols, values...)}
 	return &s
 }

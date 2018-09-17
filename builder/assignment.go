@@ -25,7 +25,7 @@ func (assigns Assignments) Expr() (e *Expression) {
 	return e
 }
 
-func ColumnsAndValues(cols Columns, values ...interface{}) *Assignment {
+func ColumnsAndValues(cols *Columns, values ...interface{}) *Assignment {
 	n := cols.Len()
 	holderGroup := HolderRepeat(n)
 
