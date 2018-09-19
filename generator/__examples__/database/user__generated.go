@@ -171,16 +171,16 @@ func (User) UniqueIndexes() github_com_go_courier_sqlx_builder.Indexes {
 
 func (User) Comments() map[string]string {
 	return map[string]string{
+		"Username":  "",
+		"CreatedAt": "",
+		"Enabled":   "",
+		"Birthday":  "",
+		"Boolean":   "",
+		"UpdatedAt": "",
 		"ID":        "",
 		"Name":      "姓名",
-		"Birthday":  "",
-		"CreatedAt": "",
-		"UpdatedAt": "",
-		"Enabled":   "",
-		"Username":  "",
 		"Nickname":  "",
 		"Gender":    "",
-		"Boolean":   "",
 	}
 }
 
@@ -189,6 +189,10 @@ func (m *User) Create(db *github_com_go_courier_sqlx.DB) error {
 
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+	}
+
+	if m.UpdatedAt.IsZero() {
+		m.UpdatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	d := m.D()
@@ -215,6 +219,10 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.
 
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+	}
+
+	if m.UpdatedAt.IsZero() {
+		m.UpdatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	fieldValues := github_com_go_courier_sqlx_builder.FieldValuesFromStructByNonZero(m, updateFields...)
@@ -261,8 +269,8 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.
 func (m *User) DeleteByStruct(db *github_com_go_courier_sqlx.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
 
-	if m.CreatedAt.IsZero() {
-		m.CreatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+	if m.UpdatedAt.IsZero() {
+		m.UpdatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(

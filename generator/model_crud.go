@@ -80,7 +80,7 @@ _ = result
 }
 
 func (m *Model) SnippetSetUpdatedAtIfNeed(file *codegen.File) codegen.Snippet {
-	if m.HasCreatedAt {
+	if m.HasUpdatedAt {
 		return codegen.Expr(`
 if m.?.IsZero() {
 	m.? = ?(?())
@@ -122,6 +122,7 @@ func (m *Model) WriteCreate(file *codegen.File) {
 			Do(
 				m.SnippetEnableIfNeed(file),
 				m.SnippetSetCreatedAtIfNeed(file),
+				m.SnippetSetUpdatedAtIfNeed(file),
 
 				codegen.Expr(`
 d := m.D()
@@ -157,6 +158,7 @@ if len(updateFields) == 0 {
 
 					m.SnippetEnableIfNeed(file),
 					m.SnippetSetCreatedAtIfNeed(file),
+					m.SnippetSetUpdatedAtIfNeed(file),
 
 					codegen.Expr(`
 fieldValues := `+file.Use("github.com/go-courier/sqlx/builder", "FieldValuesFromStructByNonZero")+`(m, updateFields...)
@@ -226,7 +228,7 @@ func (m *Model) WriteDelete(file *codegen.File) {
 			Return(codegen.Var(codegen.Error)).
 			Do(
 				m.SnippetEnableIfNeed(file),
-				m.SnippetSetCreatedAtIfNeed(file),
+				m.SnippetSetUpdatedAtIfNeed(file),
 
 				codegen.Expr(`
 _, err := db.ExecExpr(
