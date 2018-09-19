@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"github.com/go-courier/reflectx/typesutil"
 
 	"github.com/go-courier/codegen"
 	"github.com/go-courier/packagesx"
@@ -129,10 +130,17 @@ func (m *Model) WriteBatchList(file *codegen.File) {
 	for _, field := range indexedFields {
 		method := fmt.Sprintf("BatchFetchBy%sList", field)
 
+		typ := typesutil.FromTType(m.Fields[field].Type())
+
+		indexTyp := codegen.SnippetType(codegen.BuiltInType(typ.String()))
+		if typ.PkgPath() != "" {
+			indexTyp = codegen.Type(file.Use(typ.PkgPath(), typ.Name()))
+		}
+
 		file.WriteBlock(
 			codegen.Func(
 				codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx", "DB"))), "db"),
-				codegen.Var(codegen.Slice(codegen.String), "values"),
+				codegen.Var(codegen.Slice(indexTyp), "values"),
 			).
 				Named(method).
 				MethodOf(codegen.Var(m.PtrType(), "m")).

@@ -173,14 +173,14 @@ func (User) Comments() map[string]string {
 	return map[string]string{
 		"ID":        "",
 		"Name":      "姓名",
-		"Nickname":  "",
-		"Boolean":   "",
-		"Enabled":   "",
-		"Username":  "",
-		"Gender":    "",
 		"Birthday":  "",
 		"CreatedAt": "",
 		"UpdatedAt": "",
+		"Enabled":   "",
+		"Username":  "",
+		"Nickname":  "",
+		"Gender":    "",
+		"Boolean":   "",
 	}
 }
 
@@ -619,7 +619,7 @@ func (m *User) Count(db *github_com_go_courier_sqlx.DB, condition *github_com_go
 
 }
 
-func (m *User) BatchFetchByIDList(db *github_com_go_courier_sqlx.DB, values []string) ([]User, error) {
+func (m *User) BatchFetchByIDList(db *github_com_go_courier_sqlx.DB, values []uint64) ([]User, error) {
 
 	if len(values) == 0 {
 		return nil, nil
