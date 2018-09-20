@@ -34,10 +34,17 @@ type Addition interface {
 type Additions []Addition
 
 func (a Additions) Expr() *Expression {
-	sort.Sort(a)
-	exprList := make([]SqlExpr, len(a))
+	finalAdditions := Additions{}
 	for i := range a {
-		exprList[i] = a[i]
+		if a[i] != nil {
+			finalAdditions = append(finalAdditions, a[i])
+		}
+	}
+
+	sort.Sort(finalAdditions)
+	exprList := make([]SqlExpr, len(finalAdditions))
+	for i := range finalAdditions {
+		exprList[i] = finalAdditions[i]
 	}
 	return MustJoinExpr(" ", exprList...)
 }

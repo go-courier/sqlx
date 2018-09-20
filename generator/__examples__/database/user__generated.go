@@ -151,11 +151,11 @@ func (User) PrimaryKey() github_com_go_courier_sqlx_builder.FieldNames {
 
 func (User) Indexes() github_com_go_courier_sqlx_builder.Indexes {
 	return github_com_go_courier_sqlx_builder.Indexes{
-		"I_nickname": github_com_go_courier_sqlx_builder.FieldNames{
-			"Nickname",
-		},
 		"I_username": github_com_go_courier_sqlx_builder.FieldNames{
 			"Username",
+		},
+		"I_nickname": github_com_go_courier_sqlx_builder.FieldNames{
+			"Nickname",
 		},
 	}
 }
@@ -171,16 +171,16 @@ func (User) UniqueIndexes() github_com_go_courier_sqlx_builder.Indexes {
 
 func (User) Comments() map[string]string {
 	return map[string]string{
+		"UpdatedAt": "",
+		"Name":      "姓名",
 		"Username":  "",
-		"CreatedAt": "",
-		"Enabled":   "",
+		"Gender":    "",
 		"Birthday":  "",
 		"Boolean":   "",
-		"UpdatedAt": "",
+		"CreatedAt": "",
+		"Enabled":   "",
 		"ID":        "",
-		"Name":      "姓名",
 		"Nickname":  "",
-		"Gender":    "",
 	}
 }
 
