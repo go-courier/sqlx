@@ -12,7 +12,7 @@ var (
 	MySQLDatetimeZero = MySQLDatetime(time.Time{})
 )
 
-// swagger:strfmt date-time
+// openapi:strfmt date-time
 type MySQLDatetime time.Time
 
 func ParseMySQLDatetimeFromString(s string) (dt MySQLDatetime, err error) {
