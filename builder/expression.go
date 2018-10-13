@@ -43,6 +43,11 @@ func JoinExpr(joiner string, sqlExprs ...SqlExpr) (*Expression, error) {
 		}
 
 		e := sqlExpr.Expr()
+
+		if e == nil {
+			continue
+		}
+
 		if e.Err != nil {
 			return nil, e.Err
 		}

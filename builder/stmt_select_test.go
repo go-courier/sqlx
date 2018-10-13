@@ -131,6 +131,20 @@ func TestSelect(t *testing.T) {
 				1,
 			),
 		}, {
+			"Select with limit -1",
+			Select(nil).
+				From(
+					table,
+					Where(
+						Col(table, "F_a").Eq(1),
+					),
+					Limit(-1),
+				),
+			Expr(
+				"SELECT * FROM `db`.`t` WHERE `F_a` = ?",
+				1,
+			),
+		}, {
 			"Select with limit with offset",
 			Select(nil).
 				From(
