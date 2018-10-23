@@ -97,12 +97,17 @@ func DBFromInformationSchema(db *DB, dbName string, tableNames ...string) *Datab
 
 			key, exists := table.Keys.Key(indexSchema.INDEX_NAME)
 			if !exists {
-				if indexSchema.INDEX_NAME == string(builder.PRIMARY) {
-					key = builder.PrimaryKey()
-				} else if indexSchema.NON_UNIQUE == 1 {
-					key = builder.Index(indexSchema.INDEX_NAME)
-				} else {
-					key = builder.UniqueIndex(indexSchema.INDEX_NAME)
+				switch indexSchema.INDEX_TYPE {
+				case "SPATIAL":
+					key = builder.SpatialIndex(indexSchema.INDEX_NAME)
+				default:
+					if indexSchema.INDEX_NAME == string(builder.PRIMARY) {
+						key = builder.PrimaryKey()
+					} else if indexSchema.NON_UNIQUE == 1 {
+						key = builder.Index(indexSchema.INDEX_NAME)
+					} else {
+						key = builder.UniqueIndex(indexSchema.INDEX_NAME)
+					}
 				}
 				table.Keys.Add(key)
 			}

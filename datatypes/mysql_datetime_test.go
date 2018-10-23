@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDatetime(t *testing.T) {
-	tt := assert.New(t)
+	tt := require.New(t)
 
 	t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
 	dt := MySQLDatetime(t0)

@@ -83,6 +83,14 @@ func (m *User) FieldBoolean() *github_com_go_courier_sqlx_builder.Column {
 	return m.T().F(m.FieldKeyBoolean())
 }
 
+func (User) FieldKeyGeom() string {
+	return "Geom"
+}
+
+func (m *User) FieldGeom() *github_com_go_courier_sqlx_builder.Column {
+	return m.T().F(m.FieldKeyGeom())
+}
+
 func (User) FieldKeyCreatedAt() string {
 	return "CreatedAt"
 }
@@ -109,6 +117,7 @@ func (m *User) FieldEnabled() *github_com_go_courier_sqlx_builder.Column {
 
 func (m *User) IndexFieldNames() []string {
 	return []string{
+		"Geom",
 		"ID",
 		"Name",
 		"Nickname",
@@ -151,11 +160,11 @@ func (User) PrimaryKey() github_com_go_courier_sqlx_builder.FieldNames {
 
 func (User) Indexes() github_com_go_courier_sqlx_builder.Indexes {
 	return github_com_go_courier_sqlx_builder.Indexes{
-		"I_username": github_com_go_courier_sqlx_builder.FieldNames{
-			"Username",
-		},
 		"I_nickname": github_com_go_courier_sqlx_builder.FieldNames{
 			"Nickname",
+		},
+		"I_username": github_com_go_courier_sqlx_builder.FieldNames{
+			"Username",
 		},
 	}
 }
@@ -169,10 +178,16 @@ func (User) UniqueIndexes() github_com_go_courier_sqlx_builder.Indexes {
 	}
 }
 
+func (User) SpatialIndexes() github_com_go_courier_sqlx_builder.Indexes {
+	return github_com_go_courier_sqlx_builder.Indexes{
+		"I_geom": github_com_go_courier_sqlx_builder.FieldNames{
+			"Geom",
+		},
+	}
+}
+
 func (User) Comments() map[string]string {
 	return map[string]string{
-		"UpdatedAt": "",
-		"Name":      "姓名",
 		"Username":  "",
 		"Gender":    "",
 		"Birthday":  "",
@@ -180,7 +195,10 @@ func (User) Comments() map[string]string {
 		"CreatedAt": "",
 		"Enabled":   "",
 		"ID":        "",
+		"Name":      "姓名",
 		"Nickname":  "",
+		"Geom":      "",
+		"UpdatedAt": "",
 	}
 }
 
@@ -624,6 +642,20 @@ func (m *User) Count(db *github_com_go_courier_sqlx.DB, condition *github_com_go
 	)
 
 	return count, err
+
+}
+
+func (m *User) BatchFetchByGeomList(db *github_com_go_courier_sqlx.DB, values []GeomString) ([]User, error) {
+
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	table := m.T()
+
+	condition := table.F("Geom").In(values)
+
+	return m.List(db, condition)
 
 }
 

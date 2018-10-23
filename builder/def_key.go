@@ -39,6 +39,13 @@ func UniqueIndex(name string) *Key {
 	}
 }
 
+func SpatialIndex(name string) *Key {
+	return &Key{
+		Name: name,
+		Type: SPATIAL_INDEX,
+	}
+}
+
 type Key struct {
 	Name string
 	Columns
@@ -71,6 +78,7 @@ const (
 	PRIMARY      keyType = "PRIMARY"
 	INDEX        keyType = "INDEX"
 	UNIQUE_INDEX keyType = "UNIQUE INDEX"
+	SPATIAL_INDEX keyType = "SPATIAL INDEX"
 )
 
 type Keys struct {

@@ -30,6 +30,10 @@ type WithUniqueIndexes interface {
 	UniqueIndexes() Indexes
 }
 
+type WithSpatialIndexes interface {
+	SpatialIndexes() Indexes
+}
+
 type WithComments interface {
 	Comments() map[string]string
 }

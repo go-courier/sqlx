@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBool(t *testing.T) {
-	tt := assert.New(t)
+	tt := require.New(t)
 	{
 		bytes, _ := json.Marshal(BOOL_TRUE)
 		tt.Equal("true", string(bytes))

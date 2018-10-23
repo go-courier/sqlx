@@ -3,15 +3,13 @@ package database
 import (
 	"testing"
 
+	"github.com/go-courier/sqlx"
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/datatypes"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/go-courier/sqlx"
 )
 
 var db *sqlx.DB
@@ -34,6 +32,7 @@ func TestUserCRUD(t *testing.T) {
 	{
 		user := User{}
 		user.Name = uuid.New().String()
+		user.Geom = "Point(0 0)"
 
 		err := user.Create(db)
 		tt.NoError(err)
@@ -96,7 +95,7 @@ func TestUserCRUD(t *testing.T) {
 }
 
 func TestUserList(t *testing.T) {
-	tt := assert.New(t)
+	tt := require.New(t)
 
 	DBTest.MigrateTo(db, sqlx.MigrationOptions{})
 

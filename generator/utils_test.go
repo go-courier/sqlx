@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-courier/sqlx/builder"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -13,7 +13,7 @@ func init() {
 }
 
 func TestParseIndexesFromDoc(t *testing.T) {
-	tt := assert.New(t)
+	tt := require.New(t)
 
 	tt.Equal(&Keys{
 		Primary: []string{"ID"},

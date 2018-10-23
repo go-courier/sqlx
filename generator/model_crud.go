@@ -55,7 +55,7 @@ if m.?.IsZero() {
 `,
 			codegen.Id(m.FieldKeyCreatedAt),
 			codegen.Id(m.FieldKeyCreatedAt),
-			codegen.Id(m.FieldType(file, m.FieldKeyCreatedAt)),
+			m.FieldType(file, m.FieldKeyCreatedAt),
 			codegen.Id(file.Use("time", "Now")))
 	}
 
@@ -67,10 +67,11 @@ func (m *Model) SnippetSetLastInsertIdIfNeed(file *codegen.File) codegen.Snippet
 		return codegen.Expr(`
 if err == nil {
 	lastInsertID, _ := result.LastInsertId()
-	m.? = `+m.FieldType(file, m.FieldKeyAutoIncrement)+`(lastInsertID)
+	m.? = ?(lastInsertID)
 }
 `,
 			codegen.Id(m.FieldKeyAutoIncrement),
+			m.FieldType(file, m.FieldKeyAutoIncrement),
 		)
 	}
 
@@ -88,7 +89,7 @@ if m.?.IsZero() {
 `,
 			codegen.Id(m.FieldKeyUpdatedAt),
 			codegen.Id(m.FieldKeyUpdatedAt),
-			codegen.Id(m.FieldType(file, m.FieldKeyUpdatedAt)),
+			m.FieldType(file, m.FieldKeyUpdatedAt),
 			codegen.Id(file.Use("time", "Now")))
 	}
 
@@ -106,7 +107,7 @@ if _, ok := fieldValues[?]; !ok {
 `,
 			codegen.Val(m.FieldKeyUpdatedAt),
 			codegen.Val(m.FieldKeyUpdatedAt),
-			codegen.Id(m.FieldType(file, m.FieldKeyUpdatedAt)),
+			m.FieldType(file, m.FieldKeyUpdatedAt),
 			codegen.Id(file.Use("time", "Now")))
 	}
 	return nil
@@ -500,13 +501,18 @@ func toExactlyConditionFrom(file *codegen.File, fieldNames ...string) string {
 func createMethod(method string, fieldNames ...string) string {
 	return fmt.Sprintf(method, strings.Join(fieldNames, "And"))
 }
-func (m *Model) FieldType(file *codegen.File, fieldName string) string {
+
+func (m *Model) FieldType(file *codegen.File, fieldName string) codegen.SnippetType {
 	if field, ok := m.Fields[fieldName]; ok {
 		typ := field.Type().String()
 		if strings.Index(typ, ".") > -1 {
-			return file.Use(packagesx.GetPkgImportPathAndExpose(typ))
+			importPath, name := packagesx.GetPkgImportPathAndExpose(typ)
+			if importPath != m.TypeName.Pkg().Path() {
+				return codegen.Type(file.Use(importPath, name))
+			}
+			return codegen.Type(name)
 		}
-		return typ
+		return codegen.BuiltInType(typ)
 	}
-	return ""
+	return nil
 }

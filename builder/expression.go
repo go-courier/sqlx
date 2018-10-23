@@ -4,6 +4,11 @@ import (
 	"strings"
 )
 
+
+type ValuerExpr interface {
+	ValueEx() string
+}
+
 type SqlExpr interface {
 	Expr() *Expression
 }

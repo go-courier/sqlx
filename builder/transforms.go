@@ -148,6 +148,20 @@ func ScanDefToTable(rv reflect.Value, table *Table) {
 					table.Keys.Add(idx)
 				}
 			}
+
+			if spatialIndexesHook, ok := i.(WithSpatialIndexes); ok {
+				for name, indexes := range spatialIndexesHook.SpatialIndexes() {
+					idx := SpatialIndex(name)
+					for _, indexName := range indexes {
+						if col := table.F(indexName); col != nil {
+							idx = idx.WithCols(col)
+						} else {
+							panic(fmt.Errorf("field %s for spatial indexes %s is not defined in table model %s", indexName, name, table.Name))
+						}
+					}
+					table.Keys.Add(idx)
+				}
+			}
 		}
 	}
 }

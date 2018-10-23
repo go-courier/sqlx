@@ -8,7 +8,7 @@ import (
 	"github.com/go-courier/reflectx"
 )
 
-var queryRegexp = regexp.MustCompile(`(\$\d+)|\?`)
+var queryRegexp = regexp.MustCompile(`\?`)
 
 func FlattenArgs(query string, args ...interface{}) (finalQuery string, finalArgs []interface{}) {
 	index := 0
@@ -16,8 +16,12 @@ func FlattenArgs(query string, args ...interface{}) (finalQuery string, finalArg
 		arg := args[index]
 		index++
 
-		if canExpr, ok := arg.(SqlExpr); ok {
-			e := canExpr.Expr()
+		switch a := arg.(type) {
+		case ValuerExpr:
+			finalArgs = append(finalArgs, arg)
+			return a.ValueEx()
+		case SqlExpr:
+			e := a.Expr()
 			resolvedQuery, resolvedArgs := FlattenArgs(e.Query, e.Args...)
 			finalArgs = append(finalArgs, resolvedArgs...)
 			return resolvedQuery
@@ -34,6 +38,7 @@ func FlattenArgs(query string, args ...interface{}) (finalQuery string, finalArg
 				return HolderRepeat(length)
 			}
 		}
+
 		finalArgs = append(finalArgs, arg)
 		return i
 	})

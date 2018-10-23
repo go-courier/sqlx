@@ -195,6 +195,18 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 		)
 	}
 
+	if len(m.Keys.SpatialIndexes) > 0 {
+		file.WriteBlock(
+			codegen.Func().
+				Named("SpatialIndexes").
+				MethodOf(codegen.Var(m.Type())).
+				Return(codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Indexes")))).
+				Do(
+					codegen.Return(file.Val(m.Keys.SpatialIndexes)),
+				),
+		)
+	}
+
 	if m.WithComments {
 		file.WriteBlock(
 			codegen.Func().

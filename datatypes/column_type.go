@@ -251,4 +251,5 @@ func (columnType ColumnType) String() string {
 var ValueKeywords = map[string]bool{
 	"NULL":              true,
 	"CURRENT_TIMESTAMP": true,
+	"CURRENT_DATE":      true,
 }

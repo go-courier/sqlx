@@ -55,13 +55,13 @@ func (g *TagGenerator) writeFile(filename string, file *ast.File) {
 		panic(err)
 	}
 
-	bytes, err := formatx.Format(filename, buf.Bytes())
+	data, err := formatx.Format(filename, buf.Bytes())
 	if err != nil {
 		panic(err)
 	}
 
-	if err := ioutil.WriteFile(filename, bytes, os.ModePerm); err != nil {
-
+	if err := ioutil.WriteFile(filename, data, os.ModePerm); err != nil {
+		panic(err)
 	}
 }
 

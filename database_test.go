@@ -22,7 +22,7 @@ func init() {
 }
 
 type TableOperateTime struct {
-	CreatedAt datatypes.MySQLDatetime `db:"F_created_at" sql:"datetime(6) NOT NULL DEFAULT '0' ON UPDATE CURRENT_TIMESTAMP(6)" `
+	CreatedAt datatypes.MySQLDatetime `db:"F_created_at" sql:"timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)" `
 	UpdatedAt int64                   `db:"F_updated_at" sql:"bigint(64) NOT NULL DEFAULT '0'"`
 }
 
@@ -124,7 +124,7 @@ func TestMigrate(t *testing.T) {
 	dbTest := NewFeatureDatabase("test_for_migrate")
 	defer func() {
 		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
-		tt.Nil(err)
+		tt.NoError(err)
 	}()
 
 	{
@@ -156,12 +156,12 @@ func TestCRUD(t *testing.T) {
 	dbTest := NewDatabase("test")
 	defer func() {
 		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
-		tt.Nil(err)
+		tt.NoError(err)
 	}()
 
 	userTable := dbTest.Register(&User{})
 	err := dbTest.MigrateTo(db, MigrationOptions{})
-	tt.Nil(err)
+	tt.NoError(err)
 
 	{
 		user := User{
@@ -169,7 +169,8 @@ func TestCRUD(t *testing.T) {
 			Gender: GenderMale,
 		}
 		user.BeforeInsert()
-		result, err := db.ExecExpr(builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...))
+		stmt := builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...)
+		result, err := db.ExecExpr(stmt)
 		tt.NoError(err)
 		user.AfterInsert(result)
 		tt.NotEmpty(user.ID)
