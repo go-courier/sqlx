@@ -32,7 +32,9 @@ func TestUserCRUD(t *testing.T) {
 	{
 		user := User{}
 		user.Name = uuid.New().String()
-		user.Geom = "Point(0 0)"
+		user.Geom = GeomString{
+			V: "Point(0 0)",
+		}
 
 		err := user.Create(db)
 		tt.NoError(err)

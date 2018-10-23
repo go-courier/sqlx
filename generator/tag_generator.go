@@ -3,6 +3,7 @@ package generator
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-courier/reflectx/typesutil"
 	"go/ast"
 	"go/format"
 	"go/token"
@@ -18,6 +19,10 @@ import (
 	"github.com/go-courier/packagesx"
 	"github.com/sirupsen/logrus"
 )
+
+type DataTypeDescriber interface {
+	DateType() string
+}
 
 func NewTagGenerator(pkg *packagesx.Package) *TagGenerator {
 	return &TagGenerator{
@@ -38,7 +43,7 @@ func (g *TagGenerator) Scan(structNames ...string) {
 			for _, structName := range structNames {
 				if typeName.Name() == structName {
 					if typeStruct, ok := typeName.Type().Underlying().(*types.Struct); ok {
-						modifyTag(ident.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType), typeStruct, g.WithDefaults)
+						g.modifyTag(ident.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType), typeStruct, g.WithDefaults)
 						file := g.pkg.FileOf(ident)
 						g.files[g.pkg.Fset.Position(file.Pos()).Filename] = file
 					}
@@ -71,7 +76,7 @@ func (g *TagGenerator) Output(cwd string) {
 	}
 }
 
-func modifyTag(structType *ast.StructType, typeStruct *types.Struct, withDefaults bool) {
+func (g *TagGenerator) modifyTag(structType *ast.StructType, typeStruct *types.Struct, withDefaults bool) {
 	for i := 0; i < typeStruct.NumFields(); i++ {
 		f := typeStruct.Field(i)
 		if f.Anonymous() {
@@ -100,15 +105,24 @@ func modifyTag(structType *ast.StructType, typeStruct *types.Struct, withDefault
 			case "github.com/go-courier/sqlx/datatypes.MySQLTimestamp":
 				tags["sql"] = toSqlFromKind(types.Typ[types.Int64].Kind(), withDefaults)
 			default:
-				tpe, err := deref(tpe)
+				t, err := deref(tpe)
 				if err != nil {
 					logrus.Warnf("%s, make sure type of Field `%s` have sql.Valuer and sql.Scanner interface", err, f.Name())
 				}
-				switch tpe.(type) {
+				switch t.(type) {
 				case *types.Basic:
-					tags["sql"] = toSqlFromKind(tpe.(*types.Basic).Kind(), withDefaults)
+					tags["sql"] = toSqlFromKind(t.(*types.Basic).Kind(), withDefaults)
 				default:
-					tags["sql"] = WithDefaults("varchar(255) NOT NULL", withDefaults, "")
+					dataType := "varchar(255)"
+
+					if method, ok := typesutil.FromTType(tpe).MethodByName("DataType"); ok {
+						results, count := g.pkg.FuncResultsOf(method.(*typesutil.TMethod).Func)
+						if count > 0 {
+							dataType, _ = strconv.Unquote(results[0][0].Value.String())
+						}
+					}
+
+					tags["sql"] = WithDefaults(dataType+" NOT NULL", false, "")
 				}
 			}
 		}
