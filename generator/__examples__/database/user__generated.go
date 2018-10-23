@@ -188,17 +188,17 @@ func (User) SpatialIndexes() github_com_go_courier_sqlx_builder.Indexes {
 
 func (User) Comments() map[string]string {
 	return map[string]string{
-		"Username":  "",
-		"Gender":    "",
 		"Birthday":  "",
 		"Boolean":   "",
 		"CreatedAt": "",
 		"Enabled":   "",
+		"Gender":    "",
+		"Geom":      "",
 		"ID":        "",
 		"Name":      "姓名",
 		"Nickname":  "",
-		"Geom":      "",
 		"UpdatedAt": "",
+		"Username":  "",
 	}
 }
 
