@@ -1,7 +1,8 @@
-package sqlx
+package mysql
 
 import (
 	"database/sql"
+	"github.com/go-courier/sqlx"
 	"strings"
 	"time"
 
@@ -17,8 +18,8 @@ func toInterfaces(list ...string) []interface{} {
 	return s
 }
 
-func DBFromInformationSchema(db *DB, dbName string, tableNames ...string) *Database {
-	d := NewDatabase(dbName)
+func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *sqlx.Database {
+	d := sqlx.NewDatabase(dbName)
 
 	schema := SchemaDatabase.T(&Schema{})
 
@@ -119,7 +120,7 @@ func DBFromInformationSchema(db *DB, dbName string, tableNames ...string) *Datab
 	return d
 }
 
-var SchemaDatabase = NewDatabase("INFORMATION_SCHEMA")
+var SchemaDatabase = sqlx.NewDatabase("INFORMATION_SCHEMA")
 
 func init() {
 	SchemaDatabase.Register(&Schema{})

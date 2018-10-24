@@ -1,19 +1,20 @@
-package sqlx
+package mysql
 
 import (
 	"fmt"
-
+	"github.com/go-courier/sqlx"
 	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/enummeta"
 	"github.com/sirupsen/logrus"
 )
 
-type MigrationOptions struct {
+type Migration struct {
 	DropColumn bool
 	DryRun     bool
 }
 
-func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
-	database.Register(&SqlMetaEnum{})
+func (opts Migration) Migrate(database *sqlx.Database, db *sqlx.DB) error {
+	database.Register(&enummeta.SqlMetaEnum{})
 
 	currentDatabase := DBFromInformationSchema(db, database.Name, database.Tables.TableNames()...)
 
@@ -22,7 +23,7 @@ func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
 		defer logrus.Debugf("=================== migrated database `%s` ====================", database.Name)
 
 		if currentDatabase == nil {
-			currentDatabase = &Database{
+			currentDatabase = &sqlx.Database{
 				Database: builder.DB(database.Name),
 			}
 			if _, err := db.ExecExpr(builder.CreateDatebaseIfNotExists(currentDatabase)); err != nil {
@@ -51,7 +52,7 @@ func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
 			}
 		}
 
-		if err := SyncEnum(database, db); err != nil {
+		if err := enummeta.SyncEnum(database, db); err != nil {
 			return err
 		}
 
@@ -59,7 +60,7 @@ func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
 	}
 
 	if currentDatabase == nil {
-		currentDatabase = &Database{
+		currentDatabase = &sqlx.Database{
 			Database: builder.DB(database.Name),
 		}
 
@@ -86,7 +87,7 @@ func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
 
 	fmt.Printf("=================== need to migrate database `%s` ====================\n", database.Name)
 
-	if err := SyncEnum(database, db); err != nil {
+	if err := enummeta.SyncEnum(database, db); err != nil {
 		return err
 	}
 
