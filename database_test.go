@@ -1,7 +1,9 @@
-package sqlx
+package sqlx_test
 
 import (
 	"database/sql"
+	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/migration/mysql"
 	"os"
 	"testing"
 	"time"
@@ -14,11 +16,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var db *DB
+var db *sqlx.DB
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
-	db = MustOpen("logger:mysql", "root@tcp(0.0.0.0:3306)/?charset=utf8&parseTime=true&interpolateParams=true&autocommit=true&loc=Local")
+	db = sqlx.MustOpen("logger:mysql", "root@tcp(0.0.0.0:3306)/?charset=utf8&parseTime=true&interpolateParams=true&autocommit=true&loc=Local")
 }
 
 type TableOperateTime struct {
@@ -121,7 +123,7 @@ func TestMigrate(t *testing.T) {
 	tt := require.New(t)
 
 	os.Setenv("PROJECT_FEATURE", "test")
-	dbTest := NewFeatureDatabase("test_for_migrate")
+	dbTest := sqlx.NewFeatureDatabase("test_for_migrate")
 	defer func() {
 		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
 		tt.NoError(err)
@@ -129,23 +131,23 @@ func TestMigrate(t *testing.T) {
 
 	{
 		dbTest.Register(&User{})
-		err := dbTest.MigrateTo(db, MigrationOptions{})
+		err := (mysql.Migration{}).Migrate(dbTest, db)
 		tt.NoError(err)
 	}
 	{
 		dbTest.Register(&User{})
-		err := dbTest.MigrateTo(db, MigrationOptions{})
+		err := (mysql.Migration{}).Migrate(dbTest, db)
 		tt.NoError(err)
 	}
 	{
 		dbTest.Register(&User2{})
-		err := dbTest.MigrateTo(db, MigrationOptions{})
+		err := (mysql.Migration{}).Migrate(dbTest, db)
 		tt.NoError(err)
 	}
 
 	{
 		dbTest.Register(&User{})
-		err := dbTest.MigrateTo(db, MigrationOptions{})
+		err := (mysql.Migration{}).Migrate(dbTest, db)
 		tt.NoError(err)
 	}
 }
@@ -153,14 +155,14 @@ func TestMigrate(t *testing.T) {
 func TestCRUD(t *testing.T) {
 	tt := require.New(t)
 
-	dbTest := NewDatabase("test")
+	dbTest := sqlx.NewDatabase("test")
 	defer func() {
 		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
 		tt.NoError(err)
 	}()
 
 	userTable := dbTest.Register(&User{})
-	err := dbTest.MigrateTo(db, MigrationOptions{})
+	err := (mysql.Migration{}).Migrate(dbTest, db)
 	tt.NoError(err)
 
 	{
@@ -207,7 +209,7 @@ func TestCRUD(t *testing.T) {
 			user.BeforeInsert()
 			_, err := db.ExecExpr(builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...))
 			t.Log(err)
-			tt.True(DBErr(err).IsConflict())
+			tt.True(sqlx.DBErr(err).IsConflict())
 
 			{
 				_, err := db.ExecExpr(
@@ -230,14 +232,14 @@ func TestCRUD(t *testing.T) {
 func TestSelect(t *testing.T) {
 	tt := require.New(t)
 
-	dbTest := NewDatabase("test2")
+	dbTest := sqlx.NewDatabase("test2")
 	defer func() {
 		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
 		tt.Nil(err)
 	}()
 
 	table := dbTest.Register(&User{})
-	err := dbTest.MigrateTo(db, MigrationOptions{})
+	err := (mysql.Migration{}).Migrate(dbTest, db)
 	tt.Nil(err)
 
 	for i := 0; i < 10; i++ {
@@ -268,7 +270,7 @@ func TestSelect(t *testing.T) {
 			),
 			&user,
 		)
-		tt.True(DBErr(err).IsNotFound())
+		tt.True(sqlx.DBErr(err).IsNotFound())
 	}
 	{
 		count := 0

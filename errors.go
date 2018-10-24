@@ -23,7 +23,6 @@ func (e *SqlError) Error() string {
 type sqlErrType string
 
 var (
-	sqlErrTypeInvalidSql        sqlErrType = "InvalidSql"
 	sqlErrTypeInvalidScanTarget sqlErrType = "InvalidScanTarget"
 	sqlErrTypeNotFound          sqlErrType = "NotFound"
 	sqlErrTypeSelectShouldOne   sqlErrType = "SelectShouldOne"

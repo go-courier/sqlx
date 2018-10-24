@@ -1,4 +1,4 @@
-package loggerdriver
+package loggermysql
 
 import (
 	"database/sql/driver"

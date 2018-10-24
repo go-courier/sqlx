@@ -1,7 +1,9 @@
-package sqlx
+package sqlx_test
 
 import (
 	"fmt"
+	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/migration/mysql"
 	"testing"
 
 	"github.com/go-courier/sqlx/builder"
@@ -12,7 +14,7 @@ import (
 func TestWithTasks(t *testing.T) {
 	tt := require.New(t)
 
-	dbTest := NewDatabase("test_for_user")
+	dbTest := sqlx.NewDatabase("test_for_user")
 	defer func() {
 		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
 		tt.NoError(err)
@@ -20,14 +22,14 @@ func TestWithTasks(t *testing.T) {
 
 	{
 		dbTest.Register(&User{})
-		err := dbTest.MigrateTo(db, MigrationOptions{DryRun: false})
+		err := (mysql.Migration{DryRun: false}).Migrate(dbTest, db)
 		tt.NoError(err)
 	}
 
 	{
-		taskList := NewTasks(db)
+		taskList := sqlx.NewTasks(db)
 
-		taskList = taskList.With(func(db *DB) error {
+		taskList = taskList.With(func(db *sqlx.DB) error {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
@@ -40,10 +42,10 @@ func TestWithTasks(t *testing.T) {
 			return err
 		})
 
-		taskList = taskList.With(func(db *DB) error {
-			subTaskList := NewTasks(db)
+		taskList = taskList.With(func(db *sqlx.DB) error {
+			subTaskList := sqlx.NewTasks(db)
 
-			subTaskList = subTaskList.With(func(db *DB) error {
+			subTaskList = subTaskList.With(func(db *sqlx.DB) error {
 				user := User{
 					Name:   uuid.New().String(),
 					Gender: GenderMale,
@@ -56,7 +58,7 @@ func TestWithTasks(t *testing.T) {
 				return err
 			})
 
-			subTaskList = subTaskList.With(func(db *DB) error {
+			subTaskList = subTaskList.With(func(db *sqlx.DB) error {
 				return fmt.Errorf("rollback")
 			})
 
@@ -67,9 +69,9 @@ func TestWithTasks(t *testing.T) {
 		tt.NotNil(err)
 	}
 
-	taskList := NewTasks(db)
+	taskList := sqlx.NewTasks(db)
 
-	taskList = taskList.With(func(db *DB) error {
+	taskList = taskList.With(func(db *sqlx.DB) error {
 		user := User{
 			Name:   uuid.New().String(),
 			Gender: GenderMale,
@@ -82,10 +84,10 @@ func TestWithTasks(t *testing.T) {
 		return err
 	})
 
-	taskList = taskList.With(func(db *DB) error {
-		subTaskList := NewTasks(db)
+	taskList = taskList.With(func(db *sqlx.DB) error {
+		subTaskList := sqlx.NewTasks(db)
 
-		subTaskList = subTaskList.With(func(db *DB) error {
+		subTaskList = subTaskList.With(func(db *sqlx.DB) error {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
@@ -98,7 +100,7 @@ func TestWithTasks(t *testing.T) {
 			return err
 		})
 
-		subTaskList = subTaskList.With(func(db *DB) error {
+		subTaskList = subTaskList.With(func(db *sqlx.DB) error {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,

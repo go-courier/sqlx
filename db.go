@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-courier/sqlx/builder"
-	_ "github.com/go-courier/sqlx/loggerdriver"
+	_ "github.com/go-courier/sqlx/loggerdrivers/loggermysql"
 	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
