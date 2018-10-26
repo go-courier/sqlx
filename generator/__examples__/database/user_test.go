@@ -1,9 +1,10 @@
 package database
 
 import (
+	"github.com/go-courier/sqlx/mysqlconnector"
+	"github.com/go-courier/sqlx/mysqlconnector/migration"
 	"testing"
 
-	"github.com/go-courier/sqlx"
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/datatypes"
 	_ "github.com/go-sql-driver/mysql"
@@ -12,20 +13,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var db *sqlx.DB
+var (
+	mysqlConnector = &mysqlconnector.MysqlConnector{
+		Host:  "root@tcp(0.0.0.0:3306)",
+		Extra: "charset=utf8mb4&parseTime=true&interpolateParams=true&autocommit=true&loc=Local",
+	}
+)
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
-	db, _ = sqlx.Open("logger:mysql", "root@tcp(localhost:3306)/?charset=utf8&parseTime=true&interpolateParams=true&autocommit=true&loc=Local")
 }
 
 func TestUserCRUD(t *testing.T) {
 	tt := require.New(t)
 
-	DBTest.MigrateTo(db, sqlx.MigrationOptions{})
+	db := DBTest.OpenDB(mysqlConnector)
+
+	err := (migration.Migration{Database: DBTest}).Migrate(db)
+	tt.NoError(err)
 
 	defer func() {
-		_, err := db.ExecExpr(builder.DropDatabase(DBTest))
+		_, err := db.ExecExpr(db.DropDatabase(DBTest.Name))
 		tt.NoError(err)
 	}()
 
@@ -99,16 +107,23 @@ func TestUserCRUD(t *testing.T) {
 func TestUserList(t *testing.T) {
 	tt := require.New(t)
 
-	DBTest.MigrateTo(db, sqlx.MigrationOptions{})
+	db := DBTest.OpenDB(mysqlConnector)
+
+	err := (migration.Migration{Database: DBTest}).Migrate(db)
+	tt.NoError(err)
 
 	defer func() {
-		_, err := db.ExecExpr(builder.DropDatabase(DBTest))
+		_, err := db.ExecExpr(db.DropDatabase(DBTest.Name))
 		tt.NoError(err)
 	}()
 
 	createUser := func() {
 		user := User{}
 		user.Name = uuid.New().String()
+		user.Geom = GeomString{
+			V: "Point(0 0)",
+		}
+
 		err := user.Create(db)
 		tt.NoError(err)
 	}

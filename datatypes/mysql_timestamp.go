@@ -19,6 +19,10 @@ var (
 // openapi:strfmt date-time
 type MySQLTimestamp time.Time
 
+func (dt *MySQLTimestamp) DataType(engine string) string {
+	return "bigint"
+}
+
 func ParseMySQLTimestampFromString(s string) (dt MySQLTimestamp, err error) {
 	var t time.Time
 	t, err = time.Parse(time.RFC3339, s)

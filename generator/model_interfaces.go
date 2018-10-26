@@ -122,7 +122,7 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 				codegen.Expr(`table := m.T()`),
 				codegen.Expr(`fieldValues := `+file.Use("github.com/go-courier/sqlx/builder", "FieldValuesFromStructByNonZero")+`(m)
 
-conditions := make([]*`+file.Use("github.com/go-courier/sqlx/builder", "Condition")+`, 0)
+conditions := make([]`+file.Use("github.com/go-courier/sqlx/builder", "SqlCondition")+`, 0)
 
 for _, fieldName := range m.IndexFieldNames() {
 	if v, exists := fieldValues[fieldName]; exists {
@@ -164,7 +164,7 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 			codegen.Func().
 				Named("PrimaryKey").
 				MethodOf(codegen.Var(m.Type())).
-				Return(codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "FieldNames")))).
+				Return(codegen.Var(codegen.Slice(codegen.String))).
 				Do(
 					codegen.Return(file.Val(m.Keys.Primary)),
 				),
@@ -191,18 +191,6 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 				Return(codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Indexes")))).
 				Do(
 					codegen.Return(file.Val(m.Keys.UniqueIndexes)),
-				),
-		)
-	}
-
-	if len(m.Keys.SpatialIndexes) > 0 {
-		file.WriteBlock(
-			codegen.Func().
-				Named("SpatialIndexes").
-				MethodOf(codegen.Var(m.Type())).
-				Return(codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Indexes")))).
-				Do(
-					codegen.Return(file.Val(m.Keys.SpatialIndexes)),
 				),
 		)
 	}

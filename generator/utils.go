@@ -16,10 +16,9 @@ var (
 )
 
 type Keys struct {
-	Primary        builder.FieldNames
-	Indexes        builder.Indexes
-	UniqueIndexes  builder.Indexes
-	SpatialIndexes builder.Indexes
+	Primary       []string
+	Indexes       builder.Indexes
+	UniqueIndexes builder.Indexes
 }
 
 func (ks *Keys) PatchUniqueIndexesWithSoftDelete(softDeleteField string) {
@@ -32,57 +31,37 @@ func (ks *Keys) PatchUniqueIndexesWithSoftDelete(softDeleteField string) {
 
 func (ks *Keys) Bind(table *builder.Table) {
 	if len(ks.Primary) > 0 {
-		cols, err := CheckFields(table, ks.Primary...)
+		cols, err := table.Fields(ks.Primary...)
 		if err != nil {
-			panic(fmt.Errorf("%s, please check primary def", err.Error()))
+			panic(fmt.Errorf("%s, please check primary def", err))
 		}
 		ks.Primary = cols.FieldNames()
-		table.Keys.Add(builder.PrimaryKey().WithCols(cols.List()...))
-	}
-	if len(ks.Indexes) > 0 {
-		for name, fieldNames := range ks.Indexes {
-			cols, err := CheckFields(table, fieldNames...)
-			if err != nil {
-				panic(fmt.Errorf("%s, please check index def", err.Error()))
-			}
-			ks.Indexes[name] = cols.FieldNames()
-			table.Keys.Add(builder.Index(name).WithCols(cols.List()...))
-		}
+		table.AddKey(builder.PrimaryKey(cols))
 	}
 
 	if len(ks.UniqueIndexes) > 0 {
-		for name, fieldNames := range ks.UniqueIndexes {
-			cols, err := CheckFields(table, fieldNames...)
+		for indexNameAndMethod, fieldNames := range ks.UniqueIndexes {
+			indexName, method := builder.ResolveIndexNameAndMethod(indexNameAndMethod)
+			cols, err := table.Fields(fieldNames...)
 			if err != nil {
-				panic(fmt.Errorf("%s, please check unique_index def", err.Error()))
+				panic(fmt.Errorf("%s, please check unique_index def", err))
 			}
-			ks.UniqueIndexes[name] = cols.FieldNames()
-			table.Keys.Add(builder.UniqueIndex(name).WithCols(cols.List()...))
+			ks.UniqueIndexes[indexNameAndMethod] = cols.FieldNames()
+			table.AddKey(builder.UniqueIndex(indexName, cols).Using(method))
 		}
 	}
 
-	if len(ks.SpatialIndexes) > 0 {
-		for name, fieldNames := range ks.SpatialIndexes {
-			cols, err := CheckFields(table, fieldNames...)
+	if len(ks.Indexes) > 0 {
+		for indexNameAndMethod, fieldNames := range ks.Indexes {
+			indexName, method := builder.ResolveIndexNameAndMethod(indexNameAndMethod)
+			cols, err := table.Fields(fieldNames...)
 			if err != nil {
-				panic(fmt.Errorf("%s, please check spatial_index def", err.Error()))
+				panic(fmt.Errorf("%s, please check index def", err))
 			}
-			ks.SpatialIndexes[name] = cols.FieldNames()
-			table.Keys.Add(builder.SpatialIndex(name).WithCols(cols.List()...))
+			ks.Indexes[indexNameAndMethod] = cols.FieldNames()
+			table.AddKey(builder.Index(indexName, cols).Using(method))
 		}
 	}
-}
-
-func CheckFields(table *builder.Table, fieldNames ...string) (cols builder.Columns, err error) {
-	for _, fieldName := range fieldNames {
-		col := table.F(fieldName)
-		if col == nil {
-			err = fmt.Errorf("table %s has no field %s", table.Name, fieldName)
-			return
-		}
-		cols.Add(col)
-	}
-	return
 }
 
 func parseKeysFromDoc(doc string) *Keys {
@@ -98,15 +77,7 @@ func parseKeysFromDoc(doc string) *Keys {
 				if len(defs) < 2 {
 					panic(fmt.Errorf("primary at lease 1 Field"))
 				}
-				ks.Primary = builder.FieldNames(defs[1:])
-			case "index":
-				if len(defs) < 3 {
-					panic(fmt.Errorf("index at lease 1 Field"))
-				}
-				if ks.Indexes == nil {
-					ks.Indexes = builder.Indexes{}
-				}
-				ks.Indexes[defs[1]] = builder.FieldNames(defs[2:])
+				ks.Primary = defs[1:]
 			case "unique_index":
 				if len(defs) < 3 {
 					panic(fmt.Errorf("unique indexes at lease 1 Field"))
@@ -114,15 +85,15 @@ func parseKeysFromDoc(doc string) *Keys {
 				if ks.UniqueIndexes == nil {
 					ks.UniqueIndexes = builder.Indexes{}
 				}
-				ks.UniqueIndexes[defs[1]] = builder.FieldNames(defs[2:])
-			case "spatial_index":
+				ks.UniqueIndexes[defs[1]] = defs[2:]
+			case "index":
 				if len(defs) < 3 {
-					panic(fmt.Errorf("spatial indexes at lease 1 Field"))
+					panic(fmt.Errorf("index at lease 1 Field"))
 				}
-				if ks.SpatialIndexes == nil {
-					ks.SpatialIndexes = builder.Indexes{}
+				if ks.Indexes == nil {
+					ks.Indexes = builder.Indexes{}
 				}
-				ks.SpatialIndexes[defs[1]] = builder.FieldNames(defs[2:])
+				ks.Indexes[defs[1]] = defs[2:]
 			}
 		}
 	}
@@ -143,16 +114,16 @@ func toDefaultTableName(name string) string {
 	return codegen.LowerSnakeCase("t_" + name)
 }
 
-func forEachStructField(structType *types.Struct, fn func(fieldVar *types.Var, columnName string, tpe string)) {
+func forEachStructField(structType *types.Struct, fn func(fieldVar *types.Var, columnName string, tagValue string)) {
 	for i := 0; i < structType.NumFields(); i++ {
 		field := structType.Field(i)
 		tag := structType.Tag(i)
 		if field.Exported() {
 			structTag := reflect.StructTag(tag)
-			fieldName, exists := structTag.Lookup("db")
+			tagValue, exists := structTag.Lookup("db")
 			if exists {
-				if fieldName != "-" {
-					fn(field, fieldName, structTag.Get("sql"))
+				if tagValue != "-" {
+					fn(field, builder.GetColumnName(field.Name(), tagValue), tagValue)
 				}
 			} else if field.Anonymous() {
 				if nextStructType, ok := field.Type().Underlying().(*types.Struct); ok {
@@ -196,9 +167,4 @@ func stringUniq(list []string) (result []string) {
 		}
 	}
 	return
-}
-
-func deVendor(importPath string) string {
-	parts := strings.Split(importPath, "/vendor/")
-	return parts[len(parts)-1]
 }

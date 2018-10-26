@@ -8,29 +8,11 @@ import (
 	"time"
 
 	"github.com/go-courier/sqlx/builder"
-	_ "github.com/go-courier/sqlx/loggerdrivers/loggermysql"
-	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
 
 var ErrNotTx = errors.New("db is not *sql.Tx")
 var ErrNotDB = errors.New("db is not *sql.DB")
-
-func MustOpen(driverName string, dataSourceName string) *DB {
-	db, err := Open(driverName, dataSourceName)
-	if err != nil {
-		panic(err)
-	}
-	return db
-}
-
-func Open(driverName string, dataSourceName string) (*DB, error) {
-	db, err := sql.Open(driverName, dataSourceName)
-	if err != nil {
-		return nil, err
-	}
-	return &DB{SqlExecutor: db}, nil
-}
 
 type SqlExecutor interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -38,25 +20,39 @@ type SqlExecutor interface {
 }
 
 type DB struct {
+	builder.Dialect
 	SqlExecutor
 }
 
 func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
-	e := expr.Expr()
-	if e == nil {
+	e := builder.ExprFrom(expr)
+	if e.IsNil() {
 		return nil, nil
 	}
-	if e.Err != nil {
-		return nil, e.Err
+	if err := e.Err(); err != nil {
+		return nil, err
 	}
-	result, err := d.Exec(e.Query, e.Args...)
+	e = e.Flatten()
+	result, err := d.Exec(e.Query(), e.Args()...)
 	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == DuplicateEntryErrNumber {
-			return nil, NewSqlError(sqlErrTypeConflict, mysqlErr.Error())
+		if d.IsErrorConflict(err) {
+			return nil, NewSqlError(sqlErrTypeConflict, err.Error())
 		}
 		return nil, err
 	}
 	return result, nil
+}
+
+func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
+	e := builder.ExprFrom(expr)
+	if e.IsNil() {
+		return nil, nil
+	}
+	if err := e.Err(); err != nil {
+		return nil, err
+	}
+	e = e.Flatten()
+	return d.Query(e.Query(), e.Args()...)
 }
 
 func (d *DB) QueryExprAndScan(expr builder.SqlExpr, v interface{}) error {
@@ -65,27 +61,6 @@ func (d *DB) QueryExprAndScan(expr builder.SqlExpr, v interface{}) error {
 		return err
 	}
 	return Scan(rows, v)
-}
-
-func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
-	e := expr.Expr()
-	if e == nil {
-		return nil, nil
-	}
-	if e.Err != nil {
-		return nil, e.Err
-	}
-	return d.Query(e.Query, e.Args...)
-}
-
-func (d *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	query, args = builder.FlattenArgs(query, args...)
-	return d.SqlExecutor.Query(query, args...)
-}
-
-func (d *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	query, args = builder.FlattenArgs(query, args...)
-	return d.SqlExecutor.Exec(query, args...)
 }
 
 func (d *DB) IsTx() bool {
@@ -102,6 +77,7 @@ func (d *DB) Begin() (*DB, error) {
 		return nil, err
 	}
 	return &DB{
+		Dialect:     d.Dialect,
 		SqlExecutor: db,
 	}, nil
 }

@@ -1,11 +1,11 @@
 package builder
 
 import (
-	"fmt"
+	"errors"
 )
 
 var (
-	UpdateNeedLimitByWhere = fmt.Errorf("no where limit for update")
+	UpdateNeedLimitByWhere = errors.New("no where limit for update")
 )
 
 func Update(table *Table, modifiers ...string) *StmtUpdate {
@@ -35,30 +35,32 @@ func (s StmtUpdate) Where(c *Condition, additions ...Addition) *StmtUpdate {
 	return &s
 }
 
-func (s *StmtUpdate) Expr() *Expression {
-	selectSql := "UPDATE"
+func (s *StmtUpdate) IsNil() bool {
+	return s == nil || s.table == nil || s.assignments.IsNil()
+}
+
+func (s *StmtUpdate) Expr() *Ex {
+	if s.IsNil() {
+		return nil
+	}
+
+	e := Expr("UPDATE")
 
 	if len(s.modifiers) > 0 {
 		for i := range s.modifiers {
-			selectSql += " " + s.modifiers[i]
+			e.WriteByte(' ')
+			e.WriteString(s.modifiers[i])
 		}
 	}
 
-	expr := Expr(selectSql)
+	e.WriteByte(' ')
+	e.WriteExpr(s.table)
+	e.WriteString(" SET ")
+	e.WriteExpr(s.assignments)
 
-	if s.table == nil {
-		panic("UPDATE should bind table")
+	if !s.additions.IsNil() {
+		e.WriteExpr(s.additions)
 	}
 
-	if len(s.assignments) == 0 {
-		panic("UPDATE should contain assignments, please call Set() to set it")
-	}
-
-	expr = MustJoinExpr(" SET ", MustJoinExpr(" ", expr, s.table), s.assignments)
-
-	if len(s.additions) > 0 {
-		expr = MustJoinExpr(" ", expr, s.additions)
-	}
-
-	return expr
+	return e
 }

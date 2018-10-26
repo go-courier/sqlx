@@ -3,10 +3,9 @@ package sqlx_test
 import (
 	"fmt"
 	"github.com/go-courier/sqlx"
-	"github.com/go-courier/sqlx/migration/mysql"
+	"github.com/go-courier/sqlx/mysqlconnector/migration"
 	"testing"
 
-	"github.com/go-courier/sqlx/builder"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -15,14 +14,16 @@ func TestWithTasks(t *testing.T) {
 	tt := require.New(t)
 
 	dbTest := sqlx.NewDatabase("test_for_user")
+	db := dbTest.OpenDB(mysqlConnector)
+
 	defer func() {
-		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
+		_, err := db.ExecExpr(db.DropDatabase(dbTest.Name))
 		tt.NoError(err)
 	}()
 
 	{
 		dbTest.Register(&User{})
-		err := (mysql.Migration{DryRun: false}).Migrate(dbTest, db)
+		err := (migration.Migration{Database: dbTest}).Migrate(db)
 		tt.NoError(err)
 	}
 
@@ -34,11 +35,7 @@ func TestWithTasks(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-
-			_, err := db.ExecExpr(
-				builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...),
-			)
-
+			_, err := db.ExecExpr(dbTest.Insert(&user))
 			return err
 		})
 
@@ -51,10 +48,7 @@ func TestWithTasks(t *testing.T) {
 					Gender: GenderMale,
 				}
 
-				_, err := db.ExecExpr(
-					builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...),
-				)
-
+				_, err := db.ExecExpr(dbTest.Insert(&user))
 				return err
 			})
 
@@ -77,9 +71,7 @@ func TestWithTasks(t *testing.T) {
 			Gender: GenderMale,
 		}
 
-		_, err := db.ExecExpr(
-			builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...),
-		)
+		_, err := db.ExecExpr(dbTest.Insert(&user))
 
 		return err
 	})
@@ -92,11 +84,7 @@ func TestWithTasks(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-
-			_, err := db.ExecExpr(
-				builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...),
-			)
-
+			_, err := db.ExecExpr(dbTest.Insert(&user))
 			return err
 		})
 
@@ -105,11 +93,7 @@ func TestWithTasks(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-
-			_, err := db.ExecExpr(
-				builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...),
-			)
-
+			_, err := db.ExecExpr(dbTest.Insert(&user))
 			return err
 		})
 

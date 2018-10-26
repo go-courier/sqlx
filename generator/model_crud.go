@@ -127,12 +127,8 @@ func (m *Model) WriteCreate(file *codegen.File) {
 
 				codegen.Expr(`
 d := m.D()
-
-result, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/builder", "Insert")+`().
-Into(m.T(), `+file.Use("github.com/go-courier/sqlx/builder", "Comment")+`(?)).
-Set(d.Assignments(m)...))
-
-`, file.Val(m.StructName+".Create")),
+result, err := db.ExecExpr(d.Insert(m))
+`),
 
 				m.SnippetSetLastInsertIdIfNeed(file),
 
@@ -259,11 +255,11 @@ func (m *Model) WriteByKey(file *codegen.File) {
 			return true
 		})
 
-		if m.HasSoftDelete && key.Type == builder.PRIMARY {
+		if m.HasSoftDelete && key.IsPrimary() {
 			fieldNames = append(fieldNames, m.FieldKeySoftDelete)
 		}
 
-		if key.Type == builder.PRIMARY || key.Type == builder.UNIQUE_INDEX {
+		if key.IsUnique {
 			{
 				methodForFetch := createMethod("FetchBy%s", fieldNamesWithoutEnabled...)
 

@@ -7,7 +7,6 @@ func Select(sqlExpr SqlExpr, modifiers ...string) *StmtSelect {
 	}
 }
 
-// https://dev.mysql.com/doc/refman/5.7/en/select.html
 type StmtSelect struct {
 	sqlExpr   SqlExpr
 	table     *Table
@@ -21,12 +20,17 @@ func (s StmtSelect) From(table *Table, additions ...Addition) *StmtSelect {
 	return &s
 }
 
-func (s *StmtSelect) Expr() *Expression {
-	selectSql := "SELECT"
+func (s *StmtSelect) IsNil() bool {
+	return s == nil || s.table == nil
+}
+
+func (s *StmtSelect) Expr() *Ex {
+	e := Expr("SELECT")
 
 	if len(s.modifiers) > 0 {
 		for i := range s.modifiers {
-			selectSql += " " + s.modifiers[i]
+			e.WriteByte(' ')
+			e.WriteString(s.modifiers[i])
 		}
 	}
 
@@ -34,25 +38,19 @@ func (s *StmtSelect) Expr() *Expression {
 		s.sqlExpr = Expr("*")
 	}
 
-	expr := MustJoinExpr(" ", Expr(selectSql), s.sqlExpr)
+	e.WriteByte(' ')
+	e.WriteExpr(s.sqlExpr)
 
-	if s.table == nil {
-		panic("Select should call method `From` to bind table")
+	e.WriteString(" FROM ")
+	e.WriteExpr(s.table)
+
+	if !s.additions.IsNil() {
+		e.WriteExpr(s.additions)
 	}
 
-	expr = MustJoinExpr(" FROM ", expr, s.table)
-
-	if len(s.additions) > 0 {
-		expr = MustJoinExpr(" ", expr, s.additions)
-	}
-
-	return expr
+	return e
 }
 
 func ForUpdate() *otherAddition {
-	return (*otherAddition)(Expr("FOR UPDATE"))
-}
-
-func LockInShareMode() *otherAddition {
-	return (*otherAddition)(Expr("LOCK IN SHARE MODE"))
+	return AsAddition(Expr("FOR UPDATE"))
 }

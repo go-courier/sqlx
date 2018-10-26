@@ -1,133 +1,76 @@
 package builder
 
 import (
-	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 )
 
-type TableDef interface {
-	IsValidDef() bool
-	Def() *Expression
+type TableDefinition interface {
+	T() *Table
 }
 
-func CreateTable(t *Table) SqlExpr {
-	return createTable(t, false)
-}
-
-func CreateTableIsNotExists(t *Table) SqlExpr {
-	return createTable(t, true)
-}
-
-func createTable(t *Table, ifNotExists bool) SqlExpr {
-	expr := Expr("CREATE TABLE")
-	if ifNotExists {
-		expr = MustJoinExpr(" ", expr, Expr("IF NOT EXISTS"))
-	}
-	expr.Query = expr.Query + fmt.Sprintf(" %s (", t.FullName())
-
-	if !t.Columns.IsEmpty() {
-		isFirstCol := true
-
-		t.Columns.Range(func(col *Column, idx int) {
-			joiner := ", "
-			if isFirstCol {
-				joiner = ""
-			}
-			def := col.Def()
-			if def != nil {
-				isFirstCol = false
-				expr = MustJoinExpr(joiner, expr, col.Def())
-			}
-		})
-
-		t.Keys.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(", ", expr, key.Def())
-		})
-	}
-
-	engine := t.Engine
-	if engine == "" {
-		engine = "InnoDB"
-	}
-
-	charset := t.Charset
-	if charset == "" {
-		charset = "utf8"
-	}
-
-	expr.Query = fmt.Sprintf("%s) ENGINE=%s CHARSET=%s", expr.Query, engine, charset)
-	return expr
-}
-
-func AlterTable(t *Table) SqlExpr {
-	return Expr(fmt.Sprintf("ALTER TABLE %s", t.FullName()))
-}
-
-func DropTable(t *Table) SqlExpr {
-	return Expr(fmt.Sprintf("DROP TABLE %s", t.FullName()))
-}
-
-func TruncateTable(t *Table) SqlExpr {
-	return Expr(fmt.Sprintf("TRUNCATE TABLE %s", t.FullName()))
-}
-
-func T(db *Database, tableName string) *Table {
-	return &Table{
-		DB:   db,
+func T(tableName string, tableDefinitions ...TableDefinition) *Table {
+	t := &Table{
 		Name: tableName,
 	}
+
+	for _, tableDef := range tableDefinitions {
+		switch d := tableDef.(type) {
+		case *Column:
+			t.AddCol(d)
+		}
+	}
+	for _, tableDef := range tableDefinitions {
+		switch d := tableDef.(type) {
+		case *Key:
+			t.AddKey(d)
+		}
+	}
+	return t
 }
 
 type Table struct {
-	DB   *Database
 	Name string
 	Columns
 	Keys
-	Engine  string
-	Charset string
 }
 
-func (t *Table) Expr() *Expression {
-	return Expr(t.FullName())
+func (t *Table) IsNil() bool {
+	return t == nil || len(t.Name) == 0
 }
 
-func (t Table) Define(defs ...TableDef) *Table {
-	for _, def := range defs {
-		if def.IsValidDef() {
-			switch def.(type) {
-			case *Column:
-				t.Columns.Add(def.(*Column))
-			case *Key:
-				t.Keys.Add(def.(*Key))
-			}
-		}
+func (t *Table) Expr() *Ex {
+	return Expr(t.Name)
+}
+
+func (t *Table) AddCol(d *Column) {
+	if d == nil {
+		return
 	}
-	return &t
+	t.Columns.Add(d.On(t))
 }
 
-var (
-	fieldNamePlaceholder = regexp.MustCompile("#[A-Z][A-Za-z0-9_]+")
-)
+func (t *Table) AddKey(key *Key) {
+	if key == nil {
+		return
+	}
+	t.Keys.Add(key.On(t))
+}
+
+var fieldNamePlaceholder = regexp.MustCompile("#[A-Z][A-Za-z0-9_]+")
 
 // replace go struct field name with table column name
-func (t *Table) Ex(query string, args ...interface{}) *Expression {
+func (t *Table) Ex(query string, args ...interface{}) *Ex {
 	finalQuery := fieldNamePlaceholder.ReplaceAllStringFunc(query, func(i string) string {
 		fieldName := strings.TrimLeft(i, "#")
 		if col := t.F(fieldName); col != nil {
-			return col.String()
+			return col.Name
 		}
 		return i
 	})
 	return Expr(finalQuery, args...)
 }
-
-func (t *Table) Cond(query string, args ...interface{}) *Condition {
-	return (*Condition)(t.Ex(query, args...))
-}
-
-type FieldValues map[string]interface{}
 
 func (t *Table) ColumnsAndValuesByFieldValues(fieldValues FieldValues) (columns *Columns, args []interface{}) {
 	fieldNames := make([]string, 0)
@@ -136,7 +79,6 @@ func (t *Table) ColumnsAndValuesByFieldValues(fieldValues FieldValues) (columns 
 	}
 
 	sort.Strings(fieldNames)
-
 
 	columns = &Columns{}
 
@@ -159,66 +101,53 @@ func (t *Table) AssignmentsByFieldValues(fieldValues FieldValues) (assignments A
 	return
 }
 
-func (t *Table) TableName() string {
-	return t.Name
-}
+func (t *Table) Diff(prevTable *Table, dialect Dialect, skipDropColumn bool) (exprList []SqlExpr) {
+	cols := map[string]bool{}
 
-func (t *Table) FullName() string {
-	return quote(t.DB.DBName()) + "." + quote(t.TableName())
-}
-
-type DiffOptions struct {
-	DropColumn bool
-}
-
-func (t *Table) Diff(table *Table, opts DiffOptions) SqlExpr {
-	colsDiffResult := t.Columns.Diff(table.Columns)
-	keysDiffResult := t.Keys.Diff(table.Keys)
-
-	colsChanged := colsDiffResult.IsChanged()
-	indexesChanged := keysDiffResult.IsChanged()
-
-	if !colsChanged && !indexesChanged {
-		return nil
-	}
-	expr := AlterTable(t)
-
-	joiner := " "
-
-	if colsChanged {
-		if opts.DropColumn {
-			colsDiffResult.colsForDelete.Range(func(col *Column, idx int) {
-				expr = MustJoinExpr(joiner, expr, DropCol(col))
-				joiner = ", "
-			})
+	// add or modify columns
+	t.Columns.Range(func(col *Column, idx int) {
+		cols[col.Name] = true
+		if prevTable.Col(col.Name) == nil {
+			exprList = append(exprList, dialect.AddColumn(col))
+		} else {
+			exprList = append(exprList, dialect.ModifyColumn(col))
 		}
-		colsDiffResult.colsForUpdate.Range(func(col *Column, idx int) {
-			expr = MustJoinExpr(joiner, expr, ModifyCol(col))
-			joiner = ", "
+	})
+
+	{
+		indexes := map[string]bool{}
+
+		t.Keys.Range(func(key *Key, idx int) {
+			indexes[key.Name] = true
+
+			prevKey := prevTable.Key(key.Name)
+			if prevKey == nil {
+				exprList = append(exprList, dialect.AddIndex(key))
+			} else {
+				if !key.IsPrimary() && key.Columns.Expr().Query() != prevTable.Columns.Expr().Query() {
+					exprList = append(exprList, dialect.DropIndex(key))
+					exprList = append(exprList, dialect.AddIndex(key))
+				}
+			}
 		})
-		colsDiffResult.colsForAdd.Range(func(col *Column, idx int) {
-			expr = MustJoinExpr(joiner, expr, AddCol(col))
-			joiner = ", "
+
+		prevTable.Keys.Range(func(key *Key, idx int) {
+			if _, ok := indexes[key.Name]; !ok {
+				exprList = append(exprList, dialect.DropIndex(key))
+			}
 		})
 	}
 
-	if indexesChanged {
-		keysDiffResult.keysForDelete.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(joiner, expr, DropKey(key))
-			joiner = ", "
-		})
-		keysDiffResult.keysForUpdate.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(joiner, expr, DropKey(key))
-			joiner = ", "
-			expr = MustJoinExpr(joiner, expr, AddKey(key))
-		})
-		keysDiffResult.keysForAdd.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(joiner, expr, AddKey(key))
-			joiner = ", "
+	// drop columns
+	if !skipDropColumn {
+		prevTable.Columns.Range(func(col *Column, idx int) {
+			if _, ok := cols[col.Name]; !ok {
+				exprList = append(exprList, dialect.DropColumn(col))
+			}
 		})
 	}
 
-	return expr
+	return
 }
 
 type Tables map[string]*Table
