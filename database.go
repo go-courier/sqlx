@@ -1,6 +1,8 @@
 package sqlx
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"os"
 	"reflect"
@@ -17,30 +19,39 @@ func NewFeatureDatabase(name string) *Database {
 
 func NewDatabase(name string) *Database {
 	return &Database{
-		Database: builder.DB(name),
+		Name:   name,
+		Tables: builder.Tables{},
 	}
 }
 
 type Database struct {
-	*builder.Database
+	Name   string
+	Tables builder.Tables
+}
+
+type DBNameBinder interface {
+	WithDBName(dbName string) driver.Connector
+}
+
+func (database *Database) OpenDB(connector driver.Connector) *DB {
+	if dbNameBinder, ok := connector.(DBNameBinder); ok {
+		connector = dbNameBinder.WithDBName(database.Name)
+	}
+	dialet, ok := connector.(builder.Dialect)
+	if !ok {
+		panic(fmt.Errorf("connector should implement builder.Dialect"))
+	}
+	return &DB{
+		Dialect:     dialet,
+		SqlExecutor: sql.OpenDB(connector),
+	}
+}
+
+func (database *Database) AddTable(table *builder.Table) {
+	database.Tables.Add(table)
 }
 
 func (database *Database) Register(model builder.Model) *builder.Table {
-	database.mustStructType(model)
-
-	table := builder.T(database.Database, model.TableName())
-	builder.ScanDefToTable(reflect.Indirect(reflect.ValueOf(model)), table)
-
-	database.Database.Register(table)
-	return table
-}
-
-func (database Database) T(model builder.Model) *builder.Table {
-	database.mustStructType(model)
-	return database.Database.Table(model.TableName())
-}
-
-func (Database) mustStructType(model builder.Model) {
 	tpe := reflect.TypeOf(model)
 	if tpe.Kind() != reflect.Ptr {
 		panic(fmt.Errorf("model %s must be a pointer", tpe.Name()))
@@ -48,15 +59,39 @@ func (Database) mustStructType(model builder.Model) {
 	tpe = tpe.Elem()
 	if tpe.Kind() != reflect.Struct {
 		panic(fmt.Errorf("model %s must be a struct", tpe.Name()))
-
 	}
+	table := builder.T(model.TableName())
+	builder.ScanDefToTable(reflect.Indirect(reflect.ValueOf(model)), table)
+	database.AddTable(table)
+	return table
 }
 
-func (database *Database) Assignments(model builder.Model, excludes ...string) builder.Assignments {
+func (database *Database) Table(tableName string) *builder.Table {
+	if t, ok := database.Tables[tableName]; ok {
+		return t
+	}
+	return nil
+}
+
+func (database *Database) T(model builder.Model) *builder.Table {
+	return database.Table(model.TableName())
+}
+
+func (database *Database) Assignments(model builder.Model, zeroFields ...string) builder.Assignments {
 	table := database.T(model)
-	fieldValues := builder.FieldValuesFromStructByNonZero(model, excludes...)
+	return table.AssignmentsByFieldValues(database.FieldValuesFromModel(table, model, zeroFields...))
+}
+
+func (database *Database) Insert(model builder.Model, zeroFields ...string) builder.SqlExpr {
+	table := database.T(model)
+	cols, vals := table.ColumnsAndValuesByFieldValues(database.FieldValuesFromModel(table, model, zeroFields...))
+	return builder.Insert().Into(table).Values(cols, vals...)
+}
+
+func (database *Database) FieldValuesFromModel(table *builder.Table, model builder.Model, zeroFields ...string) builder.FieldValues {
+	fieldValues := builder.FieldValuesFromStructByNonZero(model, zeroFields...)
 	if autoIncrementCol := table.AutoIncrement(); autoIncrementCol != nil {
 		delete(fieldValues, autoIncrementCol.FieldName)
 	}
-	return table.AssignmentsByFieldValues(fieldValues)
+	return fieldValues
 }

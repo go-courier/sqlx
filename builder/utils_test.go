@@ -1,49 +1,70 @@
 package builder
 
 import (
-	"database/sql/driver"
-	"fmt"
-	"testing"
-
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
-func TestFlattenArgs(t *testing.T) {
-	tt := require.New(t)
+func queryArgsEqual(t *testing.T, expect SqlExpr, actual SqlExpr) {
+	e := ExprFrom(expect)
+	a := ExprFrom(actual)
 
-	{
-		q, args := FlattenArgs(`#ID IN (?)`, []int{28, 29, 30})
-		tt.Equal("#ID IN (?,?,?)", q)
-		tt.Equal(args, []interface{}{28, 29, 30})
-	}
-	{
-		q, args := FlattenArgs(`#ID = (?)`, []byte(""))
-		tt.Equal("#ID = (?)", q)
-		tt.Equal(args, []interface{}{[]byte("")})
-	}
+	if e == nil || a == nil {
+		require.Equal(t, e, a)
+	} else {
+		e = e.Flatten()
+		a = a.Flatten()
 
-	{
-		q, args := FlattenArgs(`#ID = ?`, Expr("#ID + ?", 1))
-		tt.Equal("#ID = #ID + ?", q)
-		tt.Equal(args, []interface{}{1})
-	}
-
-	{
-		q, args := FlattenArgs(`#Point = ?`, Point{1, 1})
-		tt.Equal("#Point = ST_GeomFromText(?)", q)
-		tt.Equal(args, []interface{}{Point{1, 1}})
+		require.Equal(t, e.Query(), a.Query())
+		require.Equal(t, e.Args(), a.Args())
 	}
 }
 
-type Point struct {
-	X float64
-	Y float64
+func TestValueMap_FromStructBy(t *testing.T) {
+	type User struct {
+		ID       uint64 `db:"F_id"`
+		Name     string `db:"F_name"`
+		Username string `db:"F_username"`
+	}
+
+	user := User{
+		ID: 123123213,
+	}
+
+	{
+		fieldValues := FieldValuesFromStructBy(user, []string{})
+		require.Len(t, fieldValues, 0)
+	}
+	{
+		fieldValues := FieldValuesFromStructBy(user, []string{"ID"})
+		require.Equal(t, fieldValues, FieldValues{
+			"ID": user.ID,
+		})
+	}
 }
 
-func (Point) ValueEx() string {
-	return `ST_GeomFromText(?)`
-}
+func TestValueMap_FromStructWithEmptyFields(t *testing.T) {
+	type User struct {
+		ID       uint64 `db:"F_id"`
+		Name     string `db:"F_name"`
+		Username string `db:"F_username"`
+	}
 
-func (p Point) Value() (driver.Value, error) {
-	return fmt.Sprintf("POINT(%v %v)", p.X, p.Y), nil
+	user := User{
+		ID: 123123213,
+	}
+
+	{
+		fieldValues := FieldValuesFromStructByNonZero(user)
+		require.Equal(t, fieldValues, FieldValues{
+			"ID": user.ID,
+		})
+	}
+	{
+		fieldValues := FieldValuesFromStructByNonZero(user, "Username")
+		require.Equal(t, fieldValues, FieldValues{
+			"ID":       user.ID,
+			"Username": user.Username,
+		})
+	}
 }

@@ -16,12 +16,12 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 
 	m.TypeName = typeName
 
-	m.Table = builder.T(nil, cfg.TableName)
+	m.Table = builder.T(cfg.TableName)
 
 	p := pkg.Pkg(typeName.Pkg().Path())
 
-	forEachStructField(typeName.Type().Underlying().Underlying().(*types.Struct), func(structVal *types.Var, columnName string, tpe string) {
-		col := builder.Col(m.Table, columnName).Field(structVal.Name()).Type(tpe)
+	forEachStructField(typeName.Type().Underlying().Underlying().(*types.Struct), func(structVal *types.Var, columnName string, tagValue string) {
+		col := builder.Col(columnName).Field(structVal.Name()).Type("", tagValue)
 
 		for id, o := range p.TypesInfo.Defs {
 			if o == structVal {
@@ -73,8 +73,8 @@ func (m *Model) addColumn(col *builder.Column, tpe *types.Var) {
 }
 
 func (m *Model) WriteTo(file *codegen.File) {
-	m.WriteTableInterfaces(file)
 	m.WriteTableKeyInterfaces(file)
+	m.WriteTableInterfaces(file)
 	m.WriteCRUD(file)
 	m.WriteList(file)
 	m.WriteCount(file)

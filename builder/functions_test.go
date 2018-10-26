@@ -2,66 +2,54 @@ package builder
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestFunc(t *testing.T) {
-	cases := []struct {
-		name   string
+	cases := map[string]struct {
 		expr   SqlExpr
-		result SqlExpr
+		expect SqlExpr
 	}{
-		{
-			"Nil",
+		"Nil": {
 			Func(""),
 			nil,
 		},
-		{
-			"COUNT",
+		"COUNT": {
 			Count(),
 			Expr("COUNT(*)"),
 		},
-		{
-			"AVG",
+		"AVG": {
 			Avg(),
 			Expr("AVG(*)"),
 		},
-		{
-			"DISTINCT",
+		"DISTINCT": {
 			Distinct(),
 			Expr("DISTINCT(*)"),
 		},
-		{
-			"MIN",
+		"MIN": {
 			Min(),
 			Expr("MIN(*)"),
 		},
-		{
-			"Max",
+		"Max": {
 			Max(),
 			Expr("MAX(*)"),
 		},
-		{
-			"First",
+		"First": {
 			First(),
 			Expr("FIRST(*)"),
 		},
-		{
-			"Last",
+		"Last": {
 			Last(),
 			Expr("LAST(*)"),
 		},
-		{
-			"Sum",
+		"Sum": {
 			Sum(),
 			Expr("SUM(*)"),
 		},
 	}
 
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			require.Equal(t, ExprFrom(c.result), ExprFrom(c.expr))
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			queryArgsEqual(t, c.expect, c.expr)
 		})
 	}
 }

@@ -23,25 +23,29 @@ func TestParseIndexesFromDoc(t *testing.T) {
 
 	tt.Equal(&Keys{
 		Indexes: builder.Indexes{
-			"I_name":     []string{"Name"},
-			"I_nickname": []string{"Nickname", "Name"},
+			"I_name":          []string{"Name"},
+			"I_nickname/HASH": []string{"Nickname", "Name"},
 		},
 	}, parseKeysFromDoc(`
 	@def index I_name   Name
-	@def index I_nickname   Nickname Name
+	@def index I_nickname/HASH Nickname Name
 	`))
 
 	tt.Equal(&Keys{
 		Primary: []string{"ID"},
 		Indexes: builder.Indexes{
-			"I_nickname": []string{"Nickname", "Name"},
+			"I_nickname/BTREE": []string{"Nickname"},
+			"I_username":       []string{"Username"},
+			"I_geom/SPATIAL":   []string{"Geom"},
 		},
 		UniqueIndexes: builder.Indexes{
 			"I_name": []string{"Name"},
 		},
 	}, parseKeysFromDoc(`
-	@def primary ID
-	@def index I_nickname Nickname Name
-	@def unique_index I_name Name
+@def primary ID
+@def index I_nickname/BTREE Nickname
+@def index I_username Username
+@def index I_geom/SPATIAL Geom
+@def unique_index I_name Name
 	`))
 }

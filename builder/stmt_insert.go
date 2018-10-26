@@ -11,7 +11,6 @@ type StmtInsert struct {
 	table       *Table
 	modifiers   []string
 	assignments Assignments
-	bySet       bool
 	additions   Additions
 }
 
@@ -26,44 +25,43 @@ func (s StmtInsert) Values(cols *Columns, values ...interface{}) *StmtInsert {
 	return &s
 }
 
-func (s StmtInsert) Set(assignments ...*Assignment) *StmtInsert {
-	s.assignments = Assignments(assignments)
-	s.bySet = true
-	return &s
+func (s *StmtInsert) IsNil() bool {
+	return s == nil || s.table == nil || s.assignments.IsNil()
 }
 
-func (s *StmtInsert) Expr() *Expression {
-	selectSql := "INSERT"
+func (s *StmtInsert) Expr() *Ex {
+	if s.IsNil() {
+		return nil
+	}
+
+	e := Expr("INSERT")
 
 	if len(s.modifiers) > 0 {
 		for i := range s.modifiers {
-			selectSql += " " + s.modifiers[i]
+			e.WriteByte(' ')
+			e.WriteString(s.modifiers[i])
 		}
 	}
 
-	if s.table == nil {
-		panic("INSERT should bind table, please call INTO()")
-	}
-
-	expr := MustJoinExpr(" INTO ", Expr(selectSql), s.table)
-
-	if len(s.assignments) == 0 {
-		panic("INSERT should contain assignments, please call Set() or Values()")
-	}
-
-	if s.bySet {
-		expr = MustJoinExpr(" SET ", expr, s.assignments)
-	} else {
-		expr = MustJoinExpr(" ", expr, s.assignments)
-	}
+	e.WriteString(" INTO ")
+	e.WriteExpr(s.table)
+	e.WriteByte(' ')
+	e.WriteExpr(s.assignments)
 
 	if len(s.additions) > 0 {
-		expr = MustJoinExpr(" ", expr, s.additions)
+		e.WriteExpr(s.additions)
 	}
 
-	return expr
+	return e
 }
 
 func OnDuplicateKeyUpdate(assignments ...*Assignment) *otherAddition {
-	return (*otherAddition)(MustJoinExpr("ON DUPLICATE KEY UPDATE ", Expr(""), Assignments(assignments)))
+	assigns := Assignments(assignments)
+	if assigns.IsNil() {
+		return nil
+	}
+
+	e := Expr("ON DUPLICATE KEY UPDATE ")
+	e.WriteExpr(assigns)
+	return AsAddition(e)
 }

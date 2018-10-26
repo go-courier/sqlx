@@ -5,12 +5,12 @@ import (
 )
 
 type SqlMetaEnum struct {
-	TName string `db:"F_table_name" sql:"varchar(64) NOT NULL"`
-	CName string `db:"F_column_name" sql:"varchar(64) NOT NULL"`
-	Value int    `db:"F_value" sql:"int NOT NULL"`
-	Type  string `db:"F_type" sql:"varchar(255) NOT NULL"`
-	Key   string `db:"F_key"  sql:"varchar(255) NOT NULL"`
-	Label string `db:"F_label" sql:"varchar(255) NOT NULL"`
+	TName string `db:"F_table_name,size=64"`
+	CName string `db:"F_column_name,size=64"`
+	Value int    `db:"F_value"`
+	Type  string `db:"F_type,size=255"`
+	Key   string `db:"F_key,size=255"`
+	Label string `db:"F_label,size=255"`
 }
 
 func (*SqlMetaEnum) TableName() string {
@@ -18,5 +18,5 @@ func (*SqlMetaEnum) TableName() string {
 }
 
 func (*SqlMetaEnum) UniqueIndexes() builder.Indexes {
-	return builder.Indexes{"I_enum": builder.FieldNames{"TName", "CName", "Value"}}
+	return builder.Indexes{"I_enum": {"TName", "CName", "Value"}}
 }

@@ -7,31 +7,35 @@ import (
 )
 
 func TestColumns(t *testing.T) {
-	tt := require.New(t)
-
 	columns := Columns{}
 
-	tt.Equal(0, columns.Len())
+	require.Equal(t, 0, columns.Len())
 
 	{
 		col := columns.AutoIncrement()
-		tt.Nil(col)
+		require.Nil(t, col)
 	}
 
 	{
-		columns.Add(Col(nil, "F_id").Field("ID").Type("bigint(64) unsigned NOT NULL AUTO_INCREMENT"))
+		columns.Add(
+			Col("F_id").Field("ID").Type(1, `,autoincrement`),
+		)
 
 		col := columns.AutoIncrement()
-		tt.NotNil(col)
-		tt.Equal("F_id", col.Name)
+		require.NotNil(t, col)
+		require.Equal(t, "F_id", col.Name)
 	}
 
-	tt.Nil(columns.F("ID2"))
-	tt.Equal(0, columns.Fields("ID2").Len())
-	tt.Equal(1, columns.Fields().Len())
-	tt.Len(columns.Fields("ID2").List(), 0)
-	tt.Equal(1, columns.Cols("F_id").Len())
-	tt.Equal(1, columns.Cols().Len())
-	tt.Len(columns.Cols("F_id").List(), 1)
-	tt.Equal([]string{"ID"}, columns.Cols("F_id").FieldNames())
+	require.Nil(t, columns.F("ID2"))
+	require.Equal(t, 0, MustCols(columns.Fields("ID2")).Len())
+	require.Equal(t, 1, MustCols(columns.Fields()).Len())
+	require.Len(t, MustCols(columns.Fields("ID2")).List(), 0)
+	require.Equal(t, 1, MustCols(columns.Cols("F_id")).Len())
+	require.Equal(t, 1, MustCols(columns.Cols()).Len())
+	require.Len(t, MustCols(columns.Cols("F_id")).List(), 1)
+	require.Equal(t, []string{"ID"}, MustCols(columns.Cols("F_id")).FieldNames())
+}
+
+func MustCols(cols *Columns, err error) *Columns {
+	return cols
 }

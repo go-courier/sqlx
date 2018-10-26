@@ -3,39 +3,32 @@ package sqlx_test
 import (
 	"database/sql"
 	"github.com/go-courier/sqlx"
-	"github.com/go-courier/sqlx/migration/mysql"
-	"os"
-	"testing"
-	"time"
-
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/datatypes"
+	"github.com/go-courier/sqlx/mysqlconnector"
+	"github.com/go-courier/sqlx/mysqlconnector/migration"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	"os"
+	"testing"
 )
 
-var db *sqlx.DB
+var (
+	mysqlConnector = &mysqlconnector.MysqlConnector{
+		Host:  "root@tcp(0.0.0.0:3306)",
+		Extra: "charset=utf8mb4&parseTime=true&interpolateParams=true&autocommit=true&loc=Local",
+	}
+)
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
-	db = sqlx.MustOpen("logger:mysql", "root@tcp(0.0.0.0:3306)/?charset=utf8&parseTime=true&interpolateParams=true&autocommit=true&loc=Local")
 }
 
 type TableOperateTime struct {
-	CreatedAt datatypes.MySQLDatetime `db:"F_created_at" sql:"timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)" `
-	UpdatedAt int64                   `db:"F_updated_at" sql:"bigint(64) NOT NULL DEFAULT '0'"`
-}
-
-func (t *TableOperateTime) BeforeUpdate() {
-	time.Now()
-	t.UpdatedAt = time.Now().UnixNano()
-}
-
-func (t *TableOperateTime) BeforeInsert() {
-	t.CreatedAt = datatypes.MySQLDatetime(time.Now())
-	t.UpdatedAt = t.CreatedAt.Unix()
+	CreatedAt datatypes.MySQLDatetime `db:"F_created_at,default=CURRENT_TIMESTAMP,onupdate=CURRENT_TIMESTAMP"`
+	UpdatedAt int64                   `db:"F_updated_at,default='0'"`
 }
 
 type Gender int
@@ -66,15 +59,12 @@ func (g Gender) String() string {
 	return ""
 }
 
-// @def primary ID
-// @def index I_nickname Nickname Name
-// @def unique_index I_name Name
 type User struct {
-	ID       uint64 `db:"F_id" sql:"bigint(64) unsigned NOT NULL AUTO_INCREMENT"`
-	Name     string `db:"F_name" sql:"varchar(255) binary NOT NULL DEFAULT ''"`
-	Username string `db:"F_username" sql:"varchar(255)"`
-	Nickname string `db:"F_nickname" sql:"varchar(255) CHARACTER SET latin1 binary NOT NULL DEFAULT ''"`
-	Gender   Gender `db:"F_gender" sql:"int(32) NOT NULL DEFAULT '0'"`
+	ID       uint64 `db:"F_id,autoincrement"`
+	Name     string `db:"F_name,size=255,default=''"`
+	Nickname string `db:"F_nickname,size=255,default=''"`
+	Username string `db:"F_username,default=''"`
+	Gender   Gender `db:"F_gender,default='0'"`
 
 	TableOperateTime
 }
@@ -98,7 +88,7 @@ func (user *User) TableName() string {
 	return "t_user"
 }
 
-func (user *User) PrimaryKey() builder.FieldNames {
+func (user *User) PrimaryKey() []string {
 	return []string{"ID"}
 }
 
@@ -116,38 +106,40 @@ func (user *User) UniqueIndexes() builder.Indexes {
 
 type User2 struct {
 	User
-	Age int32 `db:"F_age" sql:"int(32) NOT NULL DEFAULT '0'"`
+	Age int32 `db:"F_age,default='0'"`
 }
 
 func TestMigrate(t *testing.T) {
 	tt := require.New(t)
-
 	os.Setenv("PROJECT_FEATURE", "test")
+
 	dbTest := sqlx.NewFeatureDatabase("test_for_migrate")
+	db := dbTest.OpenDB(mysqlConnector)
+
 	defer func() {
-		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
+		_, err := db.ExecExpr(db.DropDatabase(dbTest.Name))
 		tt.NoError(err)
 	}()
 
 	{
 		dbTest.Register(&User{})
-		err := (mysql.Migration{}).Migrate(dbTest, db)
+		err := (migration.Migration{Database: dbTest}).Migrate(db)
 		tt.NoError(err)
 	}
 	{
 		dbTest.Register(&User{})
-		err := (mysql.Migration{}).Migrate(dbTest, db)
+		err := (migration.Migration{Database: dbTest}).Migrate(db)
 		tt.NoError(err)
 	}
 	{
 		dbTest.Register(&User2{})
-		err := (mysql.Migration{}).Migrate(dbTest, db)
+		err := (migration.Migration{Database: dbTest}).Migrate(db)
 		tt.NoError(err)
 	}
 
 	{
 		dbTest.Register(&User{})
-		err := (mysql.Migration{}).Migrate(dbTest, db)
+		err := (migration.Migration{Database: dbTest}).Migrate(db)
 		tt.NoError(err)
 	}
 }
@@ -156,13 +148,15 @@ func TestCRUD(t *testing.T) {
 	tt := require.New(t)
 
 	dbTest := sqlx.NewDatabase("test")
+	db := dbTest.OpenDB(mysqlConnector)
+
 	defer func() {
-		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
+		_, err := db.ExecExpr(db.DropDatabase(dbTest.Name))
 		tt.NoError(err)
 	}()
 
 	userTable := dbTest.Register(&User{})
-	err := (mysql.Migration{}).Migrate(dbTest, db)
+	err := (migration.Migration{Database: dbTest}).Migrate(db)
 	tt.NoError(err)
 
 	{
@@ -170,16 +164,14 @@ func TestCRUD(t *testing.T) {
 			Name:   uuid.New().String(),
 			Gender: GenderMale,
 		}
-		user.BeforeInsert()
-		stmt := builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...)
-		result, err := db.ExecExpr(stmt)
+
+		result, err := db.ExecExpr(dbTest.Insert(&user))
 		tt.NoError(err)
 		user.AfterInsert(result)
 		tt.NotEmpty(user.ID)
 
 		{
 			user.Gender = GenderFemale
-			user.BeforeUpdate()
 			_, err := db.ExecExpr(
 				builder.Update(dbTest.T(&user)).
 					Set(dbTest.Assignments(&user)...).
@@ -201,29 +193,15 @@ func TestCRUD(t *testing.T) {
 				&userForSelect)
 
 			tt.NoError(err)
+
 			tt.Equal(userForSelect.Name, user.Name)
-			tt.Equal(userForSelect.CreatedAt.Unix(), user.CreatedAt.Unix())
+			tt.Equal(userForSelect.Gender, user.Gender)
 		}
 
 		{
-			user.BeforeInsert()
-			_, err := db.ExecExpr(builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...))
+			_, err := db.ExecExpr(dbTest.Insert(&user))
 			t.Log(err)
 			tt.True(sqlx.DBErr(err).IsConflict())
-
-			{
-				_, err := db.ExecExpr(
-					builder.Insert().Into(dbTest.T(&user),
-						builder.OnDuplicateKeyUpdate(
-							userTable.AssignmentsByFieldValues(builder.FieldValues{
-								"Gender": GenderMale,
-							})...,
-						),
-						builder.Comment("InsertUserOnDuplicate"),
-					).Set(dbTest.Assignments(&user)...),
-				)
-				tt.Nil(err)
-			}
 		}
 	}
 
@@ -233,13 +211,15 @@ func TestSelect(t *testing.T) {
 	tt := require.New(t)
 
 	dbTest := sqlx.NewDatabase("test2")
+	db := dbTest.OpenDB(mysqlConnector)
+
 	defer func() {
-		_, err := db.ExecExpr(builder.DropDatabase(dbTest))
+		_, err := db.ExecExpr(db.DropDatabase(dbTest.Name))
 		tt.Nil(err)
 	}()
 
 	table := dbTest.Register(&User{})
-	err := (mysql.Migration{}).Migrate(dbTest, db)
+	err := (migration.Migration{Database: dbTest}).Migrate(db)
 	tt.Nil(err)
 
 	for i := 0; i < 10; i++ {
@@ -247,8 +227,7 @@ func TestSelect(t *testing.T) {
 			Name:   uuid.New().String(),
 			Gender: GenderMale,
 		}
-		user.BeforeInsert()
-		_, err := db.ExecExpr(builder.Insert().Into(dbTest.T(&user)).Set(dbTest.Assignments(&user)...))
+		_, err := db.ExecExpr(dbTest.Insert(&user))
 		tt.NoError(err)
 	}
 

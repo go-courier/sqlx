@@ -36,32 +36,43 @@ func Func(name string, sqlExprs ...SqlExpr) *Function {
 	if name == "" {
 		return nil
 	}
-	if len(sqlExprs) == 0 {
-		return &Function{
-			Name: name,
-			expr: Expr("*"),
-		}
-	}
 	return &Function{
-		Name: name,
-		expr: MustJoinExpr(", ", sqlExprs...),
+		Name:  name,
+		Exprs: sqlExprs,
 	}
 }
 
 type Function struct {
-	Name string
-	expr SqlExpr
+	Name  string
+	Exprs []SqlExpr
 }
 
-func (f *Function) Expr() *Expression {
+func (f *Function) IsNil() bool {
+	return f == nil || f.Name == ""
+}
+
+func (f *Function) Expr() *Ex {
 	if f == nil {
 		return nil
 	}
-	if f.expr != nil {
-		e := f.expr.Expr()
-		if e != nil {
-			return Expr(f.Name+"("+e.Query+")", e.Args...)
-		}
+
+	if f.Exprs != nil {
+		e := Expr(f.Name)
+		e.WriteGroup(func(e *Ex) {
+
+		})
 	}
-	return nil
+	e := Expr(f.Name)
+	e.WriteGroup(func(e *Ex) {
+		if len(f.Exprs) == 0 {
+			e.WriteByte('*')
+		}
+		for i := range f.Exprs {
+			if i > 0 {
+				e.WriteByte(',')
+			}
+			e.WriteExpr(f.Exprs[i])
+		}
+	})
+	return e
 }

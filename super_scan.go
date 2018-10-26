@@ -2,10 +2,9 @@ package sqlx
 
 import (
 	"database/sql"
-	"reflect"
-
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/nullable"
+	"reflect"
 )
 
 func Scan(rows *sql.Rows, v interface{}) error {
@@ -61,7 +60,7 @@ func Scan(rows *sql.Rows, v interface{}) error {
 
 				destIndexes := make(map[int]bool, length)
 
-				builder.ForEachStructFieldValue(itemRv, func(structFieldValue reflect.Value, structField reflect.StructField, columnName string) {
+				builder.ForEachStructFieldValue(itemRv, func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string) {
 					idx := stringIndexOf(columns, columnName)
 					if idx >= 0 {
 						dest[idx] = structFieldValue.Addr().Interface()

@@ -1,8 +1,10 @@
 package enummeta
 
 import (
+	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx"
 	"github.com/go-courier/sqlx/builder"
+	"reflect"
 )
 
 func SyncEnum(database *sqlx.Database, db *sqlx.DB) error {
@@ -11,17 +13,10 @@ func SyncEnum(database *sqlx.Database, db *sqlx.DB) error {
 	metaEnumTable := database.T(&SqlMetaEnum{})
 
 	task = task.With(func(db *sqlx.DB) error {
-		_, err := db.ExecExpr(builder.CreateTableIsNotExists(metaEnumTable))
-		return err
-	})
-
-	task = task.With(func(db *sqlx.DB) error {
 		_, err := db.ExecExpr(
 			builder.Delete().From(
 				metaEnumTable,
-				builder.Where(
-					metaEnumTable.F("TName").In(database.TableNames()),
-				),
+				builder.Where(metaEnumTable.F("TName").In(database.Tables.TableNames())),
 			),
 		)
 		return err
@@ -34,9 +29,9 @@ func SyncEnum(database *sqlx.Database, db *sqlx.DB) error {
 
 	for _, table := range database.Tables {
 		table.Columns.Range(func(col *builder.Column, idx int) {
-			if col.IsEnum() {
-				for _, enum := range col.ColumnType.Enum.ConstValues() {
-
+			v := reflect.New(col.ColumnType.Type).Interface()
+			if enumValue, ok := v.(enumeration.Enum); ok {
+				for _, enum := range enumValue.ConstValues() {
 					sqlMetaEnum := &SqlMetaEnum{
 						TName: table.Name,
 						CName: col.Name,
@@ -45,7 +40,6 @@ func SyncEnum(database *sqlx.Database, db *sqlx.DB) error {
 						Key:   enum.String(),
 						Label: enum.Label(),
 					}
-
 					fieldValues := builder.FieldValuesFromStructByNonZero(sqlMetaEnum, "Value")
 					cols, values := metaEnumTable.ColumnsAndValuesByFieldValues(fieldValues)
 					vals = append(vals, values...)
