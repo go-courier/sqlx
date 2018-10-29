@@ -7,6 +7,17 @@ go:
 services:
 - mysql
 
+addons:
+  apt:
+    sources:
+    - mysql-5.7-trusty
+    packages:
+    - mysql-server
+    - mysql-client
+
+before_install:
+- sudo service mysql restart
+
 env:
 - GO111MODULE=on
 
