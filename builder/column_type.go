@@ -2,10 +2,11 @@ package builder
 
 import (
 	"fmt"
-	"github.com/go-courier/reflectx"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/go-courier/reflectx"
 )
 
 func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType {
@@ -49,11 +50,6 @@ func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType
 					panic(fmt.Errorf("missing default value"))
 				}
 				ct.Default = &nameAndValue[1]
-			case "onupdate":
-				if len(nameAndValue) == 1 {
-					panic(fmt.Errorf("missing onupdate value"))
-				}
-				ct.OnUpdate = &nameAndValue[1]
 			}
 		}
 	}
@@ -68,8 +64,7 @@ type ColumnType struct {
 	Length  uint64
 	Decimal uint64
 
-	Default  *string
-	OnUpdate *string
+	Default *string
 
 	Null          bool
 	AutoIncrement bool

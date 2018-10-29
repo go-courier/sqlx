@@ -266,9 +266,9 @@ func OnConflict(columns *Columns) *onConflict {
 }
 
 type onConflict struct {
-	columns    *Columns
-	doNothing  bool
-	stmtUpdate *StmtUpdate
+	columns     *Columns
+	doNothing   bool
+	assignments Assignments
 }
 
 func (o onConflict) DoNothing() *onConflict {
@@ -276,8 +276,8 @@ func (o onConflict) DoNothing() *onConflict {
 	return &o
 }
 
-func (o onConflict) Do(stmtUpdate *StmtUpdate) *onConflict {
-	o.stmtUpdate = stmtUpdate
+func (o onConflict) DoUpdateSet(assignments ...*Assignment) *onConflict {
+	o.assignments = Assignments(assignments)
 	return &o
 }
 
@@ -286,7 +286,7 @@ func (onConflict) weight() additionWeight {
 }
 
 func (o *onConflict) IsNil() bool {
-	return o == nil || o.columns == nil || (!o.doNothing && o.stmtUpdate.IsNil())
+	return o == nil || o.columns == nil || (!o.doNothing && o.assignments.IsNil())
 }
 
 func (o *onConflict) Expr() *Ex {
@@ -304,7 +304,8 @@ func (o *onConflict) Expr() *Ex {
 	if o.doNothing {
 		e.WriteString("NOTHING")
 	} else {
-		e.WriteExpr(o.stmtUpdate)
+		e.WriteString("UPDATE SET ")
+		e.WriteExpr(o.assignments)
 	}
 	return e
 }

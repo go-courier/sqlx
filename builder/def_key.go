@@ -2,6 +2,7 @@ package builder
 
 import (
 	"container/list"
+	"strings"
 )
 
 func PrimaryKey(columns *Columns) *Key {
@@ -49,7 +50,7 @@ func (key *Key) T() *Table {
 }
 
 func (key *Key) IsPrimary() bool {
-	return key.IsUnique && key.Name == "PRIMARY"
+	return key.IsUnique && (strings.ToLower(key.Name) == "primary" || strings.HasSuffix(strings.ToLower(key.Name), "pkey"))
 }
 
 type Keys struct {
@@ -78,7 +79,7 @@ func (keys *Keys) IsEmpty() bool {
 
 func (keys *Keys) Key(keyName string) (key *Key) {
 	if keys.m != nil {
-		if c, ok := keys.m[keyName]; ok {
+		if c, ok := keys.m[strings.ToLower(keyName)]; ok {
 			return c.Value.(*Key)
 		}
 	}
@@ -91,6 +92,10 @@ func (keys *Keys) Add(nextKeys ...*Key) {
 		keys.l = list.New()
 	}
 	for _, key := range nextKeys {
+		if key == nil {
+			continue
+		}
+		key.Name = strings.ToLower(key.Name)
 		keys.m[key.Name] = keys.l.PushBack(key)
 	}
 }

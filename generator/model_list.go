@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+
 	"github.com/go-courier/codegen"
 	"github.com/go-courier/packagesx"
 )

@@ -3,8 +3,9 @@ package builder
 import (
 	"bytes"
 	"database/sql/driver"
-	"github.com/go-courier/reflectx"
 	"reflect"
+
+	"github.com/go-courier/reflectx"
 )
 
 type SqlExpr interface {
@@ -101,7 +102,7 @@ func (e *Ex) WriteHolder(idx int) {
 	e.WriteByte('?')
 }
 
-func (e *Ex) Flatten() (*Ex) {
+func (e *Ex) Flatten() *Ex {
 	index := 0
 	expr := Expr("")
 	data := e.Bytes()

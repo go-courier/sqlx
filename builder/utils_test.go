@@ -1,8 +1,9 @@
 package builder
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func queryArgsEqual(t *testing.T, expect SqlExpr, actual SqlExpr) {

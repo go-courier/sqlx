@@ -65,3 +65,14 @@ func OnDuplicateKeyUpdate(assignments ...*Assignment) *otherAddition {
 	e.WriteExpr(assigns)
 	return AsAddition(e)
 }
+
+func Returning(expr SqlExpr) *otherAddition {
+	e := Expr("RETURNING ")
+	if expr == nil || expr.IsNil() {
+		e.WriteByte('*')
+	} else {
+		e.WriteExpr(expr)
+	}
+
+	return AsAddition(e)
+}

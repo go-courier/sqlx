@@ -35,7 +35,7 @@ func (assigns Assignments) IsNil() bool {
 	return len(assigns) == 0
 }
 
-func (assigns Assignments) Expr() (*Ex) {
+func (assigns Assignments) Expr() *Ex {
 	e := Expr("")
 	for i, assignment := range assigns {
 		if i > 0 {

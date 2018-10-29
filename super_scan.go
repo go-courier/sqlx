@@ -2,9 +2,10 @@ package sqlx
 
 import (
 	"database/sql"
+	"reflect"
+
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/nullable"
-	"reflect"
 )
 
 func Scan(rows *sql.Rows, v interface{}) error {

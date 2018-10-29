@@ -16,7 +16,7 @@ func TestStmtInsert(t *testing.T) {
 				Into(table, Comment("Comment")).
 				Values(Cols("F_a", "F_b"), 1, 2),
 			Expr(
-				"INSERT INTO t (F_a,F_b) VALUES (?,?) /* Comment */",
+				"INSERT INTO t (f_a,f_b) VALUES (?,?) /* Comment */",
 				1, 2,
 			),
 		},
@@ -25,7 +25,7 @@ func TestStmtInsert(t *testing.T) {
 				Into(table).
 				Values(Cols("F_a", "F_b"), 1, 2),
 			Expr(
-				"INSERT IGNORE INTO t (F_a,F_b) VALUES (?,?)",
+				"INSERT IGNORE INTO t (f_a,f_b) VALUES (?,?)",
 				1, 2,
 			),
 		},
@@ -34,22 +34,10 @@ func TestStmtInsert(t *testing.T) {
 				Into(table).
 				Values(Cols("F_a", "F_b"), 1, 2, 1, 2, 1, 2),
 			Expr(
-				"INSERT INTO t (F_a,F_b) VALUES (?,?),(?,?),(?,?)",
+				"INSERT INTO t (f_a,f_b) VALUES (?,?),(?,?),(?,?)",
 				1, 2, 1, 2, 1, 2,
 			),
 		},
-		//{
-		//	"Insert on on duplicate key update",
-		//	Insert().Into(
-		//		table,
-		//		OnDuplicateKeyUpdate(Col("F_b").ValueBy(2)),
-		//	).
-		//		Values(Cols("F_a", "F_b"), 1, 2),
-		//	Expr(
-		//		"INSERT INTO t (F_a,F_b) VALUES (?,?) ON DUPLICATE KEY UPDATE F_b = ?",
-		//		1, 2, 2,
-		//	),
-		//},
 	}
 
 	for name, c := range cases {

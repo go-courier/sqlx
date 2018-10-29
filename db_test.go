@@ -2,12 +2,13 @@ package sqlx_test
 
 import (
 	"fmt"
-	"github.com/go-courier/sqlx"
-	"github.com/go-courier/sqlx/migration"
 	"testing"
 
+	"github.com/go-courier/sqlx/migration"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+
+	"github.com/go-courier/sqlx"
 )
 
 func TestWithTasks(t *testing.T) {
@@ -35,7 +36,7 @@ func TestWithTasks(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user))
+			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
 			return err
 		})
 
@@ -48,7 +49,7 @@ func TestWithTasks(t *testing.T) {
 					Gender: GenderMale,
 				}
 
-				_, err := db.ExecExpr(dbTest.Insert(&user))
+				_, err := db.ExecExpr(dbTest.Insert(&user, nil))
 				return err
 			})
 
@@ -71,7 +72,7 @@ func TestWithTasks(t *testing.T) {
 			Gender: GenderMale,
 		}
 
-		_, err := db.ExecExpr(dbTest.Insert(&user))
+		_, err := db.ExecExpr(dbTest.Insert(&user, nil))
 
 		return err
 	})
@@ -84,7 +85,7 @@ func TestWithTasks(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user))
+			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
 			return err
 		})
 
@@ -93,7 +94,7 @@ func TestWithTasks(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user))
+			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
 			return err
 		})
 

@@ -1,6 +1,9 @@
-package mysqlconnector
+package postgresqlconnector
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/go-courier/sqlx/builder"
 
 	"github.com/go-courier/sqlx"
@@ -20,17 +23,16 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 	tableColumnSchema := SchemaDatabase.T(&ColumnSchema{})
 	columnSchemaList := make([]ColumnSchema, 0)
 
-	err := db.QueryExprAndScan(
-		builder.Select(tableColumnSchema.Columns.Clone()).From(tableColumnSchema,
-			builder.Where(
-				builder.And(
-					tableColumnSchema.F("TABLE_SCHEMA").Eq(d.Name),
-					tableColumnSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
-				),
+	stmt := builder.Select(tableColumnSchema.Columns.Clone()).From(tableColumnSchema,
+		builder.Where(
+			builder.And(
+				tableColumnSchema.F("TABLE_SCHEMA").Eq("public"),
+				tableColumnSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
 			),
 		),
-		&columnSchemaList,
 	)
+
+	err := db.QueryExprAndScan(stmt, &columnSchemaList)
 	if err != nil {
 		panic(err)
 	}
@@ -56,13 +58,9 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 					tableIndexSchema,
 					builder.Where(
 						builder.And(
-							tableIndexSchema.F("TABLE_SCHEMA").Eq(d.Name),
+							tableIndexSchema.F("TABLE_SCHEMA").Eq("public"),
 							tableIndexSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
 						),
-					),
-					builder.OrderBy(
-						builder.AscOrder(tableIndexSchema.F("INDEX_NAME")),
-						builder.AscOrder(tableIndexSchema.F("SEQ_IN_INDEX")),
 					),
 				),
 			&indexList,
@@ -75,16 +73,17 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 		for _, indexSchema := range indexList {
 			table := d.Table(indexSchema.TABLE_NAME)
 
-			if key := table.Keys.Key(indexSchema.INDEX_NAME); key != nil {
-				key.Columns.Add(table.Col(indexSchema.COLUMN_NAME))
-			} else {
-				key := &builder.Key{}
-				key.Name = indexSchema.INDEX_NAME
-				key.Method = indexSchema.INDEX_TYPE
-				key.IsUnique = indexSchema.NON_UNIQUE == 0
-				key.Columns, _ = table.Cols(indexSchema.COLUMN_NAME)
-				table.AddKey(key)
+			key := &builder.Key{}
+			key.Name = indexSchema.INDEX_NAME[len(table.Name)+1:]
+			key.Method = strings.ToUpper(regexp.MustCompile(`USING ([^ ]+)`).FindString(indexSchema.INDEX_DEF)[6:])
+			key.IsUnique = strings.Index(indexSchema.INDEX_DEF, "UNIQUE") > -1
+
+			fields := regexp.MustCompile(`\([^\)]+\)`).FindString(indexSchema.INDEX_DEF)
+			if len(fields) > 0 {
+				fields = fields[1 : len(fields)-1]
 			}
+			key.Columns, _ = table.Cols(strings.Split(fields, ", ")...)
+			table.AddKey(key)
 		}
 	}
 
@@ -99,25 +98,22 @@ func init() {
 }
 
 type ColumnSchema struct {
-	TABLE_SCHEMA string `db:"TABLE_SCHEMA"`
-	TABLE_NAME   string `db:"TABLE_NAME"`
-	COLUMN_NAME  string `db:"COLUMN_NAME"`
+	TABLE_SCHEMA string `db:"table_schema"`
+	TABLE_NAME   string `db:"table_name"`
+	COLUMN_NAME  string `db:"column_name"`
 }
 
 func (ColumnSchema) TableName() string {
-	return "INFORMATION_SCHEMA.COLUMNS"
+	return "information_schema.columns"
 }
 
 type IndexSchema struct {
-	TABLE_SCHEMA string `db:"TABLE_SCHEMA"`
-	TABLE_NAME   string `db:"TABLE_NAME"`
-	NON_UNIQUE   int32  `db:"NON_UNIQUE"`
-	INDEX_NAME   string `db:"INDEX_NAME"`
-	SEQ_IN_INDEX int32  `db:"SEQ_IN_INDEX"`
-	COLUMN_NAME  string `db:"COLUMN_NAME"`
-	INDEX_TYPE   string `db:"INDEX_TYPE"`
+	TABLE_SCHEMA string `db:"schemaname"`
+	TABLE_NAME   string `db:"tablename"`
+	INDEX_NAME   string `db:"indexname"`
+	INDEX_DEF    string `db:"indexdef"`
 }
 
 func (IndexSchema) TableName() string {
-	return "INFORMATION_SCHEMA.STATISTICS"
+	return "pg_indexes"
 }

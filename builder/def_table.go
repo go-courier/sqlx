@@ -118,9 +118,13 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect, skipDropColumn bool) (ex
 		indexes := map[string]bool{}
 
 		t.Keys.Range(func(key *Key, idx int) {
-			indexes[key.Name] = true
+			name := key.Name
+			if key.IsPrimary() {
+				name = dialect.PrimaryKeyName()
+			}
+			indexes[name] = true
 
-			prevKey := prevTable.Key(key.Name)
+			prevKey := prevTable.Key(name)
 			if prevKey == nil {
 				exprList = append(exprList, dialect.AddIndex(key))
 			} else {
@@ -132,7 +136,7 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect, skipDropColumn bool) (ex
 		})
 
 		prevTable.Keys.Range(func(key *Key, idx int) {
-			if _, ok := indexes[key.Name]; !ok {
+			if _, ok := indexes[strings.ToLower(key.Name)]; !ok {
 				exprList = append(exprList, dialect.DropIndex(key))
 			}
 		})
@@ -141,7 +145,7 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect, skipDropColumn bool) (ex
 	// drop columns
 	if !skipDropColumn {
 		prevTable.Columns.Range(func(col *Column, idx int) {
-			if _, ok := cols[col.Name]; !ok {
+			if _, ok := cols[strings.ToLower(col.Name)]; !ok {
 				exprList = append(exprList, dialect.DropColumn(col))
 			}
 		})
