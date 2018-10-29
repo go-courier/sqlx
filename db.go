@@ -32,7 +32,7 @@ func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.Flatten()
+	e = e.Flatten().ReplaceValueHolder(d.BindVar)
 	result, err := d.Exec(e.Query(), e.Args()...)
 	if err != nil {
 		if d.IsErrorConflict(err) {
@@ -51,7 +51,7 @@ func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.Flatten()
+	e = e.Flatten().ReplaceValueHolder(d.BindVar)
 	return d.Query(e.Query(), e.Args()...)
 }
 

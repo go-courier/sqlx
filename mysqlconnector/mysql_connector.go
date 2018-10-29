@@ -5,9 +5,12 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"github.com/go-courier/sqlx"
 	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/migration"
 	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
+	"log"
 	"reflect"
 	"strconv"
 )
@@ -39,6 +42,51 @@ func (c MysqlConnector) WithDBName(dbName string) driver.Connector {
 	return &c
 }
 
+func (c *MysqlConnector) Migrate(db *sqlx.DB,database *sqlx.Database, opts *migration.MigrationOpts) error {
+	if opts == nil {
+		opts = &migration.MigrationOpts{}
+	}
+
+	prevDB := DBFromInformationSchema(db, database.Name, database.Tables.TableNames()...)
+
+	if prevDB == nil {
+		prevDB = &sqlx.Database{
+			Name: database.Name,
+		}
+		if _, err := db.ExecExpr(db.CreateDatabaseIfNotExists(database.Name)); err != nil {
+			return err
+		}
+	}
+
+	for name, table := range database.Tables {
+		prevTable := prevDB.Table(name)
+		if prevTable == nil {
+			for _, expr := range db.CreateTableIsNotExists(table) {
+				if _, err := db.ExecExpr(expr); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
+		exprList := table.Diff(prevTable, db.Dialect, opts.SkipDropColumn)
+
+		for _, expr := range exprList {
+			if !expr.IsNil() {
+				if opts.DryRun {
+					log.Printf(builder.ExprFrom(expr).Flatten().Query())
+				} else {
+					if _, err := db.ExecExpr(expr); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	d := c.Driver()
 	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
@@ -66,7 +114,11 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 }
 
 func (MysqlConnector) Driver() driver.Driver {
-	return &LoggingDriver{Driver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()}
+	return &MySqlLoggingDriver{Driver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()}
+}
+
+func (MysqlConnector) BindVar(i int) string {
+	return "?"
 }
 
 func (MysqlConnector) DriverName() string {

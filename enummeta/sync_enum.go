@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-func SyncEnum(database *sqlx.Database, db *sqlx.DB) error {
+func SyncEnum(db *sqlx.DB, database *sqlx.Database) error {
 	task := sqlx.NewTasks(db)
 
 	metaEnumTable := database.T(&SqlMetaEnum{})

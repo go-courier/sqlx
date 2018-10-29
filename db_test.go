@@ -3,7 +3,7 @@ package sqlx_test
 import (
 	"fmt"
 	"github.com/go-courier/sqlx"
-	"github.com/go-courier/sqlx/mysqlconnector/migration"
+	"github.com/go-courier/sqlx/migration"
 	"testing"
 
 	"github.com/google/uuid"
@@ -23,7 +23,7 @@ func TestWithTasks(t *testing.T) {
 
 	{
 		dbTest.Register(&User{})
-		err := (migration.Migration{Database: dbTest}).Migrate(db)
+		err := migration.Migrate(db, dbTest, nil)
 		tt.NoError(err)
 	}
 

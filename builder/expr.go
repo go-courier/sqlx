@@ -145,3 +145,23 @@ func (e *Ex) Flatten() (*Ex) {
 
 	return expr
 }
+
+func (e *Ex) ReplaceValueHolder(bindVar func(idx int) string) *Ex {
+	index := 0
+	expr := Expr("")
+	data := e.Bytes()
+
+	for i := range data {
+		c := data[i]
+		switch c {
+		case '?':
+			expr.WriteString(bindVar(index))
+			expr.AppendArgs(e.args[index])
+			index++
+		default:
+			expr.WriteByte(c)
+		}
+	}
+
+	return expr
+}

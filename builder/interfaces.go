@@ -37,6 +37,7 @@ type WithComments interface {
 
 type Dialect interface {
 	DriverName() string
+	BindVar(i int) string
 	IsErrorUnknownDatabase(err error) bool
 	IsErrorConflict(err error) bool
 	CreateDatabaseIfNotExists(dbName string) SqlExpr

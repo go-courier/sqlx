@@ -1,8 +1,8 @@
 package database
 
 import (
+	"github.com/go-courier/sqlx/migration"
 	"github.com/go-courier/sqlx/mysqlconnector"
-	"github.com/go-courier/sqlx/mysqlconnector/migration"
 	"testing"
 
 	"github.com/go-courier/sqlx/builder"
@@ -29,7 +29,7 @@ func TestUserCRUD(t *testing.T) {
 
 	db := DBTest.OpenDB(mysqlConnector)
 
-	err := (migration.Migration{Database: DBTest}).Migrate(db)
+	err := migration.Migrate(db, DBTest, nil)
 	tt.NoError(err)
 
 	defer func() {
@@ -109,7 +109,7 @@ func TestUserList(t *testing.T) {
 
 	db := DBTest.OpenDB(mysqlConnector)
 
-	err := (migration.Migration{Database: DBTest}).Migrate(db)
+	err := migration.Migrate(db, DBTest, nil)
 	tt.NoError(err)
 
 	defer func() {
