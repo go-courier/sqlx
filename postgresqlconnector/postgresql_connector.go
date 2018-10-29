@@ -1,4 +1,4 @@
-package mysqlconnector
+package postgresqlconnector
 
 import (
 	"bytes"
@@ -8,10 +8,11 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/migration"
-	"github.com/go-sql-driver/mysql"
+	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 
 	"github.com/go-courier/sqlx"
@@ -20,14 +21,13 @@ import (
 var _ interface {
 	driver.Connector
 	builder.Dialect
-} = (*MysqlConnector)(nil)
+} = (*PostgreSQLConnector)(nil)
 
-type MysqlConnector struct {
-	Host    string
-	DBName  string
-	Extra   string
-	Engine  string
-	Charset string
+type PostgreSQLConnector struct {
+	Host       string
+	DBName     string
+	Extra      string
+	Extensions []string
 }
 
 func dsn(host string, dbName string, extra string) string {
@@ -37,12 +37,12 @@ func dsn(host string, dbName string, extra string) string {
 	return host + "/" + dbName + extra
 }
 
-func (c MysqlConnector) WithDBName(dbName string) driver.Connector {
+func (c PostgreSQLConnector) WithDBName(dbName string) driver.Connector {
 	c.DBName = dbName
 	return &c
 }
 
-func (c *MysqlConnector) Migrate(db *sqlx.DB, database *sqlx.Database, opts *migration.MigrationOpts) error {
+func (c *PostgreSQLConnector) Migrate(db *sqlx.DB, database *sqlx.Database, opts *migration.MigrationOpts) error {
 	if opts == nil {
 		opts = &migration.MigrationOpts{}
 	}
@@ -72,7 +72,7 @@ func (c *MysqlConnector) Migrate(db *sqlx.DB, database *sqlx.Database, opts *mig
 		exprList := table.Diff(prevTable, db.Dialect, opts.SkipDropColumn)
 
 		for _, expr := range exprList {
-			if !expr.IsNil() {
+			if !(expr == nil || expr.IsNil()) {
 				if opts.DryRun {
 					log.Printf(builder.ExprFrom(expr).Flatten().Query())
 				} else {
@@ -87,7 +87,7 @@ func (c *MysqlConnector) Migrate(db *sqlx.DB, database *sqlx.Database, opts *mig
 	return nil
 }
 
-func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
+func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	d := c.Driver()
 	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
 	if err != nil {
@@ -103,6 +103,17 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 			if err := stmt.Close(); err != nil {
 				return nil, err
 			}
+
+			for _, ex := range c.Extensions {
+				stmt, _ := conn.Prepare("CREATE EXTENSION IF NOT EXISTS " + ex + ";")
+				if _, err := stmt.Exec(nil); err != nil {
+					return nil, err
+				}
+				if err := stmt.Close(); err != nil {
+					return nil, err
+				}
+			}
+
 			if err := conn.Close(); err != nil {
 				return nil, err
 			}
@@ -113,51 +124,51 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	return conn, nil
 }
 
-func (MysqlConnector) Driver() driver.Driver {
-	return &MySqlLoggingDriver{Driver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()}
+func (PostgreSQLConnector) Driver() driver.Driver {
+	return &PostgreSQLLoggingDriver{Driver: &pq.Driver{}, Logger: logrus.StandardLogger()}
 }
 
-func (MysqlConnector) BindVar(i int) string {
-	return "?"
+func (PostgreSQLConnector) BindVar(i int) string {
+	return "$" + strconv.FormatInt(int64(i+1), 10)
 }
 
-func (MysqlConnector) DriverName() string {
-	return "mysql"
+func (PostgreSQLConnector) DriverName() string {
+	return "postgres"
 }
 
-func (MysqlConnector) PrimaryKeyName() string {
-	return "primary"
+func (PostgreSQLConnector) PrimaryKeyName() string {
+	return "pkey"
 }
 
-func (c MysqlConnector) IsErrorUnknownDatabase(err error) bool {
-	if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1049 {
+func (PostgreSQLConnector) IsErrorUnknownDatabase(err error) bool {
+	if e, ok := err.(*pq.Error); ok && e.Code == "3D000" {
 		return true
 	}
 	return false
 }
 
-func (c MysqlConnector) IsErrorConflict(err error) bool {
-	if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+func (PostgreSQLConnector) IsErrorConflict(err error) bool {
+	if e, ok := err.(*pq.Error); ok && e.Code == "23505" {
 		return true
 	}
 	return false
 }
 
-func (c *MysqlConnector) CreateDatabase(dbName string) builder.SqlExpr {
+func (c *PostgreSQLConnector) CreateDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("CREATE DATABASE ")
 	e.WriteString(dbName)
 	e.WriteEnd()
 	return e
 }
 
-func (c *MysqlConnector) DropDatabase(dbName string) builder.SqlExpr {
+func (c *PostgreSQLConnector) DropDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("DROP DATABASE ")
 	e.WriteString(dbName)
 	e.WriteEnd()
 	return e
 }
 
-func (c *MysqlConnector) AddIndex(key *builder.Key) builder.SqlExpr {
+func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 	if key.IsPrimary() {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
@@ -170,52 +181,63 @@ func (c *MysqlConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 	}
 
 	e := builder.Expr("CREATE ")
-	if key.Method == "SPATIAL" {
-		e.WriteString("SPATIAL ")
-	} else if key.IsUnique {
+	if key.IsUnique {
 		e.WriteString("UNIQUE ")
 	}
 	e.WriteString("INDEX ")
 
+	e.WriteString(key.Table.Name)
+	e.WriteString("_")
 	e.WriteString(key.Name)
 
 	e.WriteString(" ON ")
 	e.WriteExpr(key.Table)
+
+	if map[string]bool{
+		"BTREE":   true,
+		"HASH":    true,
+		"SPATIAL": true,
+		"GIST":    true,
+	}[strings.ToUpper(key.Method)] {
+		e.WriteString(" USING ")
+
+		if key.Method == "SPATIAL" {
+			e.WriteString("GIST")
+		} else {
+			e.WriteString(key.Method)
+		}
+	}
+
 	e.WriteByte(' ')
 	e.WriteGroup(func(e *builder.Ex) {
 		e.WriteExpr(key.Columns)
 	})
 
-	if key.Method == "BTREE" || key.Method == "HASH" {
-		e.WriteString(" USING ")
-		e.WriteString(key.Method)
-	}
-
 	e.WriteEnd()
 	return e
 }
 
-func (c *MysqlConnector) DropIndex(key *builder.Key) builder.SqlExpr {
+func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	if key.IsPrimary() {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
-		e.WriteString(" DROP PRIMARY KEY")
+		e.WriteString(" DROP CONSTRAINT ")
+		e.WriteString(key.Table.Name)
+		e.WriteString("_pkey")
 		e.WriteEnd()
 		return e
 	}
 	e := builder.Expr("DROP ")
 
 	e.WriteString("INDEX ")
+	e.WriteString(key.Table.Name)
+	e.WriteByte('_')
 	e.WriteString(key.Name)
-
-	e.WriteString(" ON ")
-	e.WriteExpr(key.Table)
-	e.WriteEnd()
 
 	return e
 }
 
-func (c *MysqlConnector) CreateTableIsNotExists(t *builder.Table) (exprs []builder.SqlExpr) {
+func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []builder.SqlExpr) {
 	expr := builder.Expr("CREATE TABLE IF NOT EXISTS ")
 	expr.WriteString(t.Name)
 	expr.WriteByte(' ')
@@ -251,22 +273,6 @@ func (c *MysqlConnector) CreateTableIsNotExists(t *builder.Table) (exprs []build
 		expr.WriteByte('\n')
 	})
 
-	expr.WriteString(" ENGINE=")
-
-	if c.Engine == "" {
-		expr.WriteString("InnoDB")
-	} else {
-		expr.WriteString(c.Engine)
-	}
-
-	expr.WriteString(" CHARSET=")
-
-	if c.Charset == "" {
-		expr.WriteString("utf8mb4")
-	} else {
-		expr.WriteString(c.Charset)
-	}
-
 	expr.WriteEnd()
 	exprs = append(exprs, expr)
 
@@ -279,21 +285,21 @@ func (c *MysqlConnector) CreateTableIsNotExists(t *builder.Table) (exprs []build
 	return
 }
 
-func (c *MysqlConnector) DropTable(t *builder.Table) builder.SqlExpr {
+func (c *PostgreSQLConnector) DropTable(t *builder.Table) builder.SqlExpr {
 	e := builder.Expr("DROP TABLE ")
 	e.WriteString(t.Name)
 	e.WriteEnd()
 	return e
 }
 
-func (c *MysqlConnector) TruncateTable(t *builder.Table) builder.SqlExpr {
+func (c *PostgreSQLConnector) TruncateTable(t *builder.Table) builder.SqlExpr {
 	e := builder.Expr("TRUNCATE TABLE ")
 	e.WriteString(t.Name)
 	e.WriteEnd()
 	return e
 }
 
-func (c *MysqlConnector) AddColumn(col *builder.Column) builder.SqlExpr {
+func (c *PostgreSQLConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 	e.WriteString(" ADD COLUMN ")
@@ -304,18 +310,46 @@ func (c *MysqlConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	return e
 }
 
-func (c *MysqlConnector) ModifyColumn(col *builder.Column) builder.SqlExpr {
+func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column) builder.SqlExpr {
+	if col.AutoIncrement {
+		return nil
+	}
+
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" MODIFY COLUMN ")
+
+	e.WriteString(" ALTER COLUMN ")
 	e.WriteExpr(col)
-	e.WriteByte(' ')
-	e.WriteExpr(c.DataType(col.ColumnType))
+	e.WriteString(" TYPE ")
+	e.WriteString(c.dataType(col.ColumnType.Type, col.ColumnType))
+
+	{
+		e.WriteString(", ALTER COLUMN ")
+		e.WriteExpr(col)
+		if !col.Null {
+			e.WriteString(" SET NOT NULL")
+		} else {
+			e.WriteString(" DROP NOT NULL")
+		}
+	}
+
+	{
+		e.WriteString(", ALTER COLUMN ")
+		e.WriteExpr(col)
+		if col.Default != nil {
+			e.WriteString(" SET DEFAULT ")
+			e.WriteString(*col.Default)
+		} else {
+			e.WriteString(" DROP DEFAULT")
+		}
+	}
+
 	e.WriteEnd()
+
 	return e
 }
 
-func (c *MysqlConnector) DropColumn(col *builder.Column) builder.SqlExpr {
+func (c *PostgreSQLConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 	e.WriteString(" DROP COLUMN ")
@@ -324,11 +358,11 @@ func (c *MysqlConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 	return e
 }
 
-func (c *MysqlConnector) DataType(columnType *builder.ColumnType) builder.SqlExpr {
+func (c *PostgreSQLConnector) DataType(columnType *builder.ColumnType) builder.SqlExpr {
 	return builder.Expr(c.dataType(columnType.Type, columnType) + c.dataTypeModify(columnType))
 }
 
-func (c *MysqlConnector) dataType(typ reflect.Type, columnType *builder.ColumnType) string {
+func (c *PostgreSQLConnector) dataType(typ reflect.Type, columnType *builder.ColumnType) string {
 	if columnType.GetDataType != nil {
 		return columnType.GetDataType(c.DriverName())
 	}
@@ -338,26 +372,24 @@ func (c *MysqlConnector) dataType(typ reflect.Type, columnType *builder.ColumnTy
 		return c.dataType(typ.Elem(), columnType)
 	case reflect.Bool:
 		return "boolean"
-	case reflect.Int8:
-		return "tinyint"
-	case reflect.Uint8:
-		return "tinyint unsigned"
-	case reflect.Int16:
-		return "smallint"
-	case reflect.Uint16:
-		return "smallint unsigned"
-	case reflect.Int, reflect.Int32:
-		return "int"
-	case reflect.Uint, reflect.Uint32:
-		return "int unsigned"
-	case reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		if columnType.AutoIncrement {
+			return "serial"
+		}
+		return "integer"
+	case reflect.Int64, reflect.Uint64:
+		if columnType.AutoIncrement {
+			return "bigserial"
+		}
 		return "bigint"
-	case reflect.Uint64:
-		return "bigint unsigned"
-	case reflect.Float32:
-		return "float" + sizeModifier(columnType.Length, columnType.Decimal)
 	case reflect.Float64:
-		return "double" + sizeModifier(columnType.Length, columnType.Decimal)
+		return "double precision"
+	case reflect.Float32:
+		return "real"
+	case reflect.Slice:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return "bytea"
+		}
 	case reflect.String:
 		size := columnType.Length
 		if size == 0 {
@@ -367,43 +399,32 @@ func (c *MysqlConnector) dataType(typ reflect.Type, columnType *builder.ColumnTy
 			return "varchar" + sizeModifier(size, 0)
 		}
 		return "text"
-	case reflect.Slice:
-		if typ.Elem().Kind() == reflect.Uint8 {
-			return "mediumblob"
-		}
 	}
+
 	switch typ.Name() {
 	case "NullInt64":
 		return "bigint"
 	case "NullFloat64":
-		return "double"
+		return "double precision"
 	case "NullBool":
-		return "tinyint"
-	case "Time":
-		return "datetime"
+		return "boolean"
+	case "Time", "NullTime":
+		return "timestamp with time zone"
 	}
+
 	panic(fmt.Errorf("unsupport type %s", typ))
 }
 
-func (c *MysqlConnector) dataTypeModify(columnType *builder.ColumnType) string {
+func (c *PostgreSQLConnector) dataTypeModify(columnType *builder.ColumnType) string {
 	buf := bytes.NewBuffer(nil)
 
 	if !columnType.Null {
 		buf.WriteString(" NOT NULL")
 	}
 
-	if columnType.AutoIncrement {
-		buf.WriteString(" AUTO_INCREMENT")
-	}
-
 	if columnType.Default != nil {
 		buf.WriteString(" DEFAULT ")
 		buf.WriteString(*columnType.Default)
-	}
-
-	if columnType.Comment != "" {
-		buf.WriteString(" COMMENT ")
-		buf.WriteString(strconv.Quote(columnType.Comment))
 	}
 
 	return buf.String()

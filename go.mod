@@ -10,7 +10,7 @@ require (
 	github.com/go-courier/reflectx v1.3.2
 	github.com/go-sql-driver/mysql v1.4.0
 	github.com/google/uuid v1.0.0
-	github.com/lib/pq v1.0.0 // indirect
+	github.com/lib/pq v1.0.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/sirupsen/logrus v1.1.1

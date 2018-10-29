@@ -23,7 +23,7 @@ func TestColumns(t *testing.T) {
 
 		col := columns.AutoIncrement()
 		require.NotNil(t, col)
-		require.Equal(t, "F_id", col.Name)
+		require.Equal(t, "f_id", col.Name)
 	}
 
 	require.Nil(t, columns.F("ID2"))

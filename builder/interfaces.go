@@ -10,7 +10,7 @@ type ValuerExpr interface {
 }
 
 type DataTypeDescriber interface {
-	DataType(engine string) string
+	DataType(driverName string) string
 }
 
 type Model interface {
@@ -38,9 +38,10 @@ type WithComments interface {
 type Dialect interface {
 	DriverName() string
 	BindVar(i int) string
+	PrimaryKeyName() string
 	IsErrorUnknownDatabase(err error) bool
 	IsErrorConflict(err error) bool
-	CreateDatabaseIfNotExists(dbName string) SqlExpr
+	CreateDatabase(dbName string) SqlExpr
 	DropDatabase(dbName string) SqlExpr
 	CreateTableIsNotExists(t *Table) []SqlExpr
 	DropTable(t *Table) SqlExpr

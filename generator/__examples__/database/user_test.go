@@ -1,12 +1,14 @@
 package database
 
 import (
-	"github.com/go-courier/sqlx/migration"
-	"github.com/go-courier/sqlx/mysqlconnector"
+	"database/sql/driver"
 	"testing"
 
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/datatypes"
+	"github.com/go-courier/sqlx/migration"
+	"github.com/go-courier/sqlx/mysqlconnector"
+	"github.com/go-courier/sqlx/postgresqlconnector"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -18,6 +20,12 @@ var (
 		Host:  "root@tcp(0.0.0.0:3306)",
 		Extra: "charset=utf8mb4&parseTime=true&interpolateParams=true&autocommit=true&loc=Local",
 	}
+
+	postgresConnector = &postgresqlconnector.PostgreSQLConnector{
+		Host:       "postgres://postgres@0.0.0.0:5432",
+		Extra:      "sslmode=disable",
+		Extensions: []string{"postgis"},
+	}
 )
 
 func init() {
@@ -27,25 +35,28 @@ func init() {
 func TestUserCRUD(t *testing.T) {
 	tt := require.New(t)
 
-	db := DBTest.OpenDB(mysqlConnector)
+	for _, connector := range []driver.Connector{
+		mysqlConnector,
+		postgresConnector,
+	} {
+		db := DBTest.OpenDB(connector)
 
-	err := migration.Migrate(db, DBTest, nil)
-	tt.NoError(err)
+		for _, t := range DBTest.Tables {
+			_, err := db.ExecExpr(db.DropTable(t))
+			tt.NoError(err)
+		}
 
-	defer func() {
-		_, err := db.ExecExpr(db.DropDatabase(DBTest.Name))
+		err := migration.Migrate(db, DBTest, nil)
 		tt.NoError(err)
-	}()
 
-	{
 		user := User{}
 		user.Name = uuid.New().String()
 		user.Geom = GeomString{
 			V: "Point(0 0)",
 		}
 
-		err := user.Create(db)
-		tt.NoError(err)
+		errForCreate := user.Create(db)
+		tt.NoError(errForCreate)
 		tt.Equal(uint64(1), user.ID)
 
 		user.Gender = GenderMale
@@ -101,53 +112,63 @@ func TestUserCRUD(t *testing.T) {
 				}
 			}
 		}
+
+		for _, t := range DBTest.Tables {
+			_, err := db.ExecExpr(db.DropTable(t))
+			tt.NoError(err)
+		}
 	}
 }
 
 func TestUserList(t *testing.T) {
 	tt := require.New(t)
 
-	db := DBTest.OpenDB(mysqlConnector)
+	for _, connector := range []driver.Connector{
+		mysqlConnector,
+		postgresConnector,
+	} {
+		db := DBTest.OpenDB(connector)
 
-	err := migration.Migrate(db, DBTest, nil)
-	tt.NoError(err)
-
-	defer func() {
-		_, err := db.ExecExpr(db.DropDatabase(DBTest.Name))
+		err := migration.Migrate(db, DBTest, nil)
 		tt.NoError(err)
-	}()
 
-	createUser := func() {
-		user := User{}
-		user.Name = uuid.New().String()
-		user.Geom = GeomString{
-			V: "Point(0 0)",
+		createUser := func() {
+			user := User{}
+			user.Name = uuid.New().String()
+			user.Geom = GeomString{
+				V: "Point(0 0)",
+			}
+
+			err := user.Create(db)
+			tt.NoError(err)
 		}
 
-		err := user.Create(db)
-		tt.NoError(err)
-	}
+		for i := 0; i < 10; i++ {
+			createUser()
+		}
 
-	for i := 0; i < 10; i++ {
-		createUser()
-	}
-
-	list, err := (&User{}).List(db, nil)
-	tt.NoError(err)
-	tt.Len(list, 10)
-
-	count, err := (&User{}).Count(db, nil)
-	tt.NoError(err)
-	tt.Equal(10, count)
-
-	names := make([]string, 0)
-	for _, user := range list {
-		names = append(names, user.Name)
-	}
-
-	{
-		list, err := (&User{}).BatchFetchByNameList(db, names)
+		list, err := (&User{}).List(db, nil)
 		tt.NoError(err)
 		tt.Len(list, 10)
+
+		count, err := (&User{}).Count(db, nil)
+		tt.NoError(err)
+		tt.Equal(10, count)
+
+		names := make([]string, 0)
+		for _, user := range list {
+			names = append(names, user.Name)
+		}
+
+		{
+			list, err := (&User{}).BatchFetchByNameList(db, names)
+			tt.NoError(err)
+			tt.Len(list, 10)
+		}
+
+		for _, t := range DBTest.Tables {
+			_, err := db.ExecExpr(db.DropTable(t))
+			tt.NoError(err)
+		}
 	}
 }

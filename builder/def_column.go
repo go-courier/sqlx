@@ -4,11 +4,12 @@ import (
 	"container/list"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 func Col(name string) *Column {
 	return &Column{
-		Name: name,
+		Name:       name,
 		ColumnType: &ColumnType{},
 	}
 }
@@ -26,7 +27,7 @@ func (c *Column) IsNil() bool {
 	return c == nil
 }
 
-func (c *Column) Expr() (*Ex) {
+func (c *Column) Expr() *Ex {
 	return Expr(c.Name)
 }
 
@@ -181,7 +182,7 @@ func (c *Column) Lte(v interface{}) *Condition {
 	return AsCond(e)
 }
 
-func Cols(names ...string) (*Columns) {
+func Cols(names ...string) *Columns {
 	cols := &Columns{}
 	for _, name := range names {
 		cols.Add(Col(name))
@@ -289,6 +290,7 @@ func (cols *Columns) Cols(colNames ...string) (*Columns, error) {
 }
 
 func (cols *Columns) Col(columnName string) (col *Column) {
+	columnName = strings.ToLower(columnName)
 	if cols.columns != nil {
 		if c, ok := cols.columns[columnName]; ok {
 			return c.Value.(*Column)
@@ -306,6 +308,8 @@ func (cols *Columns) Add(columns ...*Column) {
 
 	for _, col := range columns {
 		if col != nil {
+			col.Name = strings.ToLower(col.Name)
+
 			if col.ColumnType != nil && col.ColumnType.AutoIncrement {
 				if cols.autoIncrement != nil {
 					panic(fmt.Errorf("AutoIncrement field can only have one, now %s, but %s want to replace", cols.autoIncrement.Name, col.Name))
@@ -320,6 +324,7 @@ func (cols *Columns) Add(columns ...*Column) {
 }
 
 func (cols *Columns) Remove(name string) {
+	name = strings.ToLower(name)
 	if cols.columns != nil {
 		if e, exists := cols.columns[name]; exists {
 			cols.l.Remove(e)

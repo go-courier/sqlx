@@ -2,10 +2,11 @@ package builder
 
 import (
 	"fmt"
-	"github.com/go-courier/reflectx"
 	"go/ast"
 	"reflect"
 	"strings"
+
+	"github.com/go-courier/reflectx"
 )
 
 type FieldValues map[string]interface{}
@@ -36,7 +37,7 @@ func GetColumnName(fieldName, tagValue string) string {
 	if columnName == "" {
 		return "f_" + strings.ToLower(fieldName)
 	}
-	return columnName
+	return strings.ToLower(columnName)
 }
 
 func ToMap(list []string) map[string]bool {

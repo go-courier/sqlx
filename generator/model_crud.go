@@ -127,12 +127,20 @@ func (m *Model) WriteCreate(file *codegen.File) {
 
 				codegen.Expr(`
 d := m.D()
-result, err := db.ExecExpr(d.Insert(m))
-`),
 
-				m.SnippetSetLastInsertIdIfNeed(file),
+switch db.DriverName() {
+	case "mysql":
+		result, err := db.ExecExpr(d.Insert(m, nil))
+		?
+		return err
+	case "postgres":
+		return db.QueryExprAndScan(d.Insert(m, nil, `+file.Use("github.com/go-courier/sqlx/builder", "Returning")+`(nil)), m)
+}
 
-				codegen.Return(codegen.Expr("err")),
+return nil
+`,
+					m.SnippetSetLastInsertIdIfNeed(file),
+				),
 			),
 	)
 
@@ -197,19 +205,41 @@ for field := range fieldValues {
 	}
 }
 
+switch db.DriverName() {
+	case "mysql":
+		_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/builder", "Insert")+`().
+			Into(
+				table,
+				`+file.Use("github.com/go-courier/sqlx/builder", "OnDuplicateKeyUpdate")+`(table.AssignmentsByFieldValues(fieldValues)...),
+				`+file.Use("github.com/go-courier/sqlx/builder", "Comment")+`(?),
+			).
+			Values(cols, vals...),
+		)
+		return err
+	case "postgres":
+		indexes := m.UniqueIndexes()
+		fields := make([]string, 0)
+		for _, fs := range indexes {
+			fields = append(fields, fs...)
+		}
+		indexFields, _ := m.T().Fields(fields...)
 
-_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/builder", "Insert")+`().
-	Into(
-		m.T(), 
-		`+file.Use("github.com/go-courier/sqlx/builder", "OnDuplicateKeyUpdate")+`(table.AssignmentsByFieldValues(fieldValues)...),
-		`+file.Use("github.com/go-courier/sqlx/builder", "Comment")+`(?),
-	).
-	Values(cols, vals...),
-)
-
-`, file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields")),
-
-					codegen.Return(codegen.Expr("err")),
+		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
+			Into(
+				table,
+				`+file.Use("github.com/go-courier/sqlx/builder", "OnConflict")+`(indexFields).
+					DoUpdateSet(table.AssignmentsByFieldValues(fieldValues)...),
+				`+file.Use("github.com/go-courier/sqlx/builder", "Comment")+`(?),
+			).
+			Values(cols, vals...),
+		)
+		return err
+	}
+return nil
+`,
+						file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields"),
+						file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields"),
+					),
 				),
 		)
 	}

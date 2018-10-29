@@ -82,10 +82,10 @@ func (database *Database) Assignments(model builder.Model, zeroFields ...string)
 	return table.AssignmentsByFieldValues(database.FieldValuesFromModel(table, model, zeroFields...))
 }
 
-func (database *Database) Insert(model builder.Model, zeroFields ...string) builder.SqlExpr {
+func (database *Database) Insert(model builder.Model, zeroFields []string, additions ...builder.Addition) builder.SqlExpr {
 	table := database.T(model)
 	cols, vals := table.ColumnsAndValuesByFieldValues(database.FieldValuesFromModel(table, model, zeroFields...))
-	return builder.Insert().Into(table).Values(cols, vals...)
+	return builder.Insert().Into(table, additions...).Values(cols, vals...)
 }
 
 func (database *Database) FieldValuesFromModel(table *builder.Table, model builder.Model, zeroFields ...string) builder.FieldValues {

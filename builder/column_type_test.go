@@ -1,10 +1,11 @@
 package builder
 
 import (
-	"github.com/go-courier/ptr"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+
+	"github.com/go-courier/ptr"
+	"github.com/stretchr/testify/require"
 )
 
 func TestColumnTypeFromTypeAndTag(t *testing.T) {
@@ -28,10 +29,6 @@ func TestColumnTypeFromTypeAndTag(t *testing.T) {
 		`,default='1'`: &ColumnType{
 			Type:    reflect.TypeOf(""),
 			Default: ptr.String(`'1'`),
-		},
-		`,onupdate=CURRENT_TIMESTAMP`: &ColumnType{
-			Type:     reflect.TypeOf(""),
-			OnUpdate: ptr.String(`CURRENT_TIMESTAMP`),
 		},
 	}
 

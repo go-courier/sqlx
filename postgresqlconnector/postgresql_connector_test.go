@@ -1,4 +1,4 @@
-package mysqlconnector
+package postgresqlconnector
 
 import (
 	"database/sql/driver"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestMysqlConnector(t *testing.T) {
-	c := &MysqlConnector{}
+	c := &PostgreSQLConnector{}
 
 	table := builder.T("t",
 		builder.Col("F_id").Type(uint64(0), ",autoincrement"),
@@ -30,62 +30,62 @@ func TestMysqlConnector(t *testing.T) {
 	}{
 		"CreateDatabase": {
 			c.CreateDatabase("db"),
-			builder.Expr( /* language=MySQL */ `CREATE DATABASE db;`),
+			builder.Expr( /* language=PostgreSQL */ `CREATE DATABASE db;`),
 		},
 		"DropDatabase": {
 			c.DropDatabase("db"),
-			builder.Expr( /* language=MySQL */ `DROP DATABASE db;`),
+			builder.Expr( /* language=PostgreSQL */ `DROP DATABASE db;`),
 		},
 		"AddIndex": {
 			c.AddIndex(table.Key("I_name")),
-			builder.Expr( /* language=MySQL */ "CREATE UNIQUE INDEX i_name ON t (f_name) USING BTREE;"),
+			builder.Expr( /* language=PostgreSQL */ "CREATE UNIQUE INDEX t_i_name ON t USING BTREE (f_name);"),
 		},
 		"AddPrimaryKey": {
 			c.AddIndex(table.Key("PRIMARY")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t ADD PRIMARY KEY (f_id);"),
+			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t ADD PRIMARY KEY (f_id);"),
 		},
 		"AddSpatialIndex": {
 			c.AddIndex(table.Key("I_geo")),
-			builder.Expr( /* language=MySQL */ "CREATE SPATIAL INDEX i_geo ON t (f_geo);"),
+			builder.Expr( /* language=PostgreSQL */ "CREATE INDEX t_i_geo ON t USING GIST (f_geo);"),
 		},
 		"DropIndex": {
 			c.DropIndex(table.Key("I_name")),
-			builder.Expr( /* language=MySQL */ "DROP INDEX i_name ON t;"),
+			builder.Expr( /* language=PostgreSQL */ "DROP INDEX t_i_name"),
 		},
 		"DropPrimaryKey": {
 			c.DropIndex(table.Key("PRIMARY")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t DROP PRIMARY KEY;"),
+			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t DROP CONSTRAINT t_pkey;"),
 		},
 		"CreateTableIsNotExists": {
 			c.CreateTableIsNotExists(table)[0],
-			builder.Expr( /* language=MySQL */ `CREATE TABLE IF NOT EXISTS t (
-	f_id bigint unsigned NOT NULL AUTO_INCREMENT,
+			builder.Expr( /* language=PostgreSQL */ `CREATE TABLE IF NOT EXISTS t (
+	f_id bigserial NOT NULL,
 	f_name varchar(128) NOT NULL DEFAULT '',
 	f_geo POINT NOT NULL,
 	f_created_at bigint NOT NULL DEFAULT '0',
 	f_updated_at bigint NOT NULL DEFAULT '0',
 	PRIMARY KEY (f_id)
-) ENGINE=InnoDB CHARSET=utf8mb4;`),
+);`),
 		},
 		"DropTable": {
 			c.DropTable(table),
-			builder.Expr( /* language=MySQL */ "DROP TABLE t;"),
+			builder.Expr( /* language=PostgreSQL */ "DROP TABLE t;"),
 		},
 		"TruncateTable": {
 			c.TruncateTable(table),
-			builder.Expr( /* language=MySQL */ "TRUNCATE TABLE t;"),
+			builder.Expr( /* language=PostgreSQL */ "TRUNCATE TABLE t;"),
 		},
 		"AddColumn": {
 			c.AddColumn(table.Col("F_name")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"),
+			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"),
 		},
 		"ModifyColumn": {
 			c.ModifyColumn(table.Col("F_name")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t MODIFY COLUMN f_name varchar(128) NOT NULL DEFAULT '';"),
+			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t ALTER COLUMN f_name TYPE varchar(128), ALTER COLUMN f_name SET NOT NULL, ALTER COLUMN f_name SET DEFAULT '';"),
 		},
 		"DropColumn": {
 			c.DropColumn(table.Col("F_name")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t DROP COLUMN f_name;"),
+			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t DROP COLUMN f_name;"),
 		},
 	}
 

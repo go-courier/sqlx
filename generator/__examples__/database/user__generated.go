@@ -200,14 +200,23 @@ func (m *User) Create(db *github_com_go_courier_sqlx.DB) error {
 	}
 
 	d := m.D()
-	result, err := db.ExecExpr(d.Insert(m))
 
-	if err == nil {
-		lastInsertID, _ := result.LastInsertId()
-		m.ID = uint64(lastInsertID)
+	switch db.DriverName() {
+	case "mysql":
+		result, err := db.ExecExpr(d.Insert(m, nil))
+
+		if err == nil {
+			lastInsertID, _ := result.LastInsertId()
+			m.ID = uint64(lastInsertID)
+		}
+
+		return err
+	case "postgres":
+		return db.QueryExprAndScan(d.Insert(m, nil, github_com_go_courier_sqlx_builder.Returning(nil)), m)
 	}
 
-	return err
+	return nil
+
 }
 
 func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.DB, updateFields []string) error {
@@ -255,16 +264,38 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.
 		}
 	}
 
-	_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
-		Into(
-			m.T(),
-			github_com_go_courier_sqlx_builder.OnDuplicateKeyUpdate(table.AssignmentsByFieldValues(fieldValues)...),
-			github_com_go_courier_sqlx_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
-		).
-		Values(cols, vals...),
-	)
+	switch db.DriverName() {
+	case "mysql":
+		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
+			Into(
+				table,
+				github_com_go_courier_sqlx_builder.OnDuplicateKeyUpdate(table.AssignmentsByFieldValues(fieldValues)...),
+				github_com_go_courier_sqlx_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
+			).
+			Values(cols, vals...),
+		)
+		return err
+	case "postgres":
+		indexes := m.UniqueIndexes()
+		fields := make([]string, 0)
+		for _, fs := range indexes {
+			fields = append(fields, fs...)
+		}
+		indexFields, _ := m.T().Fields(fields...)
 
-	return err
+		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
+			Into(
+				table,
+				github_com_go_courier_sqlx_builder.OnConflict(indexFields).
+					DoUpdateSet(table.AssignmentsByFieldValues(fieldValues)...),
+				github_com_go_courier_sqlx_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
+			).
+			Values(cols, vals...),
+		)
+		return err
+	}
+	return nil
+
 }
 
 func (m *User) DeleteByStruct(db *github_com_go_courier_sqlx.DB) error {

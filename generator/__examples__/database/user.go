@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql/driver"
+
 	"github.com/go-courier/sqlx/datatypes"
 )
 
@@ -36,10 +37,13 @@ func (g *GeomString) Scan(src interface{}) error {
 	return nil
 }
 
-func (GeomString) ValueEx() string {
-	return "ST_GeomFromText(?)"
+func (GeomString) DataType(driverName string) string {
+	if driverName == "mysql" {
+		return "geometry"
+	}
+	return "geometry(Point)"
 }
 
-func (GeomString) DataType(driverName string) string {
-	return "geometry"
+func (GeomString) ValueEx() string {
+	return "ST_GeomFromText(?)"
 }
