@@ -6,5 +6,5 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/go-courier/sqlx)](https://goreportcard.com/report/github.com/go-courier/sqlx)
 
 
-Sql helpers just for mysql and mysql-compatibility db.
+Sql helpers just for mysql/postgres and mysql/postgres-compatibility db.
 

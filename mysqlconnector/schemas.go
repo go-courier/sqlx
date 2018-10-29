@@ -1,4 +1,4 @@
-package migration
+package mysqlconnector
 
 import (
 	"database/sql"

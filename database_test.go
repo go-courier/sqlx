@@ -5,8 +5,8 @@ import (
 	"github.com/go-courier/sqlx"
 	"github.com/go-courier/sqlx/builder"
 	"github.com/go-courier/sqlx/datatypes"
+	"github.com/go-courier/sqlx/migration"
 	"github.com/go-courier/sqlx/mysqlconnector"
-	"github.com/go-courier/sqlx/mysqlconnector/migration"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -94,7 +94,7 @@ func (user *User) PrimaryKey() []string {
 
 func (user *User) Indexes() builder.Indexes {
 	return builder.Indexes{
-		"I_nickname": {"Nickname", "Name"},
+		"I_nickname": {"Nickname"},
 	}
 }
 
@@ -123,23 +123,23 @@ func TestMigrate(t *testing.T) {
 
 	{
 		dbTest.Register(&User{})
-		err := (migration.Migration{Database: dbTest}).Migrate(db)
+		err := migration.Migrate(db, dbTest, nil)
 		tt.NoError(err)
 	}
 	{
 		dbTest.Register(&User{})
-		err := (migration.Migration{Database: dbTest}).Migrate(db)
+		err := migration.Migrate(db, dbTest, nil)
 		tt.NoError(err)
 	}
 	{
 		dbTest.Register(&User2{})
-		err := (migration.Migration{Database: dbTest}).Migrate(db)
+		err := migration.Migrate(db, dbTest, nil)
 		tt.NoError(err)
 	}
 
 	{
 		dbTest.Register(&User{})
-		err := (migration.Migration{Database: dbTest}).Migrate(db)
+		err := migration.Migrate(db, dbTest, nil)
 		tt.NoError(err)
 	}
 }
@@ -156,7 +156,7 @@ func TestCRUD(t *testing.T) {
 	}()
 
 	userTable := dbTest.Register(&User{})
-	err := (migration.Migration{Database: dbTest}).Migrate(db)
+	err := migration.Migrate(db, dbTest, nil)
 	tt.NoError(err)
 
 	{
@@ -219,7 +219,7 @@ func TestSelect(t *testing.T) {
 	}()
 
 	table := dbTest.Register(&User{})
-	err := (migration.Migration{Database: dbTest}).Migrate(db)
+	err := migration.Migrate(db, dbTest, nil)
 	tt.Nil(err)
 
 	for i := 0; i < 10; i++ {

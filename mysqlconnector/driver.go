@@ -19,14 +19,14 @@ type logger struct{}
 func (l *logger) Print(args ...interface{}) {
 }
 
-var _ driver.Driver = (*LoggingDriver)(nil)
+var _ driver.Driver = (*MySqlLoggingDriver)(nil)
 
-type LoggingDriver struct {
+type MySqlLoggingDriver struct {
 	Logger *logrus.Logger
 	Driver *mysql.MySQLDriver
 }
 
-func (d *LoggingDriver) Open(dsn string) (driver.Conn, error) {
+func (d *MySqlLoggingDriver) Open(dsn string) (driver.Conn, error) {
 	cfg, err := mysql.ParseDSN(dsn)
 	if err != nil {
 		panic(err)
