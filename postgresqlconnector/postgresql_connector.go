@@ -103,23 +103,21 @@ func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) 
 			if err := stmt.Close(); err != nil {
 				return nil, err
 			}
-
-			for _, ex := range c.Extensions {
-				stmt, _ := conn.Prepare("CREATE EXTENSION IF NOT EXISTS " + ex + ";")
-				if _, err := stmt.Exec(nil); err != nil {
-					return nil, err
-				}
-				if err := stmt.Close(); err != nil {
-					return nil, err
-				}
-			}
-
 			if err := conn.Close(); err != nil {
 				return nil, err
 			}
 			return c.Connect(ctx)
 		}
 		return nil, err
+	}
+	for _, ex := range c.Extensions {
+		stmt, _ := conn.Prepare("CREATE EXTENSION IF NOT EXISTS " + ex + ";")
+		if _, err := stmt.Exec(nil); err != nil {
+			return nil, err
+		}
+		if err := stmt.Close(); err != nil {
+			return nil, err
+		}
 	}
 	return conn, nil
 }
