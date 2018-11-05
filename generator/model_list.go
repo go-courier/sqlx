@@ -10,9 +10,9 @@ import (
 func (m *Model) WriteCount(file *codegen.File) {
 	file.WriteBlock(
 		codegen.Func(
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx", "DB"))), "db"),
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Condition"))), "condition"),
-			codegen.Var(codegen.Ellipsis(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Addition"))), "additions"),
+			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Condition"))), "condition"),
+			codegen.Var(codegen.Ellipsis(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Addition"))), "additions"),
 		).
 			Named("Count").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
@@ -32,7 +32,7 @@ _ = table
 					if m.HasSoftDelete {
 						return codegen.Expr(
 							`condition = ?(condition, table.F("`+m.FieldKeySoftDelete+`").Eq(?))`,
-							codegen.Id(file.Use("github.com/go-courier/sqlx/builder", "And")),
+							codegen.Id(file.Use("github.com/go-courier/sqlx/v2/builder", "And")),
 							codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue))),
 						)
 					}
@@ -41,9 +41,9 @@ _ = table
 
 				codegen.Expr(`
 
-finalAdditions := []`+file.Use("github.com/go-courier/sqlx/builder", "Addition")+`{
-`+file.Use("github.com/go-courier/sqlx/builder", "Where")+`(condition),
-`+file.Use("github.com/go-courier/sqlx/builder", "Comment")+`(?),
+finalAdditions := []`+file.Use("github.com/go-courier/sqlx/v2/builder", "Addition")+`{
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(condition),
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
 }
 
 if len(additions) > 0 {
@@ -51,8 +51,8 @@ if len(additions) > 0 {
 }
 
 err := db.QueryExprAndScan(
-`+file.Use("github.com/go-courier/sqlx/builder", "Select")+`(
-	`+file.Use("github.com/go-courier/sqlx/builder", "Count")+`(),
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Select")+`(
+	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Count")+`(),
 ).
 From(m.T(), finalAdditions...),
 &count,
@@ -69,9 +69,9 @@ return count, err
 func (m *Model) WriteList(file *codegen.File) {
 	file.WriteBlock(
 		codegen.Func(
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx", "DB"))), "db"),
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Condition"))), "condition"),
-			codegen.Var(codegen.Ellipsis(codegen.Type(file.Use("github.com/go-courier/sqlx/builder", "Addition"))), "additions"),
+			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Condition"))), "condition"),
+			codegen.Var(codegen.Ellipsis(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Addition"))), "additions"),
 		).
 			Named("List").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
@@ -91,7 +91,7 @@ _ = table
 					if m.HasSoftDelete {
 						return codegen.Expr(
 							`condition = ?(condition, table.F("`+m.FieldKeySoftDelete+`").Eq(?))`,
-							codegen.Id(file.Use("github.com/go-courier/sqlx/builder", "And")),
+							codegen.Id(file.Use("github.com/go-courier/sqlx/v2/builder", "And")),
 							codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue))),
 						)
 					}
@@ -100,9 +100,9 @@ _ = table
 
 				codegen.Expr(`
 
-finalAdditions := []`+file.Use("github.com/go-courier/sqlx/builder", "Addition")+`{
-`+file.Use("github.com/go-courier/sqlx/builder", "Where")+`(condition),
-`+file.Use("github.com/go-courier/sqlx/builder", "Comment")+`(?),
+finalAdditions := []`+file.Use("github.com/go-courier/sqlx/v2/builder", "Addition")+`{
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(condition),
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
 }
 
 if len(additions) > 0 {
@@ -110,7 +110,7 @@ if len(additions) > 0 {
 }
 
 err := db.QueryExprAndScan(
-`+file.Use("github.com/go-courier/sqlx/builder", "Select")+`(nil).
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Select")+`(nil).
 From(m.T(), finalAdditions...),
 &list,
 )
@@ -133,7 +133,7 @@ func (m *Model) WriteBatchList(file *codegen.File) {
 
 		file.WriteBlock(
 			codegen.Func(
-				codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx", "DB"))), "db"),
+				codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
 				codegen.Var(codegen.Slice(typ), "values"),
 			).
 				Named(method).

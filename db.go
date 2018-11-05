@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/sirupsen/logrus"
 )
 

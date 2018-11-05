@@ -5,17 +5,17 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-courier/sqlx/builder"
-	"github.com/go-courier/sqlx/datatypes"
-	"github.com/go-courier/sqlx/migration"
-	"github.com/go-courier/sqlx/mysqlconnector"
-	"github.com/go-courier/sqlx/postgresqlconnector"
+	"github.com/go-courier/sqlx/v2/builder"
+	"github.com/go-courier/sqlx/v2/datatypes"
+	"github.com/go-courier/sqlx/v2/migration"
+	"github.com/go-courier/sqlx/v2/mysqlconnector"
+	"github.com/go-courier/sqlx/v2/postgresqlconnector"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
-	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/v2"
 )
 
 var (

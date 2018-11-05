@@ -7,7 +7,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 )
 
 func NewFeatureDatabase(name string) *Database {

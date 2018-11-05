@@ -1,7 +1,7 @@
 package enummeta
 
 import (
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 )
 
 type SqlMetaEnum struct {

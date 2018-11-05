@@ -4,9 +4,9 @@ import (
 	fmt "fmt"
 	time "time"
 
-	github_com_go_courier_sqlx "github.com/go-courier/sqlx"
-	github_com_go_courier_sqlx_builder "github.com/go-courier/sqlx/builder"
-	github_com_go_courier_sqlx_datatypes "github.com/go-courier/sqlx/datatypes"
+	github_com_go_courier_sqlx_v2 "github.com/go-courier/sqlx/v2"
+	github_com_go_courier_sqlx_v2_builder "github.com/go-courier/sqlx/v2/builder"
+	github_com_go_courier_sqlx_v2_datatypes "github.com/go-courier/sqlx/v2/datatypes"
 )
 
 func (User) PrimaryKey() []string {
@@ -15,8 +15,8 @@ func (User) PrimaryKey() []string {
 	}
 }
 
-func (User) Indexes() github_com_go_courier_sqlx_builder.Indexes {
-	return github_com_go_courier_sqlx_builder.Indexes{
+func (User) Indexes() github_com_go_courier_sqlx_v2_builder.Indexes {
+	return github_com_go_courier_sqlx_v2_builder.Indexes{
 		"I_geom/SPATIAL": []string{
 			"Geom",
 		},
@@ -29,8 +29,8 @@ func (User) Indexes() github_com_go_courier_sqlx_builder.Indexes {
 	}
 }
 
-func (User) UniqueIndexes() github_com_go_courier_sqlx_builder.Indexes {
-	return github_com_go_courier_sqlx_builder.Indexes{
+func (User) UniqueIndexes() github_com_go_courier_sqlx_v2_builder.Indexes {
+	return github_com_go_courier_sqlx_v2_builder.Indexes{
 		"I_name": []string{
 			"Name",
 			"Enabled",
@@ -53,7 +53,7 @@ func (User) Comments() map[string]string {
 	}
 }
 
-var UserTable *github_com_go_courier_sqlx_builder.Table
+var UserTable *github_com_go_courier_sqlx_v2_builder.Table
 
 func init() {
 	UserTable = DBTest.Register(&User{})
@@ -63,11 +63,11 @@ func (User) TableName() string {
 	return "t_user"
 }
 
-func (User) D() *github_com_go_courier_sqlx.Database {
+func (User) D() *github_com_go_courier_sqlx_v2.Database {
 	return DBTest
 }
 
-func (User) T() *github_com_go_courier_sqlx_builder.Table {
+func (User) T() *github_com_go_courier_sqlx_v2_builder.Table {
 	return UserTable
 }
 
@@ -75,7 +75,7 @@ func (User) FieldKeyID() string {
 	return "ID"
 }
 
-func (m *User) FieldID() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldID() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyID())
 }
 
@@ -83,7 +83,7 @@ func (User) FieldKeyName() string {
 	return "Name"
 }
 
-func (m *User) FieldName() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldName() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyName())
 }
 
@@ -91,7 +91,7 @@ func (User) FieldKeyUsername() string {
 	return "Username"
 }
 
-func (m *User) FieldUsername() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldUsername() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyUsername())
 }
 
@@ -99,7 +99,7 @@ func (User) FieldKeyNickname() string {
 	return "Nickname"
 }
 
-func (m *User) FieldNickname() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldNickname() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyNickname())
 }
 
@@ -107,7 +107,7 @@ func (User) FieldKeyGender() string {
 	return "Gender"
 }
 
-func (m *User) FieldGender() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldGender() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyGender())
 }
 
@@ -115,7 +115,7 @@ func (User) FieldKeyBoolean() string {
 	return "Boolean"
 }
 
-func (m *User) FieldBoolean() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldBoolean() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyBoolean())
 }
 
@@ -123,7 +123,7 @@ func (User) FieldKeyGeom() string {
 	return "Geom"
 }
 
-func (m *User) FieldGeom() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldGeom() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyGeom())
 }
 
@@ -131,7 +131,7 @@ func (User) FieldKeyCreatedAt() string {
 	return "CreatedAt"
 }
 
-func (m *User) FieldCreatedAt() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldCreatedAt() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyCreatedAt())
 }
 
@@ -139,7 +139,7 @@ func (User) FieldKeyUpdatedAt() string {
 	return "UpdatedAt"
 }
 
-func (m *User) FieldUpdatedAt() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldUpdatedAt() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyUpdatedAt())
 }
 
@@ -147,7 +147,7 @@ func (User) FieldKeyEnabled() string {
 	return "Enabled"
 }
 
-func (m *User) FieldEnabled() *github_com_go_courier_sqlx_builder.Column {
+func (m *User) FieldEnabled() *github_com_go_courier_sqlx_v2_builder.Column {
 	return m.T().F(m.FieldKeyEnabled())
 }
 
@@ -161,11 +161,11 @@ func (m *User) IndexFieldNames() []string {
 	}
 }
 
-func (m *User) ConditionByStruct() *github_com_go_courier_sqlx_builder.Condition {
+func (m *User) ConditionByStruct() *github_com_go_courier_sqlx_v2_builder.Condition {
 	table := m.T()
-	fieldValues := github_com_go_courier_sqlx_builder.FieldValuesFromStructByNonZero(m)
+	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m)
 
-	conditions := make([]github_com_go_courier_sqlx_builder.SqlCondition, 0)
+	conditions := make([]github_com_go_courier_sqlx_v2_builder.SqlCondition, 0)
 
 	for _, fieldName := range m.IndexFieldNames() {
 		if v, exists := fieldValues[fieldName]; exists {
@@ -182,21 +182,21 @@ func (m *User) ConditionByStruct() *github_com_go_courier_sqlx_builder.Condition
 		conditions = append(conditions, table.F(fieldName).Eq(v))
 	}
 
-	condition := github_com_go_courier_sqlx_builder.And(conditions...)
+	condition := github_com_go_courier_sqlx_v2_builder.And(conditions...)
 
-	condition = github_com_go_courier_sqlx_builder.And(condition, table.F("Enabled").Eq("github_com_go_courier_sqlx_datatypes.BOOL_TRUE"))
+	condition = github_com_go_courier_sqlx_v2_builder.And(condition, table.F("Enabled").Eq("github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE"))
 	return condition
 }
 
-func (m *User) Create(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) Create(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	if m.CreatedAt.IsZero() {
-		m.CreatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		m.CreatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	if m.UpdatedAt.IsZero() {
-		m.UpdatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	d := m.D()
@@ -212,30 +212,30 @@ func (m *User) Create(db *github_com_go_courier_sqlx.DB) error {
 
 		return err
 	case "postgres":
-		return db.QueryExprAndScan(d.Insert(m, nil, github_com_go_courier_sqlx_builder.Returning(nil)), m)
+		return db.QueryExprAndScan(d.Insert(m, nil, github_com_go_courier_sqlx_v2_builder.Returning(nil)), m)
 	}
 
 	return nil
 
 }
 
-func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.DB, updateFields []string) error {
+func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx_v2.DB, updateFields []string) error {
 
 	if len(updateFields) == 0 {
 		panic(fmt.Errorf("must have update fields"))
 	}
 
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	if m.CreatedAt.IsZero() {
-		m.CreatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		m.CreatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	if m.UpdatedAt.IsZero() {
-		m.UpdatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
-	fieldValues := github_com_go_courier_sqlx_builder.FieldValuesFromStructByNonZero(m, updateFields...)
+	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m, updateFields...)
 
 	delete(fieldValues, "ID")
 
@@ -266,11 +266,11 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.
 
 	switch db.DriverName() {
 	case "mysql":
-		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
+		_, err := db.ExecExpr(github_com_go_courier_sqlx_v2_builder.Insert().
 			Into(
 				table,
-				github_com_go_courier_sqlx_builder.OnDuplicateKeyUpdate(table.AssignmentsByFieldValues(fieldValues)...),
-				github_com_go_courier_sqlx_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
+				github_com_go_courier_sqlx_v2_builder.OnDuplicateKeyUpdate(table.AssignmentsByFieldValues(fieldValues)...),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
 			).
 			Values(cols, vals...),
 		)
@@ -286,9 +286,9 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.
 		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
 			Into(
 				table,
-				github_com_go_courier_sqlx_builder.OnConflict(indexFields).
+				github_com_go_courier_sqlx_v2_builder.OnConflict(indexFields).
 					DoUpdateSet(table.AssignmentsByFieldValues(fieldValues)...),
-				github_com_go_courier_sqlx_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.CreateOnDuplicateWithUpdateFields"),
 			).
 			Values(cols, vals...),
 		)
@@ -298,39 +298,39 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx.
 
 }
 
-func (m *User) DeleteByStruct(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) DeleteByStruct(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	if m.UpdatedAt.IsZero() {
-		m.UpdatedAt = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Delete().
+		github_com_go_courier_sqlx_v2_builder.Delete().
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(m.ConditionByStruct()),
-				github_com_go_courier_sqlx_builder.Comment("User.DeleteByStruct"),
+				github_com_go_courier_sqlx_v2_builder.Where(m.ConditionByStruct()),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.DeleteByStruct"),
 			),
 	)
 
 	return err
 }
 
-func (m *User) FetchByID(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) FetchByID(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	err := db.QueryExprAndScan(
-		github_com_go_courier_sqlx_builder.Select(nil).
+		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
 				)),
-				github_com_go_courier_sqlx_builder.Comment("User.FetchByID"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.FetchByID"),
 			),
 		m,
 	)
@@ -338,24 +338,24 @@ func (m *User) FetchByID(db *github_com_go_courier_sqlx.DB) error {
 	return err
 }
 
-func (m *User) UpdateByIDWithMap(db *github_com_go_courier_sqlx.DB, fieldValues github_com_go_courier_sqlx_builder.FieldValues) error {
+func (m *User) UpdateByIDWithMap(db *github_com_go_courier_sqlx_v2.DB, fieldValues github_com_go_courier_sqlx_v2_builder.FieldValues) error {
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	result, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
 			Where(
-				github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
 				),
-				github_com_go_courier_sqlx_builder.Comment("User.UpdateByIDWithMap"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.UpdateByIDWithMap"),
 			).
 			Set(table.AssignmentsByFieldValues(fieldValues)...),
 	)
@@ -373,28 +373,28 @@ func (m *User) UpdateByIDWithMap(db *github_com_go_courier_sqlx.DB, fieldValues 
 
 }
 
-func (m *User) UpdateByIDWithStruct(db *github_com_go_courier_sqlx.DB, zeroFields ...string) error {
+func (m *User) UpdateByIDWithStruct(db *github_com_go_courier_sqlx_v2.DB, zeroFields ...string) error {
 
-	fieldValues := github_com_go_courier_sqlx_builder.FieldValuesFromStructByNonZero(m, zeroFields...)
+	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m, zeroFields...)
 	return m.UpdateByIDWithMap(db, fieldValues)
 
 }
 
-func (m *User) FetchByIDForUpdate(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) FetchByIDForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	err := db.QueryExprAndScan(
-		github_com_go_courier_sqlx_builder.Select(nil).
+		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
 				)),
-				github_com_go_courier_sqlx_builder.ForUpdate(),
-				github_com_go_courier_sqlx_builder.Comment("User.FetchByIDForUpdate"),
+				github_com_go_courier_sqlx_v2_builder.ForUpdate(),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.FetchByIDForUpdate"),
 			),
 		m,
 	)
@@ -402,54 +402,54 @@ func (m *User) FetchByIDForUpdate(db *github_com_go_courier_sqlx.DB) error {
 	return err
 }
 
-func (m *User) DeleteByID(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) DeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Delete().
+		github_com_go_courier_sqlx_v2_builder.Delete().
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
 				)),
-				github_com_go_courier_sqlx_builder.Comment("User.DeleteByID"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.DeleteByID"),
 			),
 	)
 
 	return err
 }
 
-func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
-	fieldValues := github_com_go_courier_sqlx_builder.FieldValues{}
+	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValues{}
 	if _, ok := fieldValues["Enabled"]; !ok {
-		fieldValues["Enabled"] = github_com_go_courier_sqlx_datatypes.BOOL_FALSE
+		fieldValues["Enabled"] = github_com_go_courier_sqlx_v2_datatypes.BOOL_FALSE
 	}
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
 			Where(
-				github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
 				),
-				github_com_go_courier_sqlx_builder.Comment("User.SoftDeleteByID"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.SoftDeleteByID"),
 			).
 			Set(table.AssignmentsByFieldValues(fieldValues)...),
 	)
 
 	if err != nil {
-		dbErr := github_com_go_courier_sqlx.DBErr(err)
+		dbErr := github_com_go_courier_sqlx_v2.DBErr(err)
 		if dbErr.IsConflict() {
 			return m.DeleteByID(db)
 		}
@@ -459,20 +459,20 @@ func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx.DB) error {
 
 }
 
-func (m *User) FetchByName(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) FetchByName(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	err := db.QueryExprAndScan(
-		github_com_go_courier_sqlx_builder.Select(nil).
+		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
 				)),
-				github_com_go_courier_sqlx_builder.Comment("User.FetchByName"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.FetchByName"),
 			),
 		m,
 	)
@@ -480,24 +480,24 @@ func (m *User) FetchByName(db *github_com_go_courier_sqlx.DB) error {
 	return err
 }
 
-func (m *User) UpdateByNameWithMap(db *github_com_go_courier_sqlx.DB, fieldValues github_com_go_courier_sqlx_builder.FieldValues) error {
+func (m *User) UpdateByNameWithMap(db *github_com_go_courier_sqlx_v2.DB, fieldValues github_com_go_courier_sqlx_v2_builder.FieldValues) error {
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	result, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
 			Where(
-				github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
 				),
-				github_com_go_courier_sqlx_builder.Comment("User.UpdateByNameWithMap"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.UpdateByNameWithMap"),
 			).
 			Set(table.AssignmentsByFieldValues(fieldValues)...),
 	)
@@ -515,28 +515,28 @@ func (m *User) UpdateByNameWithMap(db *github_com_go_courier_sqlx.DB, fieldValue
 
 }
 
-func (m *User) UpdateByNameWithStruct(db *github_com_go_courier_sqlx.DB, zeroFields ...string) error {
+func (m *User) UpdateByNameWithStruct(db *github_com_go_courier_sqlx_v2.DB, zeroFields ...string) error {
 
-	fieldValues := github_com_go_courier_sqlx_builder.FieldValuesFromStructByNonZero(m, zeroFields...)
+	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m, zeroFields...)
 	return m.UpdateByNameWithMap(db, fieldValues)
 
 }
 
-func (m *User) FetchByNameForUpdate(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) FetchByNameForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	err := db.QueryExprAndScan(
-		github_com_go_courier_sqlx_builder.Select(nil).
+		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
 				)),
-				github_com_go_courier_sqlx_builder.ForUpdate(),
-				github_com_go_courier_sqlx_builder.Comment("User.FetchByNameForUpdate"),
+				github_com_go_courier_sqlx_v2_builder.ForUpdate(),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.FetchByNameForUpdate"),
 			),
 		m,
 	)
@@ -544,54 +544,54 @@ func (m *User) FetchByNameForUpdate(db *github_com_go_courier_sqlx.DB) error {
 	return err
 }
 
-func (m *User) DeleteByName(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) DeleteByName(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Delete().
+		github_com_go_courier_sqlx_v2_builder.Delete().
 			From(
 				m.T(),
-				github_com_go_courier_sqlx_builder.Where(github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
 				)),
-				github_com_go_courier_sqlx_builder.Comment("User.DeleteByName"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.DeleteByName"),
 			),
 	)
 
 	return err
 }
 
-func (m *User) SoftDeleteByName(db *github_com_go_courier_sqlx.DB) error {
-	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
+func (m *User) SoftDeleteByName(db *github_com_go_courier_sqlx_v2.DB) error {
+	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
 	table := m.T()
 
-	fieldValues := github_com_go_courier_sqlx_builder.FieldValues{}
+	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValues{}
 	if _, ok := fieldValues["Enabled"]; !ok {
-		fieldValues["Enabled"] = github_com_go_courier_sqlx_datatypes.BOOL_FALSE
+		fieldValues["Enabled"] = github_com_go_courier_sqlx_v2_datatypes.BOOL_FALSE
 	}
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
 			Where(
-				github_com_go_courier_sqlx_builder.And(
+				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
 				),
-				github_com_go_courier_sqlx_builder.Comment("User.SoftDeleteByName"),
+				github_com_go_courier_sqlx_v2_builder.Comment("User.SoftDeleteByName"),
 			).
 			Set(table.AssignmentsByFieldValues(fieldValues)...),
 	)
 
 	if err != nil {
-		dbErr := github_com_go_courier_sqlx.DBErr(err)
+		dbErr := github_com_go_courier_sqlx_v2.DBErr(err)
 		if dbErr.IsConflict() {
 			return m.DeleteByName(db)
 		}
@@ -601,18 +601,18 @@ func (m *User) SoftDeleteByName(db *github_com_go_courier_sqlx.DB) error {
 
 }
 
-func (m *User) List(db *github_com_go_courier_sqlx.DB, condition *github_com_go_courier_sqlx_builder.Condition, additions ...github_com_go_courier_sqlx_builder.Addition) ([]User, error) {
+func (m *User) List(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) ([]User, error) {
 
 	list := make([]User, 0)
 
 	table := m.T()
 	_ = table
 
-	condition = github_com_go_courier_sqlx_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_datatypes.BOOL_TRUE))
+	condition = github_com_go_courier_sqlx_v2_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE))
 
-	finalAdditions := []github_com_go_courier_sqlx_builder.Addition{
-		github_com_go_courier_sqlx_builder.Where(condition),
-		github_com_go_courier_sqlx_builder.Comment("User.List"),
+	finalAdditions := []github_com_go_courier_sqlx_v2_builder.Addition{
+		github_com_go_courier_sqlx_v2_builder.Where(condition),
+		github_com_go_courier_sqlx_v2_builder.Comment("User.List"),
 	}
 
 	if len(additions) > 0 {
@@ -620,7 +620,7 @@ func (m *User) List(db *github_com_go_courier_sqlx.DB, condition *github_com_go_
 	}
 
 	err := db.QueryExprAndScan(
-		github_com_go_courier_sqlx_builder.Select(nil).
+		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(m.T(), finalAdditions...),
 		&list,
 	)
@@ -629,18 +629,18 @@ func (m *User) List(db *github_com_go_courier_sqlx.DB, condition *github_com_go_
 
 }
 
-func (m *User) Count(db *github_com_go_courier_sqlx.DB, condition *github_com_go_courier_sqlx_builder.Condition, additions ...github_com_go_courier_sqlx_builder.Addition) (int, error) {
+func (m *User) Count(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) (int, error) {
 
 	count := -1
 
 	table := m.T()
 	_ = table
 
-	condition = github_com_go_courier_sqlx_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_datatypes.BOOL_TRUE))
+	condition = github_com_go_courier_sqlx_v2_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE))
 
-	finalAdditions := []github_com_go_courier_sqlx_builder.Addition{
-		github_com_go_courier_sqlx_builder.Where(condition),
-		github_com_go_courier_sqlx_builder.Comment("User.Count"),
+	finalAdditions := []github_com_go_courier_sqlx_v2_builder.Addition{
+		github_com_go_courier_sqlx_v2_builder.Where(condition),
+		github_com_go_courier_sqlx_v2_builder.Comment("User.Count"),
 	}
 
 	if len(additions) > 0 {
@@ -648,8 +648,8 @@ func (m *User) Count(db *github_com_go_courier_sqlx.DB, condition *github_com_go
 	}
 
 	err := db.QueryExprAndScan(
-		github_com_go_courier_sqlx_builder.Select(
-			github_com_go_courier_sqlx_builder.Count(),
+		github_com_go_courier_sqlx_v2_builder.Select(
+			github_com_go_courier_sqlx_v2_builder.Count(),
 		).
 			From(m.T(), finalAdditions...),
 		&count,
@@ -659,7 +659,7 @@ func (m *User) Count(db *github_com_go_courier_sqlx.DB, condition *github_com_go
 
 }
 
-func (m *User) BatchFetchByGeomList(db *github_com_go_courier_sqlx.DB, values []GeomString) ([]User, error) {
+func (m *User) BatchFetchByGeomList(db *github_com_go_courier_sqlx_v2.DB, values []GeomString) ([]User, error) {
 
 	if len(values) == 0 {
 		return nil, nil
@@ -673,7 +673,7 @@ func (m *User) BatchFetchByGeomList(db *github_com_go_courier_sqlx.DB, values []
 
 }
 
-func (m *User) BatchFetchByIDList(db *github_com_go_courier_sqlx.DB, values []uint64) ([]User, error) {
+func (m *User) BatchFetchByIDList(db *github_com_go_courier_sqlx_v2.DB, values []uint64) ([]User, error) {
 
 	if len(values) == 0 {
 		return nil, nil
@@ -687,7 +687,7 @@ func (m *User) BatchFetchByIDList(db *github_com_go_courier_sqlx.DB, values []ui
 
 }
 
-func (m *User) BatchFetchByNameList(db *github_com_go_courier_sqlx.DB, values []string) ([]User, error) {
+func (m *User) BatchFetchByNameList(db *github_com_go_courier_sqlx_v2.DB, values []string) ([]User, error) {
 
 	if len(values) == 0 {
 		return nil, nil
@@ -701,7 +701,7 @@ func (m *User) BatchFetchByNameList(db *github_com_go_courier_sqlx.DB, values []
 
 }
 
-func (m *User) BatchFetchByNicknameList(db *github_com_go_courier_sqlx.DB, values []string) ([]User, error) {
+func (m *User) BatchFetchByNicknameList(db *github_com_go_courier_sqlx_v2.DB, values []string) ([]User, error) {
 
 	if len(values) == 0 {
 		return nil, nil
@@ -715,7 +715,7 @@ func (m *User) BatchFetchByNicknameList(db *github_com_go_courier_sqlx.DB, value
 
 }
 
-func (m *User) BatchFetchByUsernameList(db *github_com_go_courier_sqlx.DB, values []string) ([]User, error) {
+func (m *User) BatchFetchByUsernameList(db *github_com_go_courier_sqlx_v2.DB, values []string) ([]User, error) {
 
 	if len(values) == 0 {
 		return nil, nil

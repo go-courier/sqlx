@@ -1,9 +1,8 @@
 package migration
 
 import (
-	"github.com/go-courier/sqlx/enummeta"
-
-	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/v2"
+	"github.com/go-courier/sqlx/v2/enummeta"
 )
 
 type Migrator interface {

@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/stretchr/testify/require"
 )
 

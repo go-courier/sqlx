@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/v2"
 )
 
 var DBTest = sqlx.NewDatabase("test")

@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 
-	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/v2"
 )
 
 func toInterfaces(list ...string) []interface{} {

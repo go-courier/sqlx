@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-courier/sqlx/builder"
-	"github.com/go-courier/sqlx/migration"
+	"github.com/go-courier/sqlx/v2/builder"
+	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 
-	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/v2"
 )
 
 var _ interface {

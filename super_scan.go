@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"reflect"
 
-	"github.com/go-courier/sqlx/builder"
-	"github.com/go-courier/sqlx/nullable"
+	"github.com/go-courier/sqlx/v2/builder"
+	"github.com/go-courier/sqlx/v2/nullable"
 )
 
 func Scan(rows *sql.Rows, v interface{}) error {

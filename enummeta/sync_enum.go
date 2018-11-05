@@ -4,9 +4,9 @@ import (
 	"reflect"
 
 	"github.com/go-courier/enumeration"
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 
-	"github.com/go-courier/sqlx"
+	"github.com/go-courier/sqlx/v2"
 )
 
 func SyncEnum(db *sqlx.DB, database *sqlx.Database) error {

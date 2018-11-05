@@ -52,11 +52,11 @@ func (g *Config) SetDefaults() {
 	}
 
 	if g.ConstSoftDeleteTrue == "" {
-		g.ConstSoftDeleteTrue = "github.com/go-courier/sqlx/datatypes.BOOL_TRUE"
+		g.ConstSoftDeleteTrue = "github.com/go-courier/sqlx/v2/datatypes.BOOL_TRUE"
 	}
 
 	if g.ConstSoftDeleteFalse == "" {
-		g.ConstSoftDeleteFalse = "github.com/go-courier/sqlx/datatypes.BOOL_FALSE"
+		g.ConstSoftDeleteFalse = "github.com/go-courier/sqlx/v2/datatypes.BOOL_FALSE"
 	}
 
 	if g.TableName == "" {

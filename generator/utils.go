@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-courier/codegen"
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 )
 
 var (

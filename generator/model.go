@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-courier/codegen"
 	"github.com/go-courier/packagesx"
-	"github.com/go-courier/sqlx/builder"
+	"github.com/go-courier/sqlx/v2/builder"
 )
 
 func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string, cfg *Config) *Model {
