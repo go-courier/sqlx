@@ -99,7 +99,7 @@ if m.?.IsZero() {
 }
 
 func (m *Model) SnippetSetUpdatedAtIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
-	if m.HasAutoIncrement {
+	if m.HasUpdatedAt {
 		return codegen.Expr(`
 if _, ok := fieldValues[?]; !ok {
 	fieldValues[?] = ?(?())

@@ -320,6 +320,11 @@ func (m *User) FetchByID(db *github_com_go_courier_sqlx.DB) error {
 }
 
 func (m *User) UpdateByIDWithMap(db *github_com_go_courier_sqlx.DB, fieldValues github_com_go_courier_sqlx_builder.FieldValues) error {
+
+	if _, ok := fieldValues["UpdatedAt"]; !ok {
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+	}
+
 	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
 
 	table := m.T()
@@ -408,6 +413,10 @@ func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx.DB) error {
 		fieldValues["Enabled"] = github_com_go_courier_sqlx_datatypes.BOOL_FALSE
 	}
 
+	if _, ok := fieldValues["UpdatedAt"]; !ok {
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+	}
+
 	_, err := db.ExecExpr(
 		github_com_go_courier_sqlx_builder.Update(m.T()).
 			Where(
@@ -453,6 +462,11 @@ func (m *User) FetchByName(db *github_com_go_courier_sqlx.DB) error {
 }
 
 func (m *User) UpdateByNameWithMap(db *github_com_go_courier_sqlx.DB, fieldValues github_com_go_courier_sqlx_builder.FieldValues) error {
+
+	if _, ok := fieldValues["UpdatedAt"]; !ok {
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
+	}
+
 	m.Enabled = github_com_go_courier_sqlx_datatypes.BOOL_TRUE
 
 	table := m.T()
@@ -539,6 +553,10 @@ func (m *User) SoftDeleteByName(db *github_com_go_courier_sqlx.DB) error {
 	fieldValues := github_com_go_courier_sqlx_builder.FieldValues{}
 	if _, ok := fieldValues["Enabled"]; !ok {
 		fieldValues["Enabled"] = github_com_go_courier_sqlx_datatypes.BOOL_FALSE
+	}
+
+	if _, ok := fieldValues["UpdatedAt"]; !ok {
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_datatypes.MySQLTimestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(
