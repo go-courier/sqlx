@@ -283,7 +283,7 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx_
 		}
 		indexFields, _ := m.T().Fields(fields...)
 
-		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
+		_, err := db.ExecExpr(github_com_go_courier_sqlx_v2_builder.Insert().
 			Into(
 				table,
 				github_com_go_courier_sqlx_v2_builder.OnConflict(indexFields).

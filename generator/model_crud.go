@@ -99,7 +99,7 @@ if m.?.IsZero() {
 }
 
 func (m *Model) SnippetSetUpdatedAtIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
-	if m.HasAutoIncrement {
+	if m.HasUpdatedAt {
 		return codegen.Expr(`
 if _, ok := fieldValues[?]; !ok {
 	fieldValues[?] = ?(?())
@@ -224,7 +224,7 @@ switch db.DriverName() {
 		}
 		indexFields, _ := m.T().Fields(fields...)
 
-		_, err := db.ExecExpr(github_com_go_courier_sqlx_builder.Insert().
+		_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().
 			Into(
 				table,
 				`+file.Use("github.com/go-courier/sqlx/v2/builder", "OnConflict")+`(indexFields).
