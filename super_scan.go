@@ -3,6 +3,7 @@ package sqlx
 import (
 	"database/sql"
 	"reflect"
+	"strings"
 
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/nullable"
@@ -122,7 +123,7 @@ func (e *emptyScanner) Scan(value interface{}) error {
 
 func stringIndexOf(slice []string, target string) int {
 	for idx, item := range slice {
-		if item == target {
+		if strings.ToLower(item) == strings.ToLower(target) {
 			return idx
 		}
 	}
