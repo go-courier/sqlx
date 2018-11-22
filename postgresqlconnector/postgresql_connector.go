@@ -400,6 +400,18 @@ func (c *PostgreSQLConnector) dataType(typ reflect.Type, columnType *builder.Col
 	}
 
 	switch typ.Name() {
+	case "Hstore":
+		return "hstore"
+	case "ByteaArray":
+		return c.dataType(reflect.TypeOf(pq.ByteaArray{[]byte("")}[0]), columnType) + "[]"
+	case "BoolArray":
+		return c.dataType(reflect.TypeOf(pq.BoolArray{true}[0]), columnType) + "[]"
+	case "Float64Array":
+		return c.dataType(reflect.TypeOf(pq.Float64Array{0}[0]), columnType) + "[]"
+	case "Int64Array":
+		return c.dataType(reflect.TypeOf(pq.Int64Array{0}[0]), columnType) + "[]"
+	case "StringArray":
+		return c.dataType(reflect.TypeOf(pq.StringArray{""}[0]), columnType) + "[]"
 	case "NullInt64":
 		return "bigint"
 	case "NullFloat64":
