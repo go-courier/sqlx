@@ -22,7 +22,7 @@ func TestStmtUpdate(t *testing.T) {
 					Comment("Comment"),
 				),
 			Expr(
-				"UPDATE t SET F_a = ?, F_b = ? WHERE F_a = ? /* Comment */",
+				"UPDATE t SET f_a = ?, f_b = ? WHERE f_a = ? /* Comment */",
 				1, 2, 1,
 			),
 		},
@@ -34,7 +34,7 @@ func TestStmtUpdate(t *testing.T) {
 				Limit(1),
 			),
 			Expr(
-				"UPDATE t SET F_a = ? WHERE F_a = ? LIMIT 1",
+				"UPDATE t SET f_a = ? WHERE f_a = ? LIMIT 1",
 				1, 1,
 			),
 		},
@@ -48,7 +48,7 @@ func TestStmtUpdate(t *testing.T) {
 					OrderBy(DescOrder(Col("F_b")), AscOrder(Col("F_a"))),
 				),
 			Expr(
-				"UPDATE t SET F_a = F_a + ?, F_b = F_b - ? WHERE F_a = ? ORDER BY (F_b) DESC,(F_a) ASC",
+				"UPDATE t SET f_a = f_a + ?, f_b = f_b - ? WHERE f_a = ? ORDER BY (f_b) DESC,(f_a) ASC",
 				1, 2, 3,
 			),
 		},

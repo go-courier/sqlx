@@ -20,7 +20,7 @@ func TestSelect(t *testing.T) {
 					),
 				),
 			Expr(
-				"SELECT DISTINCT * FROM t WHERE F_a = ?",
+				"SELECT DISTINCT * FROM t WHERE f_a = ?",
 				1,
 			),
 		},
@@ -34,7 +34,7 @@ func TestSelect(t *testing.T) {
 					Comment("comment"),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? /* comment */",
+				"SELECT * FROM t WHERE f_a = ? /* comment */",
 				1,
 			),
 		},
@@ -47,7 +47,7 @@ func TestSelect(t *testing.T) {
 					),
 				),
 			Expr(
-				"SELECT F_a FROM t WHERE F_a = ?",
+				"SELECT f_a FROM t WHERE f_a = ?",
 				1,
 			),
 		},
@@ -58,7 +58,7 @@ func TestSelect(t *testing.T) {
 				ForUpdate(),
 			),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? FOR UPDATE",
+				"SELECT * FROM t WHERE f_a = ? FOR UPDATE",
 				1,
 			),
 		},
@@ -71,7 +71,7 @@ func TestSelect(t *testing.T) {
 						Having(Col("F_a").Eq(1)),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? GROUP BY F_a HAVING F_a = ?",
+				"SELECT * FROM t WHERE f_a = ? GROUP BY f_a HAVING f_a = ?",
 				1, 1,
 			),
 		},
@@ -83,7 +83,7 @@ func TestSelect(t *testing.T) {
 					GroupBy(DescOrder(Col("F_b"))),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? GROUP BY (F_b) DESC",
+				"SELECT * FROM t WHERE f_a = ? GROUP BY (f_b) DESC",
 				1,
 			),
 		},
@@ -95,7 +95,7 @@ func TestSelect(t *testing.T) {
 					GroupBy(AscOrder(Col("F_a")), DescOrder(Col("F_b"))),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? GROUP BY (F_a) ASC,(F_b) DESC",
+				"SELECT * FROM t WHERE f_a = ? GROUP BY (f_a) ASC,(f_b) DESC",
 				1,
 			),
 		},
@@ -109,7 +109,7 @@ func TestSelect(t *testing.T) {
 					Limit(1),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? LIMIT 1",
+				"SELECT * FROM t WHERE f_a = ? LIMIT 1",
 				1,
 			),
 		},
@@ -123,7 +123,7 @@ func TestSelect(t *testing.T) {
 					Limit(-1),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ?",
+				"SELECT * FROM t WHERE f_a = ?",
 				1,
 			),
 		},
@@ -137,7 +137,7 @@ func TestSelect(t *testing.T) {
 					Limit(1).Offset(200),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? LIMIT 1 OFFSET 200",
+				"SELECT * FROM t WHERE f_a = ? LIMIT 1 OFFSET 200",
 				1,
 			),
 		},
@@ -152,7 +152,7 @@ func TestSelect(t *testing.T) {
 					Where(Col("F_a").Eq(1)),
 				),
 			Expr(
-				"SELECT * FROM t WHERE F_a = ? ORDER BY (F_a) ASC,(F_b) DESC",
+				"SELECT * FROM t WHERE f_a = ? ORDER BY (f_a) ASC,(f_b) DESC",
 				1,
 			),
 		},

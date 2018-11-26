@@ -17,7 +17,7 @@ func TestStmtDelete(t *testing.T) {
 				Comment("Comment"),
 			),
 			Expr(
-				"DELETE FROM t WHERE F_a = ? /* Comment */",
+				"DELETE FROM t WHERE f_a = ? /* Comment */",
 				1,
 			),
 		},
@@ -28,7 +28,7 @@ func TestStmtDelete(t *testing.T) {
 				Limit(1),
 			),
 			Expr(
-				"DELETE FROM t WHERE F_a = ? LIMIT 1",
+				"DELETE FROM t WHERE f_a = ? LIMIT 1",
 				1,
 			),
 		},
@@ -42,7 +42,7 @@ func TestStmtDelete(t *testing.T) {
 				),
 			),
 			Expr(
-				"DELETE FROM t WHERE F_a = ? ORDER BY (F_a) ASC,(F_b) DESC",
+				"DELETE FROM t WHERE f_a = ? ORDER BY (f_a) ASC,(f_b) DESC",
 				1,
 			),
 		},

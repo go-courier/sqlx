@@ -9,7 +9,7 @@ import (
 
 func Col(name string) *Column {
 	return &Column{
-		Name:       name,
+		Name:       strings.ToLower(name),
 		ColumnType: &ColumnType{},
 	}
 }
@@ -308,8 +308,6 @@ func (cols *Columns) Add(columns ...*Column) {
 
 	for _, col := range columns {
 		if col != nil {
-			col.Name = strings.ToLower(col.Name)
-
 			if col.ColumnType != nil && col.ColumnType.AutoIncrement {
 				if cols.autoIncrement != nil {
 					panic(fmt.Errorf("AutoIncrement field can only have one, now %s, but %s want to replace", cols.autoIncrement.Name, col.Name))
