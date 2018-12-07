@@ -69,7 +69,7 @@ func TestMysqlConnector(t *testing.T) {
 		},
 		"DropTable": {
 			c.DropTable(table),
-			builder.Expr( /* language=MySQL */ "DROP TABLE t;"),
+			builder.Expr( /* language=MySQL */ "DROP TABLE IF EXISTS t;"),
 		},
 		"TruncateTable": {
 			c.TruncateTable(table),

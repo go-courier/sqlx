@@ -284,7 +284,7 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 }
 
 func (c *PostgreSQLConnector) DropTable(t *builder.Table) builder.SqlExpr {
-	e := builder.Expr("DROP TABLE ")
+	e := builder.Expr("DROP TABLE IF EXISTS ")
 	e.WriteString(t.Name)
 	e.WriteEnd()
 	return e
