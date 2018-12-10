@@ -53,10 +53,8 @@ func (User) Comments() map[string]string {
 	}
 }
 
-var UserTable *github_com_go_courier_sqlx_v2_builder.Table
-
 func init() {
-	UserTable = DBTest.Register(&User{})
+	DBTest.Register(&User{})
 }
 
 func (User) TableName() string {
@@ -67,8 +65,8 @@ func (User) D() *github_com_go_courier_sqlx_v2.Database {
 	return DBTest
 }
 
-func (User) T() *github_com_go_courier_sqlx_v2_builder.Table {
-	return UserTable
+func (m *User) T() *github_com_go_courier_sqlx_v2_builder.Table {
+	return m.D().T(m)
 }
 
 func (User) FieldKeyID() string {

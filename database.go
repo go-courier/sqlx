@@ -10,6 +10,10 @@ import (
 	"github.com/go-courier/sqlx/v2/builder"
 )
 
+type SchemaDescriber interface {
+	Schema() string
+}
+
 func NewFeatureDatabase(name string) *Database {
 	if projectFeature, exists := os.LookupEnv("PROJECT_FEATURE"); exists && projectFeature != "" {
 		name = name + "__" + projectFeature
@@ -74,7 +78,16 @@ func (database *Database) Table(tableName string) *builder.Table {
 }
 
 func (database *Database) T(model builder.Model) *builder.Table {
-	return database.Table(model.TableName())
+	t := database.Table(model.TableName())
+
+	if sd, ok := model.(SchemaDescriber); ok {
+		schema := sd.Schema()
+		if schema != "" {
+			return t.WithSchema(schema)
+		}
+	}
+
+	return t
 }
 
 func (database *Database) Assignments(model builder.Model, zeroFields ...string) builder.Assignments {

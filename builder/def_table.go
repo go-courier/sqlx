@@ -31,7 +31,8 @@ func T(tableName string, tableDefinitions ...TableDefinition) *Table {
 }
 
 type Table struct {
-	Name string
+	Name   string
+	Schema string
 	Columns
 	Keys
 }
@@ -40,7 +41,15 @@ func (t *Table) IsNil() bool {
 	return t == nil || len(t.Name) == 0
 }
 
+func (t Table) WithSchema(schema string) *Table {
+	t.Schema = schema
+	return &t
+}
+
 func (t *Table) Expr() *Ex {
+	if t.Schema != "" {
+		return Expr(t.Schema + "." + t.Name)
+	}
 	return Expr(t.Name)
 }
 

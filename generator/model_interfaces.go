@@ -33,18 +33,10 @@ func (m *Model) IndexFieldNames() []string {
 func (m *Model) WriteTableInterfaces(file *codegen.File) {
 	if m.WithTableInterfaces {
 		file.WriteBlock(
-			codegen.DeclVar(
-				codegen.Var(
-					codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))),
-					m.VarTable(),
-				),
-			),
-
 			codegen.Func().
 				Named("init").
 				Do(
-					codegen.Expr("? = ?.Register(&?{})",
-						codegen.Id(m.VarTable()),
+					codegen.Expr("?.Register(&?{})",
 						codegen.Id(m.Database),
 						codegen.Id(m.StructName),
 					),
@@ -73,10 +65,10 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 		file.WriteBlock(
 			codegen.Func().
 				Named("T").
-				MethodOf(codegen.Var(m.Type())).
+				MethodOf(codegen.Var(codegen.Star(m.Type()), "m")).
 				Return(codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))))).
 				Do(
-					codegen.Return(codegen.Id(m.VarTable())),
+					codegen.Expr("return m.D().T(m)"),
 				),
 		)
 	}
