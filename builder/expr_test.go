@@ -19,6 +19,10 @@ func TestEx(t *testing.T) {
 			ExprFrom(Expr("")),
 			Expr(""),
 		},
+		"alias": {
+			ExprFrom(Alias(Expr("f_id"), "id")),
+			Expr("(f_id) AS id"),
+		},
 		"flatten for slice": {
 			Expr(`#ID IN (?)`, []int{28, 29, 30}).Flatten(),
 			Expr("#ID IN (?,?,?)", 28, 29, 30),

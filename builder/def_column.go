@@ -17,10 +17,22 @@ func Col(name string) *Column {
 var _ TableDefinition = (*Column)(nil)
 
 type Column struct {
-	Table     *Table
-	FieldName string
 	Name      string
+	FieldName string
+	Table     *Table
+	Exactly   bool
 	*ColumnType
+}
+
+func (c *Column) Of(table *Table) *Column {
+	col := &Column{
+		Name:       c.Name,
+		FieldName:  c.FieldName,
+		Table:      table,
+		Exactly:    true,
+		ColumnType: c.ColumnType,
+	}
+	return col
 }
 
 func (c *Column) IsNil() bool {
@@ -28,6 +40,9 @@ func (c *Column) IsNil() bool {
 }
 
 func (c *Column) Expr() *Ex {
+	if c.Table != nil && c.Exactly {
+		return Expr("?.?", c.Table, Expr(c.Name))
+	}
 	return Expr(c.Name)
 }
 
@@ -51,68 +66,77 @@ func (c *Column) T() *Table {
 }
 
 func (c *Column) ValueBy(v interface{}) *Assignment {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" = ?")
+	e.AppendArgs(v)
 	return AsAssignment(e)
 }
 
 func (c *Column) Incr(d int) *Ex {
-	e := Expr(c.Name, d)
+	e := c.Expr()
 	e.WriteString(" + ?")
+	e.AppendArgs(d)
 	return e
 }
 
 func (c *Column) Desc(d int) *Ex {
-	e := Expr(c.Name, d)
+	e := c.Expr()
 	e.WriteString(" - ?")
+	e.AppendArgs(d)
 	return e
 }
 
 func (c *Column) Like(v string) *Condition {
-	e := Expr(c.Name, "%"+v+"%")
+	e := c.Expr()
 	e.WriteString(" LIKE ?")
+	e.AppendArgs("%" + v + "%")
 	return AsCond(e)
 }
 
 func (c *Column) LeftLike(v string) *Condition {
-	e := Expr(c.Name, "%"+v)
+	e := c.Expr()
 	e.WriteString(" LIKE ?")
+	e.AppendArgs("%" + v)
 	return AsCond(e)
 }
 
 func (c *Column) RightLike(v string) *Condition {
-	e := Expr(c.Name, v+"%")
+	e := c.Expr()
 	e.WriteString(" LIKE ?")
+	e.AppendArgs(v + "%")
 	return AsCond(e)
 }
 
 func (c *Column) NotLike(v string) *Condition {
-	e := Expr(c.Name, "%"+v+"%")
+	e := c.Expr()
 	e.WriteString(" NOT LIKE ?")
+	e.AppendArgs("%" + v + "%")
 	return AsCond(e)
 }
 
 func (c *Column) IsNull() *Condition {
-	e := Expr(c.Name)
+	e := c.Expr()
 	e.WriteString(" IS NULL")
 	return AsCond(e)
 }
 
 func (c *Column) IsNotNull() *Condition {
-	e := Expr(c.Name)
+	e := c.Expr()
 	e.WriteString(" IS NOT NULL")
 	return AsCond(e)
 }
 
 func (c *Column) Between(leftValue interface{}, rightValue interface{}) *Condition {
-	e := Expr(c.Name, leftValue, rightValue)
+	e := c.Expr()
 	e.WriteString(" BETWEEN ? AND ?")
+	e.AppendArgs(leftValue, rightValue)
 	return AsCond(e)
 }
 
 func (c *Column) NotBetween(leftValue interface{}, rightValue interface{}) *Condition {
-	e := Expr(c.Name, leftValue, rightValue)
+	e := c.Expr()
 	e.WriteString(" NOT BETWEEN ? AND ?")
+	e.AppendArgs(leftValue, rightValue)
 	return AsCond(e)
 }
 
@@ -121,11 +145,12 @@ func (c *Column) In(args ...interface{}) *Condition {
 	if length == 0 {
 		return nil
 	}
-	e := Expr(c.Name, args...)
+	e := c.Expr()
 	e.WriteString(" IN ")
 	e.WriteGroup(func(e *Ex) {
 		for i := range args {
 			e.WriteHolder(i)
+			e.AppendArgs(args[i])
 		}
 	})
 	return AsCond(e)
@@ -136,49 +161,56 @@ func (c *Column) NotIn(args ...interface{}) *Condition {
 	if length == 0 {
 		return nil
 	}
-	e := Expr(c.Name, args...)
+	e := c.Expr()
 	e.WriteString(" NOT IN ")
 	e.WriteGroup(func(e *Ex) {
 		for i := range args {
 			e.WriteHolder(i)
+			e.AppendArgs(args[i])
 		}
 	})
 	return AsCond(e)
 }
 
 func (c *Column) Eq(v interface{}) *Condition {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" = ?")
+	e.AppendArgs(v)
 	return AsCond(e)
 }
 
 func (c *Column) Neq(v interface{}) *Condition {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" <> ?")
+	e.AppendArgs(v)
 	return AsCond(e)
 }
 
 func (c *Column) Gt(v interface{}) *Condition {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" > ?")
+	e.AppendArgs(v)
 	return AsCond(e)
 }
 
 func (c *Column) Gte(v interface{}) *Condition {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" >= ?")
+	e.AppendArgs(v)
 	return AsCond(e)
 }
 
 func (c *Column) Lt(v interface{}) *Condition {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" < ?")
+	e.AppendArgs(v)
 	return AsCond(e)
 }
 
 func (c *Column) Lte(v interface{}) *Condition {
-	e := Expr(c.Name, v)
+	e := c.Expr()
 	e.WriteString(" <= ?")
+	e.AppendArgs(v)
 	return AsCond(e)
 }
 

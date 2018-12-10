@@ -33,6 +33,7 @@ func T(tableName string, tableDefinitions ...TableDefinition) *Table {
 type Table struct {
 	Name   string
 	Schema string
+	Model  Model
 	Columns
 	Keys
 }

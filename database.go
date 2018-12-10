@@ -65,6 +65,7 @@ func (database *Database) Register(model builder.Model) *builder.Table {
 		panic(fmt.Errorf("model %s must be a struct", tpe.Name()))
 	}
 	table := builder.T(model.TableName())
+	table.Model = model
 	builder.ScanDefToTable(reflect.Indirect(reflect.ValueOf(model)), table)
 	database.AddTable(table)
 	return table

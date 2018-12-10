@@ -29,8 +29,37 @@ func ExprFrom(v interface{}) *Ex {
 	return nil
 }
 
+func MultiExpr(exprs ...SqlExpr) SqlExpr {
+	e := Expr("")
+	for i := range exprs {
+		if i != 0 {
+			e.WriteString(", ")
+		}
+		e.WriteExpr(exprs[i])
+	}
+	return e
+}
+
 func Expr(query string, args ...interface{}) *Ex {
 	return &Ex{Buffer: bytes.NewBufferString(query), args: args}
+}
+
+func Alias(expr SqlExpr, name string) *AliasEx {
+	return &AliasEx{
+		Name:    name,
+		SqlExpr: expr,
+	}
+}
+
+type AliasEx struct {
+	Name string
+	SqlExpr
+}
+
+func (expr *AliasEx) Expr() *Ex {
+	e := Expr("(?) AS ?")
+	e.AppendArgs(expr.SqlExpr, Expr(expr.Name))
+	return e
 }
 
 type Ex struct {
