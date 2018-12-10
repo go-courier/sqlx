@@ -46,6 +46,30 @@ func (c *Column) Expr() *Ex {
 	return Expr(c.Name)
 }
 
+func (c *Column) Ex(query string, args ...interface{}) *Ex {
+	e := Expr("")
+
+	qc := 0
+	n := len(args)
+
+	for _, key := range []byte(query) {
+		switch key {
+		case '#':
+			e.WriteByte('?')
+			e.AppendArgs(c.Expr())
+		case '?':
+			e.WriteByte(key)
+			if n > qc {
+				e.AppendArgs(args[qc])
+				qc ++
+			}
+		default:
+			e.WriteByte(key)
+		}
+	}
+	return e
+}
+
 func (c Column) Field(fieldName string) *Column {
 	c.FieldName = fieldName
 	return &c
@@ -66,78 +90,47 @@ func (c *Column) T() *Table {
 }
 
 func (c *Column) ValueBy(v interface{}) *Assignment {
-	e := c.Expr()
-	e.WriteString(" = ?")
-	e.AppendArgs(v)
-	return AsAssignment(e)
+	return AsAssignment(c.Ex("# = ?", v))
 }
 
 func (c *Column) Incr(d int) *Ex {
-	e := c.Expr()
-	e.WriteString(" + ?")
-	e.AppendArgs(d)
-	return e
+	return c.Ex("# + ?", d)
 }
 
 func (c *Column) Desc(d int) *Ex {
-	e := c.Expr()
-	e.WriteString(" - ?")
-	e.AppendArgs(d)
-	return e
+	return c.Ex("# - ?", d)
 }
 
 func (c *Column) Like(v string) *Condition {
-	e := c.Expr()
-	e.WriteString(" LIKE ?")
-	e.AppendArgs("%" + v + "%")
-	return AsCond(e)
+	return AsCond(c.Ex("# LIKE ?", "%"+v+"%"))
 }
 
 func (c *Column) LeftLike(v string) *Condition {
-	e := c.Expr()
-	e.WriteString(" LIKE ?")
-	e.AppendArgs("%" + v)
-	return AsCond(e)
+	return AsCond(c.Ex("# LIKE ?", "%"+v))
 }
 
 func (c *Column) RightLike(v string) *Condition {
-	e := c.Expr()
-	e.WriteString(" LIKE ?")
-	e.AppendArgs(v + "%")
-	return AsCond(e)
+	return AsCond(c.Ex("# LIKE ?", v+"%"))
 }
 
 func (c *Column) NotLike(v string) *Condition {
-	e := c.Expr()
-	e.WriteString(" NOT LIKE ?")
-	e.AppendArgs("%" + v + "%")
-	return AsCond(e)
+	return AsCond(c.Ex("# NOT LIKE ?", "%"+v+"%"))
 }
 
 func (c *Column) IsNull() *Condition {
-	e := c.Expr()
-	e.WriteString(" IS NULL")
-	return AsCond(e)
+	return AsCond(c.Ex("# IS NULL"))
 }
 
 func (c *Column) IsNotNull() *Condition {
-	e := c.Expr()
-	e.WriteString(" IS NOT NULL")
-	return AsCond(e)
+	return AsCond(c.Ex("# IS NOT NULL"))
 }
 
 func (c *Column) Between(leftValue interface{}, rightValue interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" BETWEEN ? AND ?")
-	e.AppendArgs(leftValue, rightValue)
-	return AsCond(e)
+	return AsCond(c.Ex("# BETWEEN ? AND ?", leftValue, rightValue))
 }
 
 func (c *Column) NotBetween(leftValue interface{}, rightValue interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" NOT BETWEEN ? AND ?")
-	e.AppendArgs(leftValue, rightValue)
-	return AsCond(e)
+	return AsCond(c.Ex("# NOT BETWEEN ? AND ?", leftValue, rightValue))
 }
 
 func (c *Column) In(args ...interface{}) *Condition {
@@ -173,45 +166,27 @@ func (c *Column) NotIn(args ...interface{}) *Condition {
 }
 
 func (c *Column) Eq(v interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" = ?")
-	e.AppendArgs(v)
-	return AsCond(e)
+	return AsCond(c.Ex("# = ?", v))
 }
 
 func (c *Column) Neq(v interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" <> ?")
-	e.AppendArgs(v)
-	return AsCond(e)
+	return AsCond(c.Ex("# <> ?", v))
 }
 
 func (c *Column) Gt(v interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" > ?")
-	e.AppendArgs(v)
-	return AsCond(e)
+	return AsCond(c.Ex("# > ?", v))
 }
 
 func (c *Column) Gte(v interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" >= ?")
-	e.AppendArgs(v)
-	return AsCond(e)
+	return AsCond(c.Ex("# >= ?", v))
 }
 
 func (c *Column) Lt(v interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" < ?")
-	e.AppendArgs(v)
-	return AsCond(e)
+	return AsCond(c.Ex("# < ?", v))
 }
 
 func (c *Column) Lte(v interface{}) *Condition {
-	e := c.Expr()
-	e.WriteString(" <= ?")
-	e.AppendArgs(v)
-	return AsCond(e)
+	return AsCond(c.Ex("# <= ?", v))
 }
 
 func Cols(names ...string) *Columns {
