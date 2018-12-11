@@ -20,8 +20,14 @@ type SqlExecutor interface {
 }
 
 type DB struct {
+	*Database
 	builder.Dialect
 	SqlExecutor
+}
+
+func (d DB) WithSchema(schema string) *DB {
+	d.Database = d.Database.WithSchema(schema)
+	return &d
 }
 
 func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
@@ -77,6 +83,7 @@ func (d *DB) Begin() (*DB, error) {
 		return nil, err
 	}
 	return &DB{
+		Database:    d.Database,
 		Dialect:     d.Dialect,
 		SqlExecutor: db,
 	}, nil

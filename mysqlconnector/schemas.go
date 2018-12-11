@@ -14,21 +14,24 @@ func toInterfaces(list ...string) []interface{} {
 	return s
 }
 
-func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *sqlx.Database {
-	d := sqlx.NewDatabase(dbName)
+func dbFromInformationSchema(db *sqlx.DB) *sqlx.Database {
+	tableNames := db.Tables.TableNames()
+
+	database := sqlx.NewDatabase(db.Name)
 
 	tableColumnSchema := SchemaDatabase.T(&ColumnSchema{})
 	columnSchemaList := make([]ColumnSchema, 0)
 
 	err := db.QueryExprAndScan(
-		builder.Select(tableColumnSchema.Columns.Clone()).From(tableColumnSchema,
-			builder.Where(
-				builder.And(
-					tableColumnSchema.F("TABLE_SCHEMA").Eq(d.Name),
-					tableColumnSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
+		builder.Select(tableColumnSchema.Columns.Clone()).
+			From(tableColumnSchema,
+				builder.Where(
+					builder.And(
+						tableColumnSchema.F("TABLE_SCHEMA").Eq(database.Name),
+						tableColumnSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
+					),
 				),
 			),
-		),
 		&columnSchemaList,
 	)
 	if err != nil {
@@ -36,10 +39,10 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 	}
 
 	for _, columnSchema := range columnSchemaList {
-		table := d.Table(columnSchema.TABLE_NAME)
+		table := database.Table(columnSchema.TABLE_NAME)
 		if table == nil {
 			table = builder.T(columnSchema.TABLE_NAME)
-			d.AddTable(table)
+			database.AddTable(table)
 		}
 		col := builder.Col(columnSchema.COLUMN_NAME)
 		table.AddCol(col)
@@ -56,7 +59,7 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 					tableIndexSchema,
 					builder.Where(
 						builder.And(
-							tableIndexSchema.F("TABLE_SCHEMA").Eq(d.Name),
+							tableIndexSchema.F("TABLE_SCHEMA").Eq(database.Name),
 							tableIndexSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
 						),
 					),
@@ -73,7 +76,7 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 		}
 
 		for _, indexSchema := range indexList {
-			table := d.Table(indexSchema.TABLE_NAME)
+			table := database.Table(indexSchema.TABLE_NAME)
 
 			if key := table.Keys.Key(indexSchema.INDEX_NAME); key != nil {
 				key.Columns.Add(table.Col(indexSchema.COLUMN_NAME))
@@ -88,7 +91,7 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 		}
 	}
 
-	return d
+	return database
 }
 
 var SchemaDatabase = sqlx.NewDatabase("INFORMATION_SCHEMA")

@@ -126,15 +126,13 @@ func (m *Model) WriteCreate(file *codegen.File) {
 				m.SnippetSetUpdatedAtIfNeed(file),
 
 				codegen.Expr(`
-d := m.D()
-
 switch db.DriverName() {
 	case "mysql":
-		result, err := db.ExecExpr(d.Insert(m, nil))
+		result, err := db.ExecExpr(db.Insert(m, nil))
 		?
 		return err
 	case "postgres":
-		return db.QueryExprAndScan(d.Insert(m, nil, `+file.Use("github.com/go-courier/sqlx/v2/builder", "Returning")+`(nil)), m)
+		return db.QueryExprAndScan(db.Insert(m, nil, `+file.Use("github.com/go-courier/sqlx/v2/builder", "Returning")+`(nil)), m)
 }
 
 return nil
@@ -179,7 +177,7 @@ fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValuesF
 					}(),
 
 					codegen.Expr(`
-table := m.T()
+table := db.T(m)
 
 cols, vals := table.ColumnsAndValuesByFieldValues(fieldValues)
 
@@ -222,7 +220,7 @@ switch db.DriverName() {
 		for _, fs := range indexes {
 			fields = append(fields, fs...)
 		}
-		indexFields, _ := m.T().Fields(fields...)
+		indexFields, _ := db.T(m).Fields(fields...)
 
 		_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().
 			Into(
@@ -261,8 +259,8 @@ func (m *Model) WriteDelete(file *codegen.File) {
 _, err := db.ExecExpr(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Delete")+`().
 From(
-	m.T(),
-`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(m.ConditionByStruct()),
+	db.T(m),
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(m.ConditionByStruct(db)),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
 ),
 )
@@ -303,12 +301,12 @@ func (m *Model) WriteByKey(file *codegen.File) {
 							m.SnippetEnableIfNeed(file),
 
 							codegen.Expr(`
-table := m.T()
+table := db.T(m)
 
 err := db.QueryExprAndScan(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Select")+`(nil).
 From(
-	m.T(),
+	db.T(m),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(`+toExactlyConditionFrom(file, fieldNames...)+`),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
 ),
@@ -337,10 +335,10 @@ m,
 							m.SnippetEnableIfNeed(file),
 
 							codegen.Expr(`
-table := m.T()
+table := db.T(m)
 
 result, err := db.ExecExpr(
-	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(m.T()).
+	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(db.T(m)).
 		Where(
 			`+toExactlyConditionFrom(file, fieldNames...)+`,
 			`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
@@ -397,12 +395,12 @@ return m.` + methodForUpdateWithMap + `(db, fieldValues)
 							m.SnippetEnableIfNeed(file),
 
 							codegen.Expr(`
-table := m.T()
+table := db.T(m)
 
 err := db.QueryExprAndScan(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Select")+`(nil).
 From(
-	m.T(),
+	db.T(m),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(`+toExactlyConditionFrom(file, fieldNames...)+`),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "ForUpdate")+`(),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
@@ -431,12 +429,12 @@ m,
 							m.SnippetEnableIfNeed(file),
 
 							codegen.Expr(`
-table := m.T()
+table := db.T(m)
 
 _, err := db.ExecExpr(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Delete")+`().
 From(
-	m.T(),
+	db.T(m),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(`+toExactlyConditionFrom(file, fieldNames...)+`),
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
 ),
@@ -463,7 +461,7 @@ From(
 								m.SnippetEnableIfNeed(file),
 
 								codegen.Expr(`
-table := m.T()
+table := db.T(m)
 
 fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValues")+`{}`),
 
@@ -473,7 +471,7 @@ fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValues"
 								codegen.Expr(`
 
 _, err := db.ExecExpr(
-`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(m.T()).
+`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(db.T(m)).
 	Where(
 		`+toExactlyConditionFrom(file, fieldNames...)+`,
 		`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),

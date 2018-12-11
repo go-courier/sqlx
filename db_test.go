@@ -24,7 +24,7 @@ func TestWithTasks(t *testing.T) {
 
 	{
 		dbTest.Register(&User{})
-		err := migration.Migrate(db, dbTest, nil)
+		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 	}
 

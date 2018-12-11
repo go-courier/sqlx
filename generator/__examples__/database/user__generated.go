@@ -53,20 +53,14 @@ func (User) Comments() map[string]string {
 	}
 }
 
+var UserTable *github_com_go_courier_sqlx_v2_builder.Table
+
 func init() {
-	DBTest.Register(&User{})
+	UserTable = DBTest.Register(&User{})
 }
 
 func (User) TableName() string {
 	return "t_user"
-}
-
-func (User) D() *github_com_go_courier_sqlx_v2.Database {
-	return DBTest
-}
-
-func (m *User) T() *github_com_go_courier_sqlx_v2_builder.Table {
-	return m.D().T(m)
 }
 
 func (User) FieldKeyID() string {
@@ -74,7 +68,7 @@ func (User) FieldKeyID() string {
 }
 
 func (m *User) FieldID() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyID())
+	return UserTable.F(m.FieldKeyID())
 }
 
 func (User) FieldKeyName() string {
@@ -82,7 +76,7 @@ func (User) FieldKeyName() string {
 }
 
 func (m *User) FieldName() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyName())
+	return UserTable.F(m.FieldKeyName())
 }
 
 func (User) FieldKeyUsername() string {
@@ -90,7 +84,7 @@ func (User) FieldKeyUsername() string {
 }
 
 func (m *User) FieldUsername() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyUsername())
+	return UserTable.F(m.FieldKeyUsername())
 }
 
 func (User) FieldKeyNickname() string {
@@ -98,7 +92,7 @@ func (User) FieldKeyNickname() string {
 }
 
 func (m *User) FieldNickname() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyNickname())
+	return UserTable.F(m.FieldKeyNickname())
 }
 
 func (User) FieldKeyGender() string {
@@ -106,7 +100,7 @@ func (User) FieldKeyGender() string {
 }
 
 func (m *User) FieldGender() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyGender())
+	return UserTable.F(m.FieldKeyGender())
 }
 
 func (User) FieldKeyBoolean() string {
@@ -114,7 +108,7 @@ func (User) FieldKeyBoolean() string {
 }
 
 func (m *User) FieldBoolean() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyBoolean())
+	return UserTable.F(m.FieldKeyBoolean())
 }
 
 func (User) FieldKeyGeom() string {
@@ -122,7 +116,7 @@ func (User) FieldKeyGeom() string {
 }
 
 func (m *User) FieldGeom() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyGeom())
+	return UserTable.F(m.FieldKeyGeom())
 }
 
 func (User) FieldKeyCreatedAt() string {
@@ -130,7 +124,7 @@ func (User) FieldKeyCreatedAt() string {
 }
 
 func (m *User) FieldCreatedAt() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyCreatedAt())
+	return UserTable.F(m.FieldKeyCreatedAt())
 }
 
 func (User) FieldKeyUpdatedAt() string {
@@ -138,7 +132,7 @@ func (User) FieldKeyUpdatedAt() string {
 }
 
 func (m *User) FieldUpdatedAt() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyUpdatedAt())
+	return UserTable.F(m.FieldKeyUpdatedAt())
 }
 
 func (User) FieldKeyEnabled() string {
@@ -146,7 +140,7 @@ func (User) FieldKeyEnabled() string {
 }
 
 func (m *User) FieldEnabled() *github_com_go_courier_sqlx_v2_builder.Column {
-	return m.T().F(m.FieldKeyEnabled())
+	return UserTable.F(m.FieldKeyEnabled())
 }
 
 func (m *User) IndexFieldNames() []string {
@@ -159,8 +153,8 @@ func (m *User) IndexFieldNames() []string {
 	}
 }
 
-func (m *User) ConditionByStruct() *github_com_go_courier_sqlx_v2_builder.Condition {
-	table := m.T()
+func (m *User) ConditionByStruct(db *github_com_go_courier_sqlx_v2.DB) *github_com_go_courier_sqlx_v2_builder.Condition {
+	table := db.T(m)
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m)
 
 	conditions := make([]github_com_go_courier_sqlx_v2_builder.SqlCondition, 0)
@@ -197,11 +191,9 @@ func (m *User) Create(db *github_com_go_courier_sqlx_v2.DB) error {
 		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
-	d := m.D()
-
 	switch db.DriverName() {
 	case "mysql":
-		result, err := db.ExecExpr(d.Insert(m, nil))
+		result, err := db.ExecExpr(db.Insert(m, nil))
 
 		if err == nil {
 			lastInsertID, _ := result.LastInsertId()
@@ -210,7 +202,7 @@ func (m *User) Create(db *github_com_go_courier_sqlx_v2.DB) error {
 
 		return err
 	case "postgres":
-		return db.QueryExprAndScan(d.Insert(m, nil, github_com_go_courier_sqlx_v2_builder.Returning(nil)), m)
+		return db.QueryExprAndScan(db.Insert(m, nil, github_com_go_courier_sqlx_v2_builder.Returning(nil)), m)
 	}
 
 	return nil
@@ -237,7 +229,7 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx_
 
 	delete(fieldValues, "ID")
 
-	table := m.T()
+	table := db.T(m)
 
 	cols, vals := table.ColumnsAndValuesByFieldValues(fieldValues)
 
@@ -279,7 +271,7 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db *github_com_go_courier_sqlx_
 		for _, fs := range indexes {
 			fields = append(fields, fs...)
 		}
-		indexFields, _ := m.T().Fields(fields...)
+		indexFields, _ := db.T(m).Fields(fields...)
 
 		_, err := db.ExecExpr(github_com_go_courier_sqlx_v2_builder.Insert().
 			Into(
@@ -306,8 +298,8 @@ func (m *User) DeleteByStruct(db *github_com_go_courier_sqlx_v2.DB) error {
 	_, err := db.ExecExpr(
 		github_com_go_courier_sqlx_v2_builder.Delete().
 			From(
-				m.T(),
-				github_com_go_courier_sqlx_v2_builder.Where(m.ConditionByStruct()),
+				db.T(m),
+				github_com_go_courier_sqlx_v2_builder.Where(m.ConditionByStruct(db)),
 				github_com_go_courier_sqlx_v2_builder.Comment("User.DeleteByStruct"),
 			),
 	)
@@ -318,12 +310,12 @@ func (m *User) DeleteByStruct(db *github_com_go_courier_sqlx_v2.DB) error {
 func (m *User) FetchByID(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	err := db.QueryExprAndScan(
 		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
-				m.T(),
+				db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
@@ -344,10 +336,10 @@ func (m *User) UpdateByIDWithMap(db *github_com_go_courier_sqlx_v2.DB, fieldValu
 
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	result, err := db.ExecExpr(
-		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(db.T(m)).
 			Where(
 				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
@@ -381,12 +373,12 @@ func (m *User) UpdateByIDWithStruct(db *github_com_go_courier_sqlx_v2.DB, zeroFi
 func (m *User) FetchByIDForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	err := db.QueryExprAndScan(
 		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
-				m.T(),
+				db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
@@ -403,12 +395,12 @@ func (m *User) FetchByIDForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
 func (m *User) DeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	_, err := db.ExecExpr(
 		github_com_go_courier_sqlx_v2_builder.Delete().
 			From(
-				m.T(),
+				db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 					table.F("Enabled").Eq(m.Enabled),
@@ -423,7 +415,7 @@ func (m *User) DeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
 func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValues{}
 	if _, ok := fieldValues["Enabled"]; !ok {
@@ -435,7 +427,7 @@ func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
 	}
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(db.T(m)).
 			Where(
 				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
@@ -460,12 +452,12 @@ func (m *User) SoftDeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
 func (m *User) FetchByName(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	err := db.QueryExprAndScan(
 		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
-				m.T(),
+				db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
@@ -486,10 +478,10 @@ func (m *User) UpdateByNameWithMap(db *github_com_go_courier_sqlx_v2.DB, fieldVa
 
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	result, err := db.ExecExpr(
-		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(db.T(m)).
 			Where(
 				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
@@ -523,12 +515,12 @@ func (m *User) UpdateByNameWithStruct(db *github_com_go_courier_sqlx_v2.DB, zero
 func (m *User) FetchByNameForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	err := db.QueryExprAndScan(
 		github_com_go_courier_sqlx_v2_builder.Select(nil).
 			From(
-				m.T(),
+				db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
@@ -545,12 +537,12 @@ func (m *User) FetchByNameForUpdate(db *github_com_go_courier_sqlx_v2.DB) error 
 func (m *User) DeleteByName(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	_, err := db.ExecExpr(
 		github_com_go_courier_sqlx_v2_builder.Delete().
 			From(
-				m.T(),
+				db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
 					table.F("Enabled").Eq(m.Enabled),
@@ -565,7 +557,7 @@ func (m *User) DeleteByName(db *github_com_go_courier_sqlx_v2.DB) error {
 func (m *User) SoftDeleteByName(db *github_com_go_courier_sqlx_v2.DB) error {
 	m.Enabled = github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE
 
-	table := m.T()
+	table := db.T(m)
 
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValues{}
 	if _, ok := fieldValues["Enabled"]; !ok {
@@ -577,7 +569,7 @@ func (m *User) SoftDeleteByName(db *github_com_go_courier_sqlx_v2.DB) error {
 	}
 
 	_, err := db.ExecExpr(
-		github_com_go_courier_sqlx_v2_builder.Update(m.T()).
+		github_com_go_courier_sqlx_v2_builder.Update(db.T(m)).
 			Where(
 				github_com_go_courier_sqlx_v2_builder.And(
 					table.F("Name").Eq(m.Name),
@@ -603,7 +595,7 @@ func (m *User) List(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_
 
 	list := make([]User, 0)
 
-	table := m.T()
+	table := db.T(m)
 	_ = table
 
 	condition = github_com_go_courier_sqlx_v2_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE))
@@ -619,7 +611,7 @@ func (m *User) List(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_
 
 	err := db.QueryExprAndScan(
 		github_com_go_courier_sqlx_v2_builder.Select(nil).
-			From(m.T(), finalAdditions...),
+			From(db.T(m), finalAdditions...),
 		&list,
 	)
 
@@ -631,7 +623,7 @@ func (m *User) Count(db *github_com_go_courier_sqlx_v2.DB, condition *github_com
 
 	count := -1
 
-	table := m.T()
+	table := db.T(m)
 	_ = table
 
 	condition = github_com_go_courier_sqlx_v2_builder.And(condition, table.F("Enabled").Eq(github_com_go_courier_sqlx_v2_datatypes.BOOL_TRUE))
@@ -649,7 +641,7 @@ func (m *User) Count(db *github_com_go_courier_sqlx_v2.DB, condition *github_com
 		github_com_go_courier_sqlx_v2_builder.Select(
 			github_com_go_courier_sqlx_v2_builder.Count(),
 		).
-			From(m.T(), finalAdditions...),
+			From(db.T(m), finalAdditions...),
 		&count,
 	)
 
@@ -663,7 +655,7 @@ func (m *User) BatchFetchByGeomList(db *github_com_go_courier_sqlx_v2.DB, values
 		return nil, nil
 	}
 
-	table := m.T()
+	table := db.T(m)
 
 	condition := table.F("Geom").In(values)
 
@@ -677,7 +669,7 @@ func (m *User) BatchFetchByIDList(db *github_com_go_courier_sqlx_v2.DB, values [
 		return nil, nil
 	}
 
-	table := m.T()
+	table := db.T(m)
 
 	condition := table.F("ID").In(values)
 
@@ -691,7 +683,7 @@ func (m *User) BatchFetchByNameList(db *github_com_go_courier_sqlx_v2.DB, values
 		return nil, nil
 	}
 
-	table := m.T()
+	table := db.T(m)
 
 	condition := table.F("Name").In(values)
 
@@ -705,7 +697,7 @@ func (m *User) BatchFetchByNicknameList(db *github_com_go_courier_sqlx_v2.DB, va
 		return nil, nil
 	}
 
-	table := m.T()
+	table := db.T(m)
 
 	condition := table.F("Nickname").In(values)
 
@@ -719,7 +711,7 @@ func (m *User) BatchFetchByUsernameList(db *github_com_go_courier_sqlx_v2.DB, va
 		return nil, nil
 	}
 
-	table := m.T()
+	table := db.T(m)
 
 	condition := table.F("Username").In(values)
 

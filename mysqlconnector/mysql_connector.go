@@ -42,23 +42,26 @@ func (c MysqlConnector) WithDBName(dbName string) driver.Connector {
 	return &c
 }
 
-func (c *MysqlConnector) Migrate(db *sqlx.DB, database *sqlx.Database, opts *migration.MigrationOpts) error {
+func (c *MysqlConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts) error {
 	if opts == nil {
 		opts = &migration.MigrationOpts{}
 	}
 
-	prevDB := DBFromInformationSchema(db, database.Name, database.Tables.TableNames()...)
+	// mysql without schema
+	db = db.WithSchema("")
+
+	prevDB := dbFromInformationSchema(db)
 
 	if prevDB == nil {
 		prevDB = &sqlx.Database{
-			Name: database.Name,
+			Name: db.Name,
 		}
-		if _, err := db.ExecExpr(db.CreateDatabase(database.Name)); err != nil {
+		if _, err := db.ExecExpr(db.CreateDatabase(db.Name)); err != nil {
 			return err
 		}
 	}
 
-	for name, table := range database.Tables {
+	for name, table := range db.Tables {
 		prevTable := prevDB.Table(name)
 		if prevTable == nil {
 			for _, expr := range db.CreateTableIsNotExists(table) {
@@ -150,6 +153,13 @@ func (c *MysqlConnector) CreateDatabase(dbName string) builder.SqlExpr {
 	return e
 }
 
+func (c *MysqlConnector) CreateSchema(schema string) builder.SqlExpr {
+	e := builder.Expr("CREATE SCHEMA ")
+	e.WriteString(schema)
+	e.WriteEnd()
+	return e
+}
+
 func (c *MysqlConnector) DropDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("DROP DATABASE ")
 	e.WriteString(dbName)
@@ -215,16 +225,16 @@ func (c *MysqlConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	return e
 }
 
-func (c *MysqlConnector) CreateTableIsNotExists(t *builder.Table) (exprs []builder.SqlExpr) {
+func (c *MysqlConnector) CreateTableIsNotExists(table *builder.Table) (exprs []builder.SqlExpr) {
 	expr := builder.Expr("CREATE TABLE IF NOT EXISTS ")
-	expr.WriteString(t.Name)
+	expr.WriteExpr(table)
 	expr.WriteByte(' ')
 	expr.WriteGroup(func(e *builder.Ex) {
-		if t.Columns.IsNil() {
+		if table.Columns.IsNil() {
 			return
 		}
 
-		t.Columns.Range(func(col *builder.Column, idx int) {
+		table.Columns.Range(func(col *builder.Column, idx int) {
 			if idx > 0 {
 				e.WriteByte(',')
 			}
@@ -236,7 +246,7 @@ func (c *MysqlConnector) CreateTableIsNotExists(t *builder.Table) (exprs []build
 			e.WriteExpr(c.DataType(col.ColumnType))
 		})
 
-		t.Keys.Range(func(key *builder.Key, idx int) {
+		table.Keys.Range(func(key *builder.Key, idx int) {
 			if key.IsPrimary() {
 				e.WriteByte(',')
 				e.WriteByte('\n')
@@ -270,7 +280,7 @@ func (c *MysqlConnector) CreateTableIsNotExists(t *builder.Table) (exprs []build
 	expr.WriteEnd()
 	exprs = append(exprs, expr)
 
-	t.Keys.Range(func(key *builder.Key, idx int) {
+	table.Keys.Range(func(key *builder.Key, idx int) {
 		if !key.IsPrimary() {
 			exprs = append(exprs, c.AddIndex(key))
 		}

@@ -46,7 +46,7 @@ func TestUserCRUD(t *testing.T) {
 			tt.NoError(err)
 		}
 
-		err := migration.Migrate(db, DBTest, nil)
+		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
 		user := User{}
@@ -84,7 +84,7 @@ func TestUserCRUD(t *testing.T) {
 				userForSelect := User{
 					Name: user.Name,
 				}
-				stmt := builder.Select(nil).From(userForSelect.T(), builder.Where(
+				stmt := builder.Select(nil).From(db.T(userForSelect), builder.Where(
 					userForSelect.FieldName().Eq(userForSelect.Name),
 				))
 				errForSelect := db.QueryExprAndScan(stmt, &userForSelect)
@@ -101,7 +101,7 @@ func TestUserCRUD(t *testing.T) {
 					tt.Nil(errForSoftDelete)
 
 					users := make([]User, 0)
-					stmt := builder.Select(nil).From(userForSelect.T(), builder.Where(
+					stmt := builder.Select(nil).From(db.T(userForSelect), builder.Where(
 						userForSelect.FieldEnabled().Eq(datatypes.BOOL_FALSE),
 					))
 
@@ -129,7 +129,7 @@ func TestUserList(t *testing.T) {
 	} {
 		db := DBTest.OpenDB(connector)
 
-		err := migration.Migrate(db, DBTest, nil)
+		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
 		createUser := func() {

@@ -44,6 +44,19 @@ func (t *Table) IsNil() bool {
 
 func (t Table) WithSchema(schema string) *Table {
 	t.Schema = schema
+
+	cols := Columns{}
+	t.Columns.Range(func(col *Column, idx int) {
+		cols.Add(col.On(&t))
+	})
+	t.Columns = cols
+
+	keys := Keys{}
+	t.Keys.Range(func(key *Key, idx int) {
+		keys.Add(key.On(&t))
+	})
+	t.Keys = keys
+
 	return &t
 }
 

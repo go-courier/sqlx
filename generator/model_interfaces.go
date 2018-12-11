@@ -33,10 +33,16 @@ func (m *Model) IndexFieldNames() []string {
 func (m *Model) WriteTableInterfaces(file *codegen.File) {
 	if m.WithTableInterfaces {
 		file.WriteBlock(
+			codegen.DeclVar(codegen.Var(codegen.Star(
+				codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))),
+				m.VarTable(),
+			)),
+
 			codegen.Func().
 				Named("init").
 				Do(
-					codegen.Expr("?.Register(&?{})",
+					codegen.Expr("? = ?.Register(&?{})",
+						codegen.Id(m.VarTable()),
 						codegen.Id(m.Database),
 						codegen.Id(m.StructName),
 					),
@@ -49,26 +55,6 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 				Return(codegen.Var(codegen.String)).
 				Do(
 					codegen.Return(file.Val(m.Config.TableName)),
-				),
-		)
-
-		file.WriteBlock(
-			codegen.Func().
-				Named("D").
-				MethodOf(codegen.Var(m.Type())).
-				Return(codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "Database"))))).
-				Do(
-					codegen.Return(codegen.Id(m.Database)),
-				),
-		)
-
-		file.WriteBlock(
-			codegen.Func().
-				Named("T").
-				MethodOf(codegen.Var(codegen.Star(m.Type()), "m")).
-				Return(codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))))).
-				Do(
-					codegen.Expr("return m.D().T(m)"),
 				),
 		)
 	}
@@ -90,7 +76,7 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 				MethodOf(codegen.Var(m.PtrType(), "m")).
 				Return(codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Column"))))).
 				Do(
-					codegen.Return(codegen.Expr("m.T().F(m.FieldKey" + col.FieldName + "())")),
+					codegen.Return(codegen.Expr("?.F(m.FieldKey"+col.FieldName+"())", codegen.Id(m.VarTable()))),
 				),
 		)
 	})
@@ -106,12 +92,14 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 	)
 
 	file.WriteBlock(
-		codegen.Func().
+		codegen.Func(
+			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+		).
 			Named("ConditionByStruct").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
 			Return(codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Condition"))))).
 			Do(
-				codegen.Expr(`table := m.T()`),
+				codegen.Expr(`table := db.T(m)`),
 				codegen.Expr(`fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValuesFromStructByNonZero")+`(m)
 
 conditions := make([]`+file.Use("github.com/go-courier/sqlx/v2/builder", "SqlCondition")+`, 0)

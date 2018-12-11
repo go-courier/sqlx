@@ -34,7 +34,7 @@ func TestMysqlConnector(t *testing.T) {
 		},
 		"DropDatabase": {
 			c.DropDatabase("db"),
-			builder.Expr( /* language=PostgreSQL */ `DROP DATABASE db;`),
+			builder.Expr( /* language=PostgreSQL */ `DROP DATABASE IF EXISTS db;`),
 		},
 		"AddIndex": {
 			c.AddIndex(table.Key("I_name")),

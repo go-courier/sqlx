@@ -6,7 +6,7 @@ import (
 )
 
 type Migrator interface {
-	Migrate(db *sqlx.DB, database *sqlx.Database, opt *MigrationOpts) error
+	Migrate(db *sqlx.DB, opt *MigrationOpts) error
 }
 
 type MigrationOpts struct {
@@ -14,23 +14,21 @@ type MigrationOpts struct {
 	DryRun         bool
 }
 
-func MustMigrate(db *sqlx.DB, database *sqlx.Database, opts *MigrationOpts) {
-	if err := Migrate(db, database, opts); err != nil {
+func MustMigrate(db *sqlx.DB, opts *MigrationOpts) {
+	if err := Migrate(db, opts); err != nil {
 		panic(err)
 	}
 }
 
-func Migrate(db *sqlx.DB, database *sqlx.Database, opts *MigrationOpts) error {
-	database.Register(&enummeta.SqlMetaEnum{})
-
+func Migrate(db *sqlx.DB, opts *MigrationOpts) error {
 	if migrator, ok := db.Dialect.(Migrator); ok {
-		if err := migrator.Migrate(db, database, opts); err != nil {
-			return nil
-		}
-		if err := enummeta.SyncEnum(db, database); err != nil {
+		if err := migrator.Migrate(db, opts); err != nil {
 			return err
 		}
+	}
 
+	if err := enummeta.SyncEnum(db); err != nil {
+		return err
 	}
 	return nil
 }

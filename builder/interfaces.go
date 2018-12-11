@@ -42,6 +42,7 @@ type Dialect interface {
 	IsErrorUnknownDatabase(err error) bool
 	IsErrorConflict(err error) bool
 	CreateDatabase(dbName string) SqlExpr
+	CreateSchema(schemaName string) SqlExpr
 	DropDatabase(dbName string) SqlExpr
 	CreateTableIsNotExists(t *Table) []SqlExpr
 	DropTable(t *Table) SqlExpr

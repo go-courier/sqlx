@@ -118,33 +118,33 @@ func TestMigrate(t *testing.T) {
 		mysqlConnector,
 		postgresConnector,
 	} {
-		db := dbTest.OpenDB(connector)
+		for _, schema := range []string{"import", "public", "backup"} {
+			db := dbTest.OpenDB(connector).WithSchema(schema)
+			{
+				dbTest.Register(&User{})
+				err := migration.Migrate(db, nil)
+				tt.NoError(err)
+			}
+			{
+				dbTest.Register(&User{})
+				err := migration.Migrate(db, nil)
+				tt.NoError(err)
+			}
+			{
+				dbTest.Register(&User2{})
+				err := migration.Migrate(db, nil)
+				tt.NoError(err)
+			}
+			{
+				dbTest.Register(&User{})
+				err := migration.Migrate(db, nil)
+				tt.NoError(err)
+			}
 
-		{
-			dbTest.Register(&User{})
-			err := migration.Migrate(db, dbTest, nil)
-			tt.NoError(err)
-		}
-		{
-			dbTest.Register(&User{})
-			err := migration.Migrate(db, dbTest, nil)
-			tt.NoError(err)
-		}
-		{
-			dbTest.Register(&User2{})
-			err := migration.Migrate(db, dbTest, nil)
-			tt.NoError(err)
-		}
-
-		{
-			dbTest.Register(&User{})
-			err := migration.Migrate(db, dbTest, nil)
-			tt.NoError(err)
-		}
-
-		for _, t := range dbTest.Tables {
-			_, err := db.ExecExpr(db.DropTable(t))
-			tt.NoError(err)
+			for _, t := range db.Tables {
+				_, err := db.ExecExpr(db.DropTable(t))
+				tt.NoError(err)
+			}
 		}
 	}
 }
@@ -161,7 +161,7 @@ func TestCRUD(t *testing.T) {
 		db := dbTest.OpenDB(connector)
 
 		userTable := dbTest.Register(&User{})
-		err := migration.Migrate(db, dbTest, nil)
+		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
 		{
@@ -228,7 +228,7 @@ func TestSelect(t *testing.T) {
 		db := dbTest.OpenDB(connector)
 
 		table := dbTest.Register(&User{})
-		err := migration.Migrate(db, dbTest, nil)
+		err := migration.Migrate(db, nil)
 		tt.Nil(err)
 
 		for i := 0; i < 10; i++ {

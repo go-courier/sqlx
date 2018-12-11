@@ -42,24 +42,34 @@ func (c PostgreSQLConnector) WithDBName(dbName string) driver.Connector {
 	return &c
 }
 
-func (c *PostgreSQLConnector) Migrate(db *sqlx.DB, database *sqlx.Database, opts *migration.MigrationOpts) error {
+func (c *PostgreSQLConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts) error {
 	if opts == nil {
 		opts = &migration.MigrationOpts{}
 	}
 
-	prevDB := DBFromInformationSchema(db, database.Name, database.Tables.TableNames()...)
+	prevDB := dbFromInformationSchema(db)
 
 	if prevDB == nil {
 		prevDB = &sqlx.Database{
-			Name: database.Name,
+			Name: db.Name,
 		}
-		if _, err := db.ExecExpr(db.CreateDatabase(database.Name)); err != nil {
+		if _, err := db.ExecExpr(db.CreateDatabase(db.Name)); err != nil {
 			return err
 		}
 	}
 
-	for name, table := range database.Tables {
+	if db.Schema != "" {
+		if _, err := db.ExecExpr(db.CreateSchema(db.Schema)); err != nil {
+			return err
+		}
+		prevDB = prevDB.WithSchema(db.Schema)
+	}
+
+	for name := range db.Tables {
+		table := db.Table(name)
+
 		prevTable := prevDB.Table(name)
+
 		if prevTable == nil {
 			for _, expr := range db.CreateTableIsNotExists(table) {
 				if _, err := db.ExecExpr(expr); err != nil {
@@ -159,8 +169,15 @@ func (c *PostgreSQLConnector) CreateDatabase(dbName string) builder.SqlExpr {
 	return e
 }
 
+func (c *PostgreSQLConnector) CreateSchema(schema string) builder.SqlExpr {
+	e := builder.Expr("CREATE SCHEMA IF NOT EXISTS ")
+	e.WriteString(schema)
+	e.WriteEnd()
+	return e
+}
+
 func (c *PostgreSQLConnector) DropDatabase(dbName string) builder.SqlExpr {
-	e := builder.Expr("DROP DATABASE ")
+	e := builder.Expr("DROP DATABASE IF EXISTS ")
 	e.WriteString(dbName)
 	e.WriteEnd()
 	return e
@@ -220,7 +237,7 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
 		e.WriteString(" DROP CONSTRAINT ")
-		e.WriteString(key.Table.Name)
+		e.WriteExpr(key.Table)
 		e.WriteString("_pkey")
 		e.WriteEnd()
 		return e
@@ -228,7 +245,7 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	e := builder.Expr("DROP ")
 
 	e.WriteString("INDEX ")
-	e.WriteString(key.Table.Name)
+	e.WriteExpr(key.Table)
 	e.WriteByte('_')
 	e.WriteString(key.Name)
 
@@ -237,7 +254,7 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 
 func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []builder.SqlExpr) {
 	expr := builder.Expr("CREATE TABLE IF NOT EXISTS ")
-	expr.WriteString(t.Name)
+	expr.WriteExpr(t)
 	expr.WriteByte(' ')
 	expr.WriteGroup(func(e *builder.Ex) {
 		if t.Columns.IsNil() {
@@ -285,14 +302,14 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 
 func (c *PostgreSQLConnector) DropTable(t *builder.Table) builder.SqlExpr {
 	e := builder.Expr("DROP TABLE IF EXISTS ")
-	e.WriteString(t.Name)
+	e.WriteExpr(t)
 	e.WriteEnd()
 	return e
 }
 
 func (c *PostgreSQLConnector) TruncateTable(t *builder.Table) builder.SqlExpr {
 	e := builder.Expr("TRUNCATE TABLE ")
-	e.WriteString(t.Name)
+	e.WriteExpr(t)
 	e.WriteEnd()
 	return e
 }

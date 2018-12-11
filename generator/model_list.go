@@ -24,7 +24,7 @@ func (m *Model) WriteCount(file *codegen.File) {
 				codegen.Expr(`
 count := -1
 
-table := m.T()
+table := db.T(m)
 _ = table
 `),
 
@@ -54,7 +54,7 @@ err := db.QueryExprAndScan(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Select")+`(
 	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Count")+`(),
 ).
-From(m.T(), finalAdditions...),
+From(db.T(m), finalAdditions...),
 &count,
 )
 
@@ -83,7 +83,7 @@ func (m *Model) WriteList(file *codegen.File) {
 				codegen.Expr(`
 list := make([]`+m.StructName+`, 0)
 
-table := m.T()
+table := db.T(m)
 _ = table
 `),
 
@@ -111,7 +111,7 @@ if len(additions) > 0 {
 
 err := db.QueryExprAndScan(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Select")+`(nil).
-From(m.T(), finalAdditions...),
+From(db.T(m), finalAdditions...),
 &list,
 )
 
@@ -148,7 +148,7 @@ if len(values) == 0 {
 	return nil, nil
 }
 
-table := m.T()
+table := db.T(m)
 
 condition := table.F("` + field + `").In(values)
 

@@ -17,16 +17,25 @@ func toInterfaces(list ...string) []interface{} {
 	return s
 }
 
-func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *sqlx.Database {
-	d := sqlx.NewDatabase(dbName)
+func dbFromInformationSchema(db *sqlx.DB) *sqlx.Database {
+	dbName := db.Name
+	dbSchema := db.Schema
+	tableNames := db.Tables.TableNames()
 
-	tableColumnSchema := SchemaDatabase.T(&ColumnSchema{})
+	d := sqlx.NewDatabase(dbName).WithSchema(dbSchema)
+
+	tableColumnSchema := SchemaDatabase.T(&ColumnSchema{}).WithSchema("information_schema")
 	columnSchemaList := make([]ColumnSchema, 0)
+
+	tableSchema := "public"
+	if d.Schema != "" {
+		tableSchema = d.Schema
+	}
 
 	stmt := builder.Select(tableColumnSchema.Columns.Clone()).From(tableColumnSchema,
 		builder.Where(
 			builder.And(
-				tableColumnSchema.F("TABLE_SCHEMA").Eq("public"),
+				tableColumnSchema.F("TABLE_SCHEMA").Eq(tableSchema),
 				tableColumnSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
 			),
 		),
@@ -58,7 +67,7 @@ func DBFromInformationSchema(db *sqlx.DB, dbName string, tableNames ...string) *
 					tableIndexSchema,
 					builder.Where(
 						builder.And(
-							tableIndexSchema.F("TABLE_SCHEMA").Eq("public"),
+							tableIndexSchema.F("TABLE_SCHEMA").Eq(tableSchema),
 							tableIndexSchema.F("TABLE_NAME").In(toInterfaces(tableNames...)...),
 						),
 					),
@@ -104,7 +113,7 @@ type ColumnSchema struct {
 }
 
 func (ColumnSchema) TableName() string {
-	return "information_schema.columns"
+	return "columns"
 }
 
 type IndexSchema struct {
