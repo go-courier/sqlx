@@ -2,33 +2,12 @@ package loggerdriver
 
 import (
 	"database/sql/driver"
+	"errors"
+	"github.com/go-sql-driver/mysql"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/fatih/color"
-	"github.com/go-sql-driver/mysql"
-	"github.com/sirupsen/logrus"
 )
-
-var _ driver.Stmt = (*loggerStmt)(nil)
-
-type loggerStmt struct {
-	logger *logrus.Logger
-	cfg    *mysql.Config
-	query  string
-	stmt   driver.Stmt
-}
-
-func (s *loggerStmt) Close() error {
-	if err := s.stmt.Close(); err != nil {
-		s.logger.Errorf("failed to close statement: %s", err)
-		return err
-	}
-	return nil
-}
-
-var DuplicateEntryErrNumber uint16 = 1062
 
 func startTimer() func() time.Duration {
 	startTime := time.Now()
@@ -37,66 +16,19 @@ func startTimer() func() time.Duration {
 	}
 }
 
-func (s *loggerStmt) Exec(args []driver.Value) (driver.Result, error) {
-	cost := startTimer()
-
-	if len(args) != 0 {
-		sqlForLog, err := s.interpolateParams(s.query, args)
-		if err != nil {
-			s.logger.Warnf("failed exec %s: %s", err, color.RedString(s.query))
-			return nil, err
+func namedValueToValue(named []driver.NamedValue) ([]driver.Value, error) {
+	dargs := make([]driver.Value, len(named))
+	for n, param := range named {
+		if len(param.Name) > 0 {
+			// TODO: support the use of Named Parameters #561
+			return nil, errors.New("mysql: driver does not support the use of Named Parameters")
 		}
-		s.query = sqlForLog
+		dargs[n] = param.Value
 	}
-
-	result, err := s.stmt.Exec(args)
-	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-			s.logger.Errorf("failed exec %s: %s", err, color.RedString(s.query))
-		} else if mysqlErr.Number == DuplicateEntryErrNumber {
-			s.logger.Warnf("failed exec %s: %s", err, color.RedString(s.query))
-		} else {
-			s.logger.Errorf("failed exec %s: %s", err, color.RedString(s.query))
-		}
-		return nil, err
-	}
-
-	s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(s.query))
-	return result, nil
+	return dargs, nil
 }
 
-func (s *loggerStmt) Query(args []driver.Value) (driver.Rows, error) {
-	cost := startTimer()
-
-	if len(args) != 0 {
-		sqlForLog, err := s.interpolateParams(s.query, args)
-		if err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				s.logger.Errorf("failed exec %s: %s", err, color.RedString(s.query))
-			} else {
-				s.logger.Warnf("failed exec %s: %s", mysqlErr, color.RedString(s.query))
-			}
-			return nil, err
-		}
-		s.query = sqlForLog
-	}
-
-	rows, err := s.stmt.Query(args)
-	if err != nil {
-		s.logger.Warnf("failed query %s: %s", err, color.RedString(s.query))
-		return nil, err
-	}
-
-	s.logger.WithField("cost", cost().String()).Debugf(color.GreenString(s.query))
-	return rows, nil
-}
-
-func (s *loggerStmt) NumInput() int {
-	i := s.stmt.NumInput()
-	return i
-}
-
-func (s *loggerStmt) interpolateParams(query string, args []driver.Value) (string, error) {
+func interpolateParams(cfg *mysql.Config, query string, args []driver.Value) (string, error) {
 	if strings.Count(query, "?") != len(args) {
 		return "", driver.ErrSkip
 	}
@@ -137,7 +69,7 @@ func (s *loggerStmt) interpolateParams(query string, args []driver.Value) (strin
 			if v.IsZero() {
 				buf = append(buf, "'0000-00-00'"...)
 			} else {
-				v := v.In(s.cfg.Loc)
+				v := v.In(cfg.Loc)
 				v = v.Add(time.Nanosecond * 500) // Write round under microsecond
 				year := v.Year()
 				year100 := year / 100
@@ -194,7 +126,7 @@ func (s *loggerStmt) interpolateParams(query string, args []driver.Value) (strin
 			return "", driver.ErrSkip
 		}
 
-		if len(buf)+4 > s.cfg.MaxAllowedPacket {
+		if len(buf)+4 > cfg.MaxAllowedPacket {
 			return "", driver.ErrSkip
 		}
 	}

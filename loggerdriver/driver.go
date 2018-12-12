@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	sql.Register("logger:mysql", &LoggingDriver{Driver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()})
+	sql.Register("logger:mysql", &LoggingDriver{MySQLDriver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()})
 	mysql.SetLogger(&logger{})
 }
 
@@ -24,7 +24,7 @@ var _ driver.Driver = (*LoggingDriver)(nil)
 
 type LoggingDriver struct {
 	Logger *logrus.Logger
-	Driver *mysql.MySQLDriver
+	*mysql.MySQLDriver
 }
 
 func (d *LoggingDriver) Open(name string) (driver.Conn, error) {
@@ -34,7 +34,7 @@ func (d *LoggingDriver) Open(name string) (driver.Conn, error) {
 	}
 	cfg.Passwd = strings.Repeat("*", len(cfg.Passwd))
 
-	conn, err := d.Driver.Open(name)
+	conn, err := d.MySQLDriver.Open(name)
 	if err != nil {
 		d.Logger.Errorf("failed to open connection: %s %s", cfg.FormatDSN(), err)
 		return nil, err
@@ -42,5 +42,5 @@ func (d *LoggingDriver) Open(name string) (driver.Conn, error) {
 
 	d.Logger.Debugf(color.YellowString("connected %s", cfg.FormatDSN()))
 
-	return &loggerConn{cfg: cfg, conn: conn, logger: d.Logger}, nil
+	return &loggerConn{cfg: cfg, Conn: conn, logger: d.Logger}, nil
 }

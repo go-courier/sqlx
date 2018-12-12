@@ -137,7 +137,6 @@ func (t *Table) ColumnsAndValuesByFieldValues(fieldValues FieldValues) (columns 
 
 	sort.Strings(fieldNames)
 
-
 	columns = &Columns{}
 
 	for _, fieldName := range fieldNames {
@@ -171,7 +170,7 @@ type DiffOptions struct {
 	DropColumn bool
 }
 
-func (t *Table) Diff(table *Table, opts DiffOptions) SqlExpr {
+func (t *Table) Diff(table *Table, opts DiffOptions) (exprs []SqlExpr) {
 	colsDiffResult := t.Columns.Diff(table.Columns)
 	keysDiffResult := t.Keys.Diff(table.Keys)
 
@@ -183,42 +182,34 @@ func (t *Table) Diff(table *Table, opts DiffOptions) SqlExpr {
 	}
 	expr := AlterTable(t)
 
-	joiner := " "
-
 	if colsChanged {
 		if opts.DropColumn {
 			colsDiffResult.colsForDelete.Range(func(col *Column, idx int) {
-				expr = MustJoinExpr(joiner, expr, DropCol(col))
-				joiner = ", "
+				exprs = append(exprs, MustJoinExpr(" ", expr, DropCol(col)))
 			})
 		}
 		colsDiffResult.colsForUpdate.Range(func(col *Column, idx int) {
-			expr = MustJoinExpr(joiner, expr, ModifyCol(col))
-			joiner = ", "
+			exprs = append(exprs, MustJoinExpr(" ", expr, ModifyCol(col)))
 		})
 		colsDiffResult.colsForAdd.Range(func(col *Column, idx int) {
-			expr = MustJoinExpr(joiner, expr, AddCol(col))
-			joiner = ", "
+			exprs = append(exprs, MustJoinExpr(" ", expr, AddCol(col)))
 		})
 	}
 
 	if indexesChanged {
 		keysDiffResult.keysForDelete.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(joiner, expr, DropKey(key))
-			joiner = ", "
+			exprs = append(exprs, MustJoinExpr(" ", expr, DropKey(key)))
 		})
 		keysDiffResult.keysForUpdate.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(joiner, expr, DropKey(key))
-			joiner = ", "
-			expr = MustJoinExpr(joiner, expr, AddKey(key))
+			exprs = append(exprs, MustJoinExpr(" ", expr, DropKey(key)))
+			exprs = append(exprs, MustJoinExpr("", expr, AddKey(key)))
 		})
 		keysDiffResult.keysForAdd.Range(func(key *Key, idx int) {
-			expr = MustJoinExpr(joiner, expr, AddKey(key))
-			joiner = ", "
+			exprs = append(exprs, MustJoinExpr(" ", expr, AddKey(key)))
 		})
 	}
 
-	return expr
+	return
 }
 
 type Tables map[string]*Table

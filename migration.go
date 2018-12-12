@@ -2,7 +2,6 @@ package sqlx
 
 import (
 	"fmt"
-
 	"github.com/go-courier/sqlx/builder"
 	"github.com/sirupsen/logrus"
 )
@@ -40,12 +39,14 @@ func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
 				continue
 			}
 
-			stmt := currentTable.Diff(table, builder.DiffOptions{
+			stmts := currentTable.Diff(table, builder.DiffOptions{
 				DropColumn: opts.DropColumn,
 			})
-			if stmt != nil {
-				if _, err := db.ExecExpr(stmt); err != nil {
-					return err
+			if len(stmts) > 0 {
+				for i := range stmts {
+					if _, err := db.ExecExpr(stmts[i]); err != nil {
+						return err
+					}
 				}
 				continue
 			}
@@ -74,12 +75,14 @@ func (database *Database) MigrateTo(db *DB, opts MigrationOptions) error {
 			continue
 		}
 
-		stmt := currentTable.Diff(table, builder.DiffOptions{
+		stmts := currentTable.Diff(table, builder.DiffOptions{
 			DropColumn: opts.DropColumn,
 		})
 
-		if stmt != nil {
-			fmt.Println(stmt.Expr().Query)
+		if len(stmts) > 0 {
+			for i := range stmts {
+				fmt.Println(stmts[i].Expr().Query)
+			}
 			continue
 		}
 	}

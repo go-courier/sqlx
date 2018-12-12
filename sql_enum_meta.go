@@ -22,26 +22,22 @@ func (*SqlMetaEnum) UniqueIndexes() builder.Indexes {
 }
 
 func SyncEnum(database *Database, db *DB) error {
-	task := NewTasks(db)
-
 	metaEnumTable := database.T(&SqlMetaEnum{})
 
-	task = task.With(func(db *DB) error {
-		_, err := db.ExecExpr(builder.CreateTableIsNotExists(metaEnumTable))
+	if _, err := db.ExecExpr(builder.CreateTableIsNotExists(metaEnumTable)); err != nil {
 		return err
-	})
+	}
 
-	task = task.With(func(db *DB) error {
-		_, err := db.ExecExpr(
-			builder.Delete().From(
-				metaEnumTable,
-				builder.Where(
-					metaEnumTable.F("TName").In(database.TableNames()),
-				),
+	if _, err := db.ExecExpr(
+		builder.Delete().From(
+			metaEnumTable,
+			builder.Where(
+				metaEnumTable.F("TName").In(database.TableNames()),
 			),
-		)
+		),
+	); err != nil {
 		return err
-	})
+	}
 
 	stmtForInsert := builder.Insert().Into(metaEnumTable)
 	vals := make([]interface{}, 0)
@@ -74,11 +70,10 @@ func SyncEnum(database *Database, db *DB) error {
 	if len(vals) > 0 {
 		stmtForInsert = stmtForInsert.Values(columns, vals...)
 
-		task = task.With(func(db *DB) error {
-			_, err := db.ExecExpr(stmtForInsert)
+		if _, err := db.ExecExpr(stmtForInsert); err != nil {
 			return err
-		})
+		}
 	}
 
-	return task.Do()
+	return nil
 }

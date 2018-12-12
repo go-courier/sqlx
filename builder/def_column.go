@@ -3,10 +3,10 @@ package builder
 import (
 	"container/list"
 	"fmt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx/datatypes"
-	"github.com/sirupsen/logrus"
 )
 
 func AddCol(c *Column) *Expression {

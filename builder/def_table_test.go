@@ -12,15 +12,6 @@ func TestTable(t *testing.T) {
 	db := DB("db")
 	table := T(db, "t")
 
-	tableNext := table.Define(
-		Col(table, "F_id").Type("bigint(64) unsigned NOT NULL AUTO_INCREMENT"),
-		Col(table, "F_name").Type("varchar(128) NOT NULL DEFAULT ''"),
-		Col(table, "F_created_at").Type("bigint(64) NOT NULL DEFAULT '0'"),
-		Col(table, "F_updated_at").Type("bigint(64) NOT NULL DEFAULT '0'"),
-		Index("I_name").WithCols(Col(table, "F_name")),
-		UniqueIndex("I_username").WithCols(Col(table, "F_username"), Col(table, "F_id")),
-	)
-
 	table = table.Define(
 		Col(table, "F_id").Field("ID"), // skip without type
 		Col(table, "F_id").Field("ID").Type("bigint(64) unsigned NOT NULL AUTO_INCREMENT"),
@@ -103,32 +94,6 @@ func TestTable(t *testing.T) {
 			"cond with unregister col field",
 			table.Cond("#ID = ? AND #Usernames = ?"),
 			Expr("`F_id` = ? AND #Usernames = ?"),
-		}, {
-			"diff for migrate",
-			table.Diff(tableNext, DiffOptions{
-				DropColumn: true,
-			}),
-			Expr("ALTER TABLE `db`.`t` " +
-				"DROP COLUMN `F_username`, " +
-				"MODIFY COLUMN `F_name` varchar(128) NOT NULL DEFAULT '', " +
-				"DROP PRIMARY KEY, " +
-				"DROP INDEX `I_username`, ADD UNIQUE INDEX `I_username` (`F_username`,`F_id`)",
-			),
-		}, {
-			"revert diff for migrate",
-			tableNext.Diff(table, DiffOptions{
-				DropColumn: true,
-			}),
-			Expr("ALTER TABLE `db`.`t` " +
-				"MODIFY COLUMN `F_name` varchar(255) NOT NULL DEFAULT '', " +
-				"ADD COLUMN `F_username` varchar(255) NOT NULL DEFAULT '', " +
-				"DROP INDEX `I_username`, ADD UNIQUE INDEX `I_username` (`F_name`,`F_id`), " +
-				"ADD PRIMARY KEY (`F_id`)",
-			),
-		}, {
-			"diff without change",
-			table.Diff(table, DiffOptions{}),
-			nil,
 		}, {
 			"drop Table",
 			DropTable(table),
