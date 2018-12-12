@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func interpolateParams(query string, args []driver.Value) (string, error) {
+func interpolateParams(query string, args []driver.NamedValue) (string) {
 	buf := bytes.NewBufferString(query)
 
 	buf.WriteString(" | ")
@@ -15,8 +15,8 @@ func interpolateParams(query string, args []driver.Value) (string, error) {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
-		buf.WriteString(fmt.Sprintf("%v", a))
+		buf.WriteString(fmt.Sprintf("%v", a.Value))
 	}
 
-	return buf.String(), nil
+	return buf.String()
 }

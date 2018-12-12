@@ -2,10 +2,23 @@ package mysqlconnector
 
 import (
 	"database/sql/driver"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 )
+
+func namedValueToValue(named []driver.NamedValue) ([]driver.Value, error) {
+	dargs := make([]driver.Value, len(named))
+	for n, param := range named {
+		if len(param.Name) > 0 {
+			// TODO: support the use of Named Parameters #561
+			return nil, errors.New("mysql: driver does not support the use of Named Parameters")
+		}
+		dargs[n] = param.Value
+	}
+	return dargs, nil
+}
 
 func interpolateParams(query string, args []driver.Value, loc *time.Location, maxAllowedPacket int) (string, error) {
 	if strings.Count(query, "?") != len(args) {

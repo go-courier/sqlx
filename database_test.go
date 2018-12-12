@@ -155,7 +155,7 @@ func TestCRUD(t *testing.T) {
 	dbTest := sqlx.NewDatabase("test")
 
 	for _, connector := range []driver.Connector{
-		mysqlConnector,
+		//mysqlConnector,
 		postgresConnector,
 	} {
 		db := dbTest.OpenDB(connector)

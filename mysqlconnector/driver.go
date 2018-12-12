@@ -1,6 +1,7 @@
 package mysqlconnector
 
 import (
+	"context"
 	"database/sql/driver"
 	"strings"
 	"time"
@@ -39,23 +40,24 @@ func (d *MySqlLoggingDriver) Open(dsn string) (driver.Conn, error) {
 	}
 
 	d.Logger.Debugf(color.YellowString("connected %s", cfg.FormatDSN()))
-
-	return &loggerConn{cfg: cfg, conn: conn, logger: d.Logger}, nil
+	return &loggerConn{Conn: conn, cfg: cfg, logger: d.Logger}, nil
 }
 
 var _ interface {
 	driver.Conn
+	driver.ExecerContext
+	driver.QueryerContext
 } = (*loggerConn)(nil)
 
 type loggerConn struct {
 	logger *logrus.Logger
 	cfg    *mysql.Config
-	conn   driver.Conn
+	driver.Conn
 }
 
 func (c *loggerConn) Begin() (driver.Tx, error) {
 	c.logger.Debugf(color.YellowString("=========== Beginning Transaction ==========="))
-	tx, err := c.conn.Begin()
+	tx, err := c.Conn.Begin()
 	if err != nil {
 		c.logger.Errorf("failed to begin transaction: %s", err)
 		return nil, err
@@ -64,37 +66,71 @@ func (c *loggerConn) Begin() (driver.Tx, error) {
 }
 
 func (c *loggerConn) Close() error {
-	if err := c.conn.Close(); err != nil {
+	if err := c.Conn.Close(); err != nil {
 		c.logger.Errorf("failed to close connection: %s", err)
 		return err
 	}
 	return nil
 }
 
-func (c *loggerConn) Prepare(query string) (driver.Stmt, error) {
-	stmt, err := c.conn.Prepare(query)
+func (s *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {
+	cost := startTimer()
+
+	defer func() {
+		query = s.interpolateParams(query, args)
+
+		if err != nil {
+			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
+				s.logger.Errorf("failed query %s: %s", err, color.RedString(query))
+			} else {
+				s.logger.Warnf("failed query %s: %s", mysqlErr, color.RedString(query))
+			}
+		} else {
+			s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(query))
+		}
+	}()
+
+	rows, err = s.Conn.(driver.QueryerContext).QueryContext(ctx, query, args)
+	return
+}
+
+func (s *loggerConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (result driver.Result, err error) {
+	cost := startTimer()
+
+	defer func() {
+		query = s.interpolateParams(query, args)
+
+		if err != nil {
+			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
+				s.logger.Errorf("failed exec %s: %s", err, color.RedString(query))
+			} else if mysqlErr.Number == DuplicateEntryErrNumber {
+				s.logger.Warnf("failed exec %s: %s", err, color.RedString(query))
+			} else {
+				s.logger.Errorf("failed exec %s: %s", mysqlErr, color.RedString(query))
+			}
+			return
+		}
+
+		s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(query))
+	}()
+
+	result, err = s.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
+	return
+}
+
+func (s *loggerConn) interpolateParams(query string, args []driver.NamedValue) string {
+	if len(args) == 0 {
+		return query
+	}
+	argValues, err := namedValueToValue(args)
 	if err != nil {
-		c.logger.Errorf("failed to prepare query: %s, err: %s", query, err)
-		return nil, err
+		return query
 	}
-	return &loggerStmt{cfg: c.cfg, query: query, stmt: stmt, logger: c.logger}, nil
-}
-
-var _ driver.Stmt = (*loggerStmt)(nil)
-
-type loggerStmt struct {
-	logger *logrus.Logger
-	cfg    *mysql.Config
-	query  string
-	stmt   driver.Stmt
-}
-
-func (s *loggerStmt) Close() error {
-	if err := s.stmt.Close(); err != nil {
-		s.logger.Errorf("failed to close statement: %s", err)
-		return err
+	sqlForLog, err := interpolateParams(query, argValues, s.cfg.Loc, s.cfg.MaxAllowedPacket)
+	if err != nil {
+		return query
 	}
-	return nil
+	return sqlForLog
 }
 
 var DuplicateEntryErrNumber uint16 = 1062
@@ -104,65 +140,6 @@ func startTimer() func() time.Duration {
 	return func() time.Duration {
 		return time.Now().Sub(startTime)
 	}
-}
-
-func (s *loggerStmt) Exec(args []driver.Value) (driver.Result, error) {
-	cost := startTimer()
-
-	if len(args) != 0 {
-		sqlForLog, err := interpolateParams(s.query, args, s.cfg.Loc, s.cfg.MaxAllowedPacket)
-		if err != nil {
-			s.logger.Warnf("failed exec %s: %s", err, color.RedString(s.query))
-			return nil, err
-		}
-		s.query = sqlForLog
-	}
-
-	result, err := s.stmt.Exec(args)
-	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-			s.logger.Errorf("failed exec %s: %s", err, color.RedString(s.query))
-		} else if mysqlErr.Number == DuplicateEntryErrNumber {
-			s.logger.Warnf("failed exec %s: %s", err, color.RedString(s.query))
-		} else {
-			s.logger.Errorf("failed exec %s: %s", err, color.RedString(s.query))
-		}
-		return nil, err
-	}
-
-	s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(s.query))
-	return result, nil
-}
-
-func (s *loggerStmt) Query(args []driver.Value) (driver.Rows, error) {
-	cost := startTimer()
-
-	if len(args) != 0 {
-		sqlForLog, err := interpolateParams(s.query, args, s.cfg.Loc, s.cfg.MaxAllowedPacket)
-		if err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				s.logger.Errorf("failed exec %s: %s", err, color.RedString(s.query))
-			} else {
-				s.logger.Warnf("failed exec %s: %s", mysqlErr, color.RedString(s.query))
-			}
-			return nil, err
-		}
-		s.query = sqlForLog
-	}
-
-	rows, err := s.stmt.Query(args)
-	if err != nil {
-		s.logger.Warnf("failed query %s: %s", err, color.RedString(s.query))
-		return nil, err
-	}
-
-	s.logger.WithField("cost", cost().String()).Debugf(color.GreenString(s.query))
-	return rows, nil
-}
-
-func (s *loggerStmt) NumInput() int {
-	i := s.stmt.NumInput()
-	return i
 }
 
 type loggingTx struct {
