@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -103,6 +104,10 @@ func (c *loggerConn) Close() error {
 		return err
 	}
 	return nil
+}
+
+func (c *loggerConn) Prepare(query string) (driver.Stmt, error) {
+	panic(fmt.Errorf("don't use Prepare"))
 }
 
 func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {

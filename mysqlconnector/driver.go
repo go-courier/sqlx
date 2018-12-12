@@ -3,6 +3,7 @@ package mysqlconnector
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"strings"
 	"time"
 
@@ -71,6 +72,10 @@ func (c *loggerConn) Close() error {
 		return err
 	}
 	return nil
+}
+
+func (c *loggerConn) Prepare(query string) (driver.Stmt, error) {
+	panic(fmt.Errorf("don't use Prepare"))
 }
 
 func (s *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {

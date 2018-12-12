@@ -99,11 +99,8 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 			if err != nil {
 				return nil, err
 			}
-			stmt, _ := conn.Prepare(c.CreateDatabase(c.DBName).Expr().Query())
-			if _, err := stmt.Exec(nil); err != nil {
-				return nil, err
-			}
-			if err := stmt.Close(); err != nil {
+			if _, err := conn.(driver.ExecerContext).
+				ExecContext(context.Background(), c.CreateDatabase(c.DBName).Expr().Query(), nil); err != nil {
 				return nil, err
 			}
 			if err := conn.Close(); err != nil {

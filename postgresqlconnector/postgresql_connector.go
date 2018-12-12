@@ -102,18 +102,15 @@ func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) 
 	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
 	if err != nil {
 		if c.IsErrorUnknownDatabase(err) {
-			conn, err := d.Open(dsn(c.Host, "", c.Extra))
+			connectForCreateDB, err := d.Open(dsn(c.Host, "", c.Extra))
 			if err != nil {
 				return nil, err
 			}
-			stmt, _ := conn.Prepare(c.CreateDatabase(c.DBName).Expr().Query())
-			if _, err := stmt.Exec(nil); err != nil {
+			if _, err := connectForCreateDB.(driver.ExecerContext).
+				ExecContext(context.Background(), c.CreateDatabase(c.DBName).Expr().Query(), nil); err != nil {
 				return nil, err
 			}
-			if err := stmt.Close(); err != nil {
-				return nil, err
-			}
-			if err := conn.Close(); err != nil {
+			if err := connectForCreateDB.Close(); err != nil {
 				return nil, err
 			}
 			return c.Connect(ctx)
@@ -121,11 +118,8 @@ func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) 
 		return nil, err
 	}
 	for _, ex := range c.Extensions {
-		stmt, _ := conn.Prepare("CREATE EXTENSION IF NOT EXISTS " + ex + ";")
-		if _, err := stmt.Exec(nil); err != nil {
-			return nil, err
-		}
-		if err := stmt.Close(); err != nil {
+		if _, err := conn.(driver.ExecerContext).
+			ExecContext(context.Background(), "CREATE EXTENSION IF NOT EXISTS "+ex+";", nil); err != nil {
 			return nil, err
 		}
 	}
