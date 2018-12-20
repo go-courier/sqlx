@@ -136,7 +136,18 @@ func (rules *CondRules) When(rule bool, conditions ...*Condition) *CondRules {
 }
 
 func (rules *CondRules) IsNil() bool {
-	return rules == nil || rules.l == nil || rules.l.Len() == 0
+	if rules == nil || rules.l == nil || rules.l.Len() == 0 {
+		return true
+	}
+
+	for e := rules.l.Front(); e != nil; e = e.Next() {
+		r := e.Value.(*CondRule)
+		if r.When {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (rules *CondRules) Expr() *Ex {

@@ -13,6 +13,13 @@ func TestBuilderCond(t *testing.T) {
 			NewCondRules(),
 			nil,
 		},
+		"CondRules with all false": {
+			NewCondRules().
+				When(false, Col("a").Eq(1)).
+				When(false, Col("b").Like(`g`)).
+				When(false, Col("b").Like(`g`)),
+			nil,
+		},
 		"CondRules": {
 			NewCondRules().
 				When(true, Col("a").Eq(1)).
