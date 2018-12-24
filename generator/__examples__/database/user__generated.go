@@ -1,8 +1,8 @@
 package database
 
 import (
-	"fmt"
-	"time"
+	fmt "fmt"
+	time "time"
 
 	github_com_go_courier_sqlx_v2 "github.com/go-courier/sqlx/v2"
 	github_com_go_courier_sqlx_v2_builder "github.com/go-courier/sqlx/v2/builder"

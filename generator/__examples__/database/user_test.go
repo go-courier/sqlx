@@ -57,7 +57,7 @@ func TestUserCRUD(t *testing.T) {
 
 		errForCreate := user.Create(db)
 		tt.NoError(errForCreate)
-		tt.Equal(uint64(1), user.ID)
+		tt.Equal(uint64(0), user.ID)
 
 		user.Gender = GenderMale
 		{
