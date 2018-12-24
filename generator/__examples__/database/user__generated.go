@@ -1,8 +1,8 @@
 package database
 
 import (
-	fmt "fmt"
-	time "time"
+	"fmt"
+	"time"
 
 	github_com_go_courier_sqlx_v2 "github.com/go-courier/sqlx/v2"
 	github_com_go_courier_sqlx_v2_builder "github.com/go-courier/sqlx/v2/builder"
@@ -191,21 +191,8 @@ func (m *User) Create(db *github_com_go_courier_sqlx_v2.DB) error {
 		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
 	}
 
-	switch db.DriverName() {
-	case "mysql":
-		result, err := db.ExecExpr(db.Insert(m, nil))
-
-		if err == nil {
-			lastInsertID, _ := result.LastInsertId()
-			m.ID = uint64(lastInsertID)
-		}
-
-		return err
-	case "postgres":
-		return db.QueryExprAndScan(db.Insert(m, nil, github_com_go_courier_sqlx_v2_builder.Returning(nil)), m)
-	}
-
-	return nil
+	_, err := db.ExecExpr(db.Insert(m, nil))
+	return err
 
 }
 

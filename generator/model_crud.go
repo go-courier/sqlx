@@ -126,18 +126,9 @@ func (m *Model) WriteCreate(file *codegen.File) {
 				m.SnippetSetUpdatedAtIfNeed(file),
 
 				codegen.Expr(`
-switch db.DriverName() {
-	case "mysql":
-		result, err := db.ExecExpr(db.Insert(m, nil))
-		?
-		return err
-	case "postgres":
-		return db.QueryExprAndScan(db.Insert(m, nil, `+file.Use("github.com/go-courier/sqlx/v2/builder", "Returning")+`(nil)), m)
-}
-
-return nil
+_, err := db.ExecExpr(db.Insert(m, nil))
+return err
 `,
-					m.SnippetSetLastInsertIdIfNeed(file),
 				),
 			),
 	)
