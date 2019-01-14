@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func interpolateParams(query string, args []driver.NamedValue) (string) {
+func interpolateParams(query string, args []driver.NamedValue) string {
 	buf := bytes.NewBufferString(query)
 
 	buf.WriteString(" | ")

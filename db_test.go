@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-
-	"github.com/go-courier/sqlx/v2"
 )
 
 func TestWithTasks(t *testing.T) {

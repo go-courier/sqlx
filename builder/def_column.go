@@ -61,7 +61,7 @@ func (c *Column) Ex(query string, args ...interface{}) *Ex {
 			e.WriteByte(key)
 			if n > qc {
 				e.AppendArgs(args[qc])
-				qc ++
+				qc++
 			}
 		default:
 			e.WriteByte(key)

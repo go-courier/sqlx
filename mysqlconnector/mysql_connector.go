@@ -9,12 +9,11 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
-
-	"github.com/go-courier/sqlx/v2"
 )
 
 var _ interface {

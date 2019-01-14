@@ -1,12 +1,11 @@
 package enummeta
 
 import (
-	"github.com/go-courier/enumeration"
 	"reflect"
 
-	"github.com/go-courier/sqlx/v2/builder"
-
+	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx/v2"
+	"github.com/go-courier/sqlx/v2/builder"
 )
 
 func SyncEnum(db *sqlx.DB) error {

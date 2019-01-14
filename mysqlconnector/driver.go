@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
 )
@@ -40,7 +39,7 @@ func (d *MySqlLoggingDriver) Open(dsn string) (driver.Conn, error) {
 		return nil, err
 	}
 
-	d.Logger.Debugf(color.YellowString("connected %s", cfg.FormatDSN()))
+	d.Logger.Debugf("connected %s", cfg.FormatDSN())
 	return &loggerConn{Conn: conn, cfg: cfg, logger: d.Logger}, nil
 }
 
@@ -57,7 +56,7 @@ type loggerConn struct {
 }
 
 func (c *loggerConn) Begin() (driver.Tx, error) {
-	c.logger.Debugf(color.YellowString("=========== Beginning Transaction ==========="))
+	c.logger.Debugf(("=========== Beginning Transaction ==========="))
 	tx, err := c.Conn.Begin()
 	if err != nil {
 		c.logger.Errorf("failed to begin transaction: %s", err)
@@ -86,12 +85,12 @@ func (s *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				s.logger.Errorf("failed query %s: %s", err, color.RedString(query))
+				s.logger.Errorf("failed query %s: %s", err, query)
 			} else {
-				s.logger.Warnf("failed query %s: %s", mysqlErr, color.RedString(query))
+				s.logger.Warnf("failed query %s: %s", mysqlErr, query)
 			}
 		} else {
-			s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(query))
+			s.logger.WithField("cost", cost().String()).Debug(query)
 		}
 	}()
 
@@ -107,16 +106,16 @@ func (s *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				s.logger.Errorf("failed exec %s: %s", err, color.RedString(query))
+				s.logger.Errorf("failed exec %s: %s", err, query)
 			} else if mysqlErr.Number == DuplicateEntryErrNumber {
-				s.logger.Warnf("failed exec %s: %s", err, color.RedString(query))
+				s.logger.Warnf("failed exec %s: %s", err, query)
 			} else {
-				s.logger.Errorf("failed exec %s: %s", mysqlErr, color.RedString(query))
+				s.logger.Errorf("failed exec %s: %s", mysqlErr, query)
 			}
 			return
 		}
 
-		s.logger.WithField("cost", cost().String()).Debugf(color.YellowString(query))
+		s.logger.WithField("cost", cost().String()).Debug(query)
 	}()
 
 	result, err = s.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
@@ -157,7 +156,7 @@ func (tx *loggingTx) Commit() error {
 		tx.logger.Debugf("failed to commit transaction: %s", err)
 		return err
 	}
-	tx.logger.Debugf(color.YellowString("=========== Committed Transaction ==========="))
+	tx.logger.Debug("=========== Committed Transaction ===========")
 	return nil
 }
 
@@ -166,6 +165,6 @@ func (tx *loggingTx) Rollback() error {
 		tx.logger.Debugf("failed to rollback transaction: %s", err)
 		return err
 	}
-	tx.logger.Debugf("=========== Rollback Transaction ===========")
+	tx.logger.Debug("=========== Rollback Transaction ===========")
 	return nil
 }

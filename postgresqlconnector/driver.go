@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
@@ -72,7 +71,7 @@ func (d *PostgreSQLLoggingDriver) Open(dsn string) (driver.Conn, error) {
 		d.Logger.Errorf("failed to open connection: %s %s", opts, err)
 		return nil, err
 	}
-	d.Logger.Debugf(color.YellowString("connected %s", opts))
+	d.Logger.Debugf("connected %s", opts)
 	return &loggerConn{Conn: conn, cfg: opts, logger: d.Logger}, nil
 }
 
@@ -89,7 +88,7 @@ type loggerConn struct {
 }
 
 func (c *loggerConn) Begin() (driver.Tx, error) {
-	c.logger.Debugf(color.YellowString("=========== Beginning Transaction ==========="))
+	c.logger.Debugf("=========== Beginning Transaction ===========")
 	tx, err := c.Conn.Begin()
 	if err != nil {
 		c.logger.Errorf("failed to begin transaction: %s", err)
@@ -118,12 +117,12 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); !ok {
-				c.logger.Errorf("failed query %s: %s", err, color.RedString(query))
+				c.logger.Errorf("failed query %s: %s", err, query)
 			} else {
-				c.logger.Warnf("failed query %s: %s", pgErr, color.RedString(query))
+				c.logger.Warnf("failed query %s: %s", pgErr, query)
 			}
 		} else {
-			c.logger.WithField("cost", cost().String()).Debugf(color.YellowString(query))
+			c.logger.WithField("cost", cost().String()).Debugf(query)
 		}
 	}()
 
@@ -139,16 +138,16 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 
 		if err != nil {
 			if pgError, ok := err.(*pq.Error); !ok {
-				c.logger.Errorf("failed exec %s: %s", err, color.RedString(query))
+				c.logger.Errorf("failed exec %s: %s", err, query)
 			} else if pgError.Code == "23505" {
-				c.logger.Warnf("failed exec %s: %s", err, color.RedString(query))
+				c.logger.Warnf("failed exec %s: %s", err, query)
 			} else {
-				c.logger.Errorf("failed exec %s: %s", pgError, color.RedString(query))
+				c.logger.Errorf("failed exec %s: %s", pgError, query)
 			}
 			return
 		}
 
-		c.logger.WithField("cost", cost().String()).Debugf(color.YellowString(query))
+		c.logger.WithField("cost", cost().String()).Debugf(query)
 	}()
 
 	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
@@ -172,7 +171,7 @@ func (tx *loggingTx) Commit() error {
 		tx.logger.Debugf("failed to commit transaction: %s", err)
 		return err
 	}
-	tx.logger.Debugf(color.YellowString("=========== Committed Transaction ==========="))
+	tx.logger.Debug("=========== Committed Transaction ===========")
 	return nil
 }
 
@@ -181,6 +180,6 @@ func (tx *loggingTx) Rollback() error {
 		tx.logger.Debugf("failed to rollback transaction: %s", err)
 		return err
 	}
-	tx.logger.Debugf("=========== Rollback Transaction ===========")
+	tx.logger.Debug("=========== Rollback Transaction ===========")
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/datatypes"
 	"github.com/go-courier/sqlx/v2/migration"
@@ -14,8 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
-
-	"github.com/go-courier/sqlx/v2"
 )
 
 var (
