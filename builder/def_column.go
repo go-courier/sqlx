@@ -21,6 +21,10 @@ type Column struct {
 	FieldName string
 	Table     *Table
 	Exactly   bool
+
+	Description string
+	Relation    []string
+
 	*ColumnType
 }
 

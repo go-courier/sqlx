@@ -94,8 +94,6 @@ if m.?.IsZero() {
 	}
 
 	return codegen.Expr("")
-
-	return nil
 }
 
 func (m *Model) SnippetSetUpdatedAtIfNeedForFieldValues(file *codegen.File) codegen.Snippet {

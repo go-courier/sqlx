@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"container/list"
 	"regexp"
 	"sort"
 	"strings"
@@ -31,9 +32,10 @@ func T(tableName string, tableDefinitions ...TableDefinition) *Table {
 }
 
 type Table struct {
-	Name   string
-	Schema string
-	Model  Model
+	Name      string
+	Schema    string
+	ModelName string
+	Model     Model
 	Columns
 	Keys
 }
@@ -177,15 +179,74 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect, skipDropColumn bool) (ex
 	return
 }
 
-type Tables map[string]*Table
+type Tables struct {
+	l      *list.List
+	tables map[string]*list.Element
+	models map[string]*list.Element
+}
 
-func (tables Tables) TableNames() (names []string) {
-	for name := range tables {
-		names = append(names, name)
-	}
+func (tables *Tables) TableNames() (names []string) {
+	tables.Range(func(tab *Table, idx int) {
+		names = append(names, tab.Name)
+	})
 	return
 }
 
-func (tables Tables) Add(table *Table) {
-	tables[table.Name] = table
+func (tables *Tables) Add(tabs ...*Table) {
+	if tables.tables == nil {
+		tables.tables = map[string]*list.Element{}
+		tables.models = map[string]*list.Element{}
+		tables.l = list.New()
+	}
+
+	for _, tab := range tabs {
+		if tab != nil {
+			if _, ok := tables.tables[tab.Name]; ok {
+				tables.Remove(tab.Name)
+			}
+
+			e := tables.l.PushBack(tab)
+			tables.tables[tab.Name] = e
+			if tab.ModelName != "" {
+				tables.models[tab.ModelName] = e
+			}
+		}
+	}
+}
+
+func (tables *Tables) Table(tableName string) *Table {
+	if tables.tables != nil {
+		if c, ok := tables.tables[tableName]; ok {
+			return c.Value.(*Table)
+		}
+	}
+	return nil
+}
+
+func (tables *Tables) Model(structName string) *Table {
+	if tables.models != nil {
+		if c, ok := tables.models[structName]; ok {
+			return c.Value.(*Table)
+		}
+	}
+	return nil
+}
+
+func (cols *Tables) Remove(name string) {
+	if cols.tables != nil {
+		if e, exists := cols.tables[name]; exists {
+			cols.l.Remove(e)
+			delete(cols.tables, name)
+		}
+	}
+}
+
+func (tables *Tables) Range(cb func(tab *Table, idx int)) {
+	if tables.l != nil {
+		i := 0
+		for e := tables.l.Front(); e != nil; e = e.Next() {
+			cb(e.Value.(*Table), i)
+			i++
+		}
+	}
 }

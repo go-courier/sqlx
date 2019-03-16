@@ -1,9 +1,9 @@
 package enummeta
 
 import (
+	"github.com/go-courier/enumeration"
 	"reflect"
 
-	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 )
@@ -36,7 +36,7 @@ func SyncEnum(db *sqlx.DB) error {
 
 		columns := &builder.Columns{}
 
-		for _, table := range db.Tables {
+		db.Tables.Range(func(table *builder.Table, idx int) {
 			table.Columns.Range(func(col *builder.Column, idx int) {
 				v := reflect.New(col.ColumnType.Type).Interface()
 				if enumValue, ok := v.(enumeration.Enum); ok {
@@ -56,7 +56,7 @@ func SyncEnum(db *sqlx.DB) error {
 					}
 				}
 			})
-		}
+		})
 
 		if len(vals) > 0 {
 			stmtForInsert = stmtForInsert.Values(columns, vals...)

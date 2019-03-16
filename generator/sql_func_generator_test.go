@@ -12,12 +12,14 @@ func TestSqlFuncGenerator(t *testing.T) {
 	cwd, _ := os.Getwd()
 	pkg, _ := packagesx.Load(filepath.Join(cwd, "./__examples__/database"))
 
-	g := NewSqlFuncGenerator(pkg)
-	g.WithComments = true
-	g.WithTableInterfaces = true
-	g.StructName = "User"
-	g.Database = "DBTest"
+	for _, name := range []string{"User", "Org"} {
+		g := NewSqlFuncGenerator(pkg)
+		g.WithComments = true
+		g.WithTableInterfaces = true
+		g.Database = "DBTest"
+		g.StructName = name
 
-	g.Scan()
-	g.Output(cwd)
+		g.Scan()
+		g.Output(cwd)
+	}
 }

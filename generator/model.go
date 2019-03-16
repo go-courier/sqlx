@@ -26,7 +26,29 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 		for id, o := range p.TypesInfo.Defs {
 			if o == structVal {
 				doc := pkg.CommentsOf(id)
-				col.Comment = strings.Split(doc, "\n")[0]
+
+				comments := strings.Split(doc, "\n")
+
+				if rel, ok := parseColRelFromComment(comments[0]); ok {
+					relPath := strings.Split(rel, ".")
+
+					if len(relPath) != 2 {
+						continue
+					}
+
+					col.Relation = relPath
+					if len(comments) > 1 {
+						comments = comments[1:]
+					}
+				}
+
+				if len(comments) > 0 {
+					col.Comment = comments[0]
+				}
+
+				if len(comments) > 1 {
+					col.Description = strings.Join(comments[1:], "\n")
+				}
 			}
 		}
 

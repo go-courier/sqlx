@@ -49,3 +49,8 @@ func TestParseIndexesFromDoc(t *testing.T) {
 @def unique_index I_name Name
 	`))
 }
+
+func TestParseColRel(t *testing.T) {
+	rel, _ := parseColRelFromComment("@rel Account.AccountID")
+	require.Equal(t, rel, "Account.AccountID")
+}

@@ -40,17 +40,12 @@ func (User) UniqueIndexes() github_com_go_courier_sqlx_v2_builder.Indexes {
 
 func (User) Comments() map[string]string {
 	return map[string]string{
-		"Boolean":   "",
-		"CreatedAt": "",
-		"Enabled":   "",
-		"Gender":    "",
-		"Geom":      "",
-		"ID":        "",
-		"Name":      "姓名",
-		"Nickname":  "",
-		"UpdatedAt": "",
-		"Username":  "",
+		"Name": "姓名",
 	}
+}
+
+func (User) ColDescriptions() map[string]string {
+	return map[string]string{}
 }
 
 var UserTable *github_com_go_courier_sqlx_v2_builder.Table
@@ -141,6 +136,10 @@ func (User) FieldKeyEnabled() string {
 
 func (m *User) FieldEnabled() *github_com_go_courier_sqlx_v2_builder.Column {
 	return UserTable.F(m.FieldKeyEnabled())
+}
+
+func (User) ColRelations() map[string][]string {
+	return map[string][]string{}
 }
 
 func (m *User) IndexFieldNames() []string {

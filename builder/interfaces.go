@@ -35,6 +35,14 @@ type WithComments interface {
 	Comments() map[string]string
 }
 
+type WithRelations interface {
+	ColRelations() map[string][]string
+}
+
+type WithColDescriptions interface {
+	ColDescriptions() map[string]string
+}
+
 type Dialect interface {
 	DriverName() string
 	BindVar(i int) string

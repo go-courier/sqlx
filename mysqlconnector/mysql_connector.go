@@ -60,7 +60,8 @@ func (c *MysqlConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts) err
 		}
 	}
 
-	for name, table := range db.Tables {
+	for _, name := range db.Tables.TableNames() {
+		table := db.Tables.Table(name)
 		prevTable := prevDB.Table(name)
 		if prevTable == nil {
 			for _, expr := range db.CreateTableIsNotExists(table) {

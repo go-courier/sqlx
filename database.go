@@ -34,9 +34,11 @@ func (database Database) WithSchema(schema string) *Database {
 	database.Schema = schema
 
 	tables := builder.Tables{}
-	for tableName := range database.Tables {
-		tables[tableName] = database.Tables[tableName].WithSchema(database.Schema)
-	}
+
+	database.Tables.Range(func(tab *builder.Table, idx int) {
+		tables.Add(tab.WithSchema(database.Schema))
+	})
+
 	database.Tables = tables
 
 	return &database
@@ -84,10 +86,7 @@ func (database *Database) Register(model builder.Model) *builder.Table {
 }
 
 func (database *Database) Table(tableName string) *builder.Table {
-	if t, ok := database.Tables[tableName]; ok {
-		return t
-	}
-	return nil
+	return database.Tables.Table(tableName)
 }
 
 func (database *Database) T(model builder.Model) *builder.Table {

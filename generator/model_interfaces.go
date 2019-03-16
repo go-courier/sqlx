@@ -83,6 +83,16 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 
 	file.WriteBlock(
 		codegen.Func().
+			Named("ColRelations").
+			MethodOf(codegen.Var(m.Type())).
+			Return(codegen.Var(codegen.Map(codegen.String, codegen.Slice(codegen.String)))).
+			Do(
+				codegen.Return(file.Val(m.GetRelations())),
+			),
+	)
+
+	file.WriteBlock(
+		codegen.Func().
 			Named("IndexFieldNames").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
 			Return(codegen.Var(codegen.Slice(codegen.String))).
@@ -185,13 +195,45 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 					codegen.Return(file.Val(m.GetComments())),
 				),
 		)
+
+		file.WriteBlock(
+			codegen.Func().
+				Named("ColDescriptions").
+				MethodOf(codegen.Var(m.Type())).
+				Return(codegen.Var(codegen.Map(codegen.String, codegen.String))).
+				Do(
+					codegen.Return(file.Val(m.GetDescription())),
+				),
+		)
 	}
+}
+
+func (m *Model) GetRelations() map[string][]string {
+	rels := map[string][]string{}
+	m.Columns.Range(func(col *builder.Column, idx int) {
+		if len(col.Relation) == 2 {
+			rels[col.FieldName] = col.Relation
+		}
+	})
+	return rels
 }
 
 func (m *Model) GetComments() map[string]string {
 	comments := map[string]string{}
 	m.Columns.Range(func(col *builder.Column, idx int) {
-		comments[col.FieldName] = col.Comment
+		if col.Comment != "" {
+			comments[col.FieldName] = col.Comment
+		}
 	})
 	return comments
+}
+
+func (m *Model) GetDescription() map[string]string {
+	descriptions := map[string]string{}
+	m.Columns.Range(func(col *builder.Column, idx int) {
+		if col.Description != "" {
+			descriptions[col.FieldName] = col.Description
+		}
+	})
+	return descriptions
 }

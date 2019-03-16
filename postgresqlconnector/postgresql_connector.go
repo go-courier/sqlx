@@ -64,7 +64,7 @@ func (c *PostgreSQLConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts
 		prevDB = prevDB.WithSchema(db.Schema)
 	}
 
-	for name := range db.Tables {
+	for _, name := range db.Tables.TableNames() {
 		table := db.Table(name)
 
 		prevTable := prevDB.Table(name)

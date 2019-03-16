@@ -2,9 +2,6 @@ package sqlx_test
 
 import (
 	"database/sql/driver"
-	"os"
-	"testing"
-
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/datatypes"
@@ -15,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	"os"
+	"testing"
 )
 
 var (
@@ -140,10 +139,10 @@ func TestMigrate(t *testing.T) {
 				tt.NoError(err)
 			}
 
-			for _, t := range db.Tables {
+			dbTest.Tables.Range(func(t *builder.Table, idx int) {
 				_, err := db.ExecExpr(db.DropTable(t))
 				tt.NoError(err)
-			}
+			})
 		}
 	}
 }
@@ -154,7 +153,7 @@ func TestCRUD(t *testing.T) {
 	dbTest := sqlx.NewDatabase("test")
 
 	for _, connector := range []driver.Connector{
-		//mysqlConnector,
+		mysqlConnector,
 		postgresConnector,
 	} {
 		db := dbTest.OpenDB(connector)
@@ -207,10 +206,10 @@ func TestCRUD(t *testing.T) {
 			}
 		}
 
-		for _, t := range dbTest.Tables {
+		db.Tables.Range(func(t *builder.Table, idx int) {
 			_, err := db.ExecExpr(db.DropTable(t))
 			tt.NoError(err)
-		}
+		})
 	}
 
 }
@@ -218,7 +217,7 @@ func TestCRUD(t *testing.T) {
 func TestSelect(t *testing.T) {
 	tt := require.New(t)
 
-	dbTest := sqlx.NewDatabase("test2")
+	dbTest := sqlx.NewDatabase("test_for_s")
 
 	for _, connector := range []driver.Connector{
 		mysqlConnector,
@@ -280,9 +279,9 @@ func TestSelect(t *testing.T) {
 			tt.Error(err)
 		}
 
-		for _, t := range dbTest.Tables {
+		db.Tables.Range(func(t *builder.Table, idx int) {
 			_, err := db.ExecExpr(db.DropTable(t))
 			tt.NoError(err)
-		}
+		})
 	}
 }

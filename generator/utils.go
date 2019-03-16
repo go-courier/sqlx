@@ -13,6 +13,7 @@ import (
 
 var (
 	defRegexp = regexp.MustCompile(`@def ([^\n]+)`)
+	relRegexp = regexp.MustCompile(`@rel ([^\n]+)`)
 )
 
 type Keys struct {
@@ -62,6 +63,14 @@ func (ks *Keys) Bind(table *builder.Table) {
 			table.AddKey(builder.Index(indexName, cols).Using(method))
 		}
 	}
+}
+
+func parseColRelFromComment(doc string) (string, bool) {
+	matches := relRegexp.FindAllStringSubmatch(doc, 1)
+	if len(matches) == 1 {
+		return matches[0][1], true
+	}
+	return "", false
 }
 
 func parseKeysFromDoc(doc string) *Keys {

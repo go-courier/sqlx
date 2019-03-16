@@ -73,6 +73,8 @@ func FieldValuesFromStructByNonZero(structValue interface{}, excludes ...string)
 }
 
 func ScanDefToTable(rv reflect.Value, table *Table) {
+	table.ModelName = rv.Type().Name()
+
 	ForEachStructFieldValue(reflect.Indirect(rv), func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string) {
 		table.AddCol(Col(columnName).Field(structField.Name).Type(structFieldValue.Interface(), tagValue))
 	})
@@ -87,6 +89,24 @@ func ScanDefToTable(rv reflect.Value, table *Table) {
 					field := table.F(fieldName)
 					if field != nil {
 						field.Comment = comment
+					}
+				}
+			}
+
+			if withColDescriptions, ok := i.(WithColDescriptions); ok {
+				for fieldName, desc := range withColDescriptions.ColDescriptions() {
+					field := table.F(fieldName)
+					if field != nil {
+						field.Description = desc
+					}
+				}
+			}
+
+			if withRelations, ok := i.(WithRelations); ok {
+				for fieldName, rel := range withRelations.ColRelations() {
+					field := table.F(fieldName)
+					if field != nil {
+						field.Relation = rel
 					}
 				}
 			}
