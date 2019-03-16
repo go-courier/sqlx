@@ -47,14 +47,12 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 			key.Columns.Range(func(col *builder.Column, idx int) {
 				k.Cols = append(k.Cols, col.Name)
 			})
+
+			t.Keys[k.Name] = k
 		})
 	})
 
 	return erd
-}
-
-func TabelByStructName() {
-
 }
 
 type ERDatabase struct {
