@@ -22,7 +22,7 @@ type Column struct {
 	Table     *Table
 	Exactly   bool
 
-	Description string
+	Description []string
 	Relation    []string
 
 	*ColumnType

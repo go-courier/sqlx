@@ -44,7 +44,7 @@ type WithRelations interface {
 }
 
 type WithColDescriptions interface {
-	ColDescriptions() map[string]string
+	ColDescriptions() map[string][]string
 }
 
 type Dialect interface {

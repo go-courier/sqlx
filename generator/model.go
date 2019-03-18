@@ -41,10 +41,7 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 
 				if len(lines) > 0 {
 					col.Comment = lines[0]
-
-					if len(lines) > 1 {
-						col.Description = strings.Join(lines[1:], "\n")
-					}
+					col.Description = lines
 				}
 			}
 		}

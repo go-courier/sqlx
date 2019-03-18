@@ -44,10 +44,6 @@ func (User) Comments() map[string]string {
 	}
 }
 
-func (User) ColDescriptions() map[string]string {
-	return map[string]string{}
-}
-
 var UserTable *github_com_go_courier_sqlx_v2_builder.Table
 
 func init() {
@@ -56,6 +52,14 @@ func init() {
 
 func (User) TableName() string {
 	return "t_user"
+}
+
+func (User) ColDescriptions() map[string][]string {
+	return map[string][]string{
+		"Name": []string{
+			"姓名",
+		},
+	}
 }
 
 func (User) FieldKeyID() string {

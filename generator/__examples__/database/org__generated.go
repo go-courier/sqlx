@@ -19,12 +19,6 @@ func (Org) Comments() map[string]string {
 	}
 }
 
-func (Org) ColDescriptions() map[string]string {
-	return map[string]string{
-		"UserID": "xxxxx",
-	}
-}
-
 var OrgTable *github_com_go_courier_sqlx_v2_builder.Table
 
 func init() {
@@ -38,6 +32,15 @@ func (Org) TableName() string {
 func (Org) TableDescription() []string {
 	return []string{
 		"organization",
+	}
+}
+
+func (Org) ColDescriptions() map[string][]string {
+	return map[string][]string{
+		"UserID": []string{
+			"关联用户",
+			"xxxxx",
+		},
 	}
 }
 

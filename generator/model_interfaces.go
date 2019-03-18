@@ -72,6 +72,18 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 		)
 	}
 
+
+
+	file.WriteBlock(
+		codegen.Func().
+			Named("ColDescriptions").
+			MethodOf(codegen.Var(m.Type())).
+			Return(codegen.Var(codegen.Map(codegen.String, codegen.Slice(codegen.String)))).
+			Do(
+				codegen.Return(file.Val(m.GetColDescriptions())),
+			),
+	)
+
 	m.Columns.Range(func(col *builder.Column, idx int) {
 		file.WriteBlock(
 			codegen.Func().
@@ -208,16 +220,6 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 					codegen.Return(file.Val(m.GetComments())),
 				),
 		)
-
-		file.WriteBlock(
-			codegen.Func().
-				Named("ColDescriptions").
-				MethodOf(codegen.Var(m.Type())).
-				Return(codegen.Var(codegen.Map(codegen.String, codegen.String))).
-				Do(
-					codegen.Return(file.Val(m.GetDescription())),
-				),
-		)
 	}
 }
 
@@ -241,10 +243,10 @@ func (m *Model) GetComments() map[string]string {
 	return comments
 }
 
-func (m *Model) GetDescription() map[string]string {
-	descriptions := map[string]string{}
+func (m *Model) GetColDescriptions() map[string][]string {
+	descriptions := map[string][]string{}
 	m.Columns.Range(func(col *builder.Column, idx int) {
-		if col.Description != "" {
+		if col.Description != nil {
 			descriptions[col.FieldName] = col.Description
 		}
 	})

@@ -19,7 +19,7 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 			t.Summary = table.Description[0]
 
 			if len(table.Description) > 1 {
-				t.Desc = strings.Join(table.Description, "\n")
+				t.Desc = strings.Join(table.Description[1:], "\n")
 			}
 		}
 
@@ -29,8 +29,14 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 			c := &ERCol{
 				Name:     col.Name,
 				DataType: dialect.DataType(col.ColumnType).Expr().String(),
-				Comment:  col.Comment,
-				Desc:     col.Description,
+			}
+
+			if len(col.Description) > 0 {
+				c.Summary = col.Description[0]
+
+				if len(col.Description) > 1 {
+					c.Desc = strings.Join(col.Description[1:], "\n")
+				}
 			}
 
 			rv := reflect.New(col.ColumnType.Type)
@@ -103,7 +109,7 @@ type ERCol struct {
 	Name     string            `json:"name"`
 	DataType string            `json:"dataType"`
 	Enum     map[string]EREnum `json:"enum"`
-	Comment  string            `json:"comment"`
+	Summary  string            `json:"summary"`
 	Desc     string            `json:"desc"`
 	Rel      []string          `json:"rel"`
 }
