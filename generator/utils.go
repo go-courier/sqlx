@@ -65,48 +65,80 @@ func (ks *Keys) Bind(table *builder.Table) {
 	}
 }
 
-func parseColRelFromComment(doc string) (string, bool) {
-	matches := relRegexp.FindAllStringSubmatch(doc, 1)
-	if len(matches) == 1 {
-		return matches[0][1], true
+func parseColRelFromComment(doc string) (string, []string) {
+	others := make([]string, 0)
+
+	rel := ""
+
+	for _, line := range strings.Split(doc, "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
+		matches := relRegexp.FindAllStringSubmatch(line, 1)
+
+		if matches == nil {
+			others = append(others, line)
+			continue
+		}
+
+		if len(matches) == 1 {
+			rel = matches[0][1]
+		}
 	}
-	return "", false
+
+	return rel, others
 }
 
-func parseKeysFromDoc(doc string) *Keys {
+func parseKeysFromDoc(doc string) (*Keys, []string) {
 	ks := &Keys{}
-	matches := defRegexp.FindAllStringSubmatch(doc, -1)
 
-	for _, subMatch := range matches {
-		if len(subMatch) == 2 {
-			defs := defSplit(subMatch[1])
+	others := make([]string, 0)
 
-			switch strings.ToLower(defs[0]) {
-			case "primary":
-				if len(defs) < 2 {
-					panic(fmt.Errorf("primary at lease 1 Field"))
+	for _, line := range strings.Split(doc, "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
+		matches := defRegexp.FindAllStringSubmatch(line, -1)
+
+		if matches == nil {
+			others = append(others, line)
+			continue
+		}
+
+		for _, subMatch := range matches {
+			if len(subMatch) == 2 {
+				defs := defSplit(subMatch[1])
+
+				switch strings.ToLower(defs[0]) {
+				case "primary":
+					if len(defs) < 2 {
+						panic(fmt.Errorf("primary at lease 1 Field"))
+					}
+					ks.Primary = defs[1:]
+				case "unique_index":
+					if len(defs) < 3 {
+						panic(fmt.Errorf("unique indexes at lease 1 Field"))
+					}
+					if ks.UniqueIndexes == nil {
+						ks.UniqueIndexes = builder.Indexes{}
+					}
+					ks.UniqueIndexes[defs[1]] = defs[2:]
+				case "index":
+					if len(defs) < 3 {
+						panic(fmt.Errorf("index at lease 1 Field"))
+					}
+					if ks.Indexes == nil {
+						ks.Indexes = builder.Indexes{}
+					}
+					ks.Indexes[defs[1]] = defs[2:]
 				}
-				ks.Primary = defs[1:]
-			case "unique_index":
-				if len(defs) < 3 {
-					panic(fmt.Errorf("unique indexes at lease 1 Field"))
-				}
-				if ks.UniqueIndexes == nil {
-					ks.UniqueIndexes = builder.Indexes{}
-				}
-				ks.UniqueIndexes[defs[1]] = defs[2:]
-			case "index":
-				if len(defs) < 3 {
-					panic(fmt.Errorf("index at lease 1 Field"))
-				}
-				if ks.Indexes == nil {
-					ks.Indexes = builder.Indexes{}
-				}
-				ks.Indexes[defs[1]] = defs[2:]
 			}
 		}
 	}
-	return ks
+
+	return ks, others
 }
 
 func defSplit(def string) (defs []string) {

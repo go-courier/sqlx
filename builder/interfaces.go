@@ -17,6 +17,10 @@ type Model interface {
 	TableName() string
 }
 
+type WithTableDescription interface {
+	TableDescription() []string
+}
+
 type Indexes map[string][]string
 
 type WithPrimaryKey interface {

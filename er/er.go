@@ -1,6 +1,10 @@
 package er
 
 import (
+	"reflect"
+	"strings"
+
+	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 )
@@ -10,6 +14,15 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 
 	database.Tables.Range(func(table *builder.Table, idx int) {
 		t := &ERTable{Name: table.Name, Cols: map[string]*ERCol{}, Keys: map[string]*ERKey{}}
+
+		if len(table.Description) > 0 {
+			t.Summary = table.Description[0]
+
+			if len(table.Description) > 1 {
+				t.Desc = strings.Join(table.Description, "\n")
+			}
+		}
+
 		erd.Tables[t.Name] = t
 
 		table.Columns.Range(func(col *builder.Column, idx int) {
@@ -18,6 +31,24 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 				DataType: dialect.DataType(col.ColumnType).Expr().String(),
 				Comment:  col.Comment,
 				Desc:     col.Description,
+			}
+
+			rv := reflect.New(col.ColumnType.Type)
+
+			if rv.CanInterface() {
+				if emum, ok := rv.Interface().(enumeration.Enum); ok {
+
+					c.Enum = map[string]EREnum{}
+
+					for _, e := range emum.ConstValues() {
+						em := EREnum{}
+						em.Value = e.Int()
+						em.Name = e.String()
+						em.Label = e.Label()
+
+						c.Enum[em.Name] = em
+					}
+				}
 			}
 
 			if len(col.Relation) == 2 {
@@ -61,17 +92,26 @@ type ERDatabase struct {
 }
 
 type ERTable struct {
-	Name string            `json:"name"`
-	Cols map[string]*ERCol `json:"cols"`
-	Keys map[string]*ERKey `json:"keys"`
+	Name    string            `json:"name"`
+	Summary string            `json:"summary"`
+	Desc    string            `json:"desc"`
+	Cols    map[string]*ERCol `json:"cols"`
+	Keys    map[string]*ERKey `json:"keys"`
 }
 
 type ERCol struct {
-	Name     string   `json:"name"`
-	DataType string   `json:"dataType"`
-	Comment  string   `json:"comment"`
-	Desc     string   `json:"desc"`
-	Rel      []string `json:"rel"`
+	Name     string            `json:"name"`
+	DataType string            `json:"dataType"`
+	Enum     map[string]EREnum `json:"enum"`
+	Comment  string            `json:"comment"`
+	Desc     string            `json:"desc"`
+	Rel      []string          `json:"rel"`
+}
+
+type EREnum struct {
+	Value int    `json:"value"`
+	Name  string `json:"name"`
+	Label string `json:"label"`
 }
 
 type ERKey struct {

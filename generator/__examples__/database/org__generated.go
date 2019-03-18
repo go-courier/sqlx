@@ -35,6 +35,12 @@ func (Org) TableName() string {
 	return "t_org"
 }
 
+func (Org) TableDescription() []string {
+	return []string{
+		"organization",
+	}
+}
+
 func (Org) FieldKeyID() string {
 	return "ID"
 }

@@ -27,9 +27,9 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 			if o == structVal {
 				doc := pkg.CommentsOf(id)
 
-				comments := strings.Split(doc, "\n")
+				rel, lines := parseColRelFromComment(doc)
 
-				if rel, ok := parseColRelFromComment(comments[0]); ok {
+				if rel != "" {
 					relPath := strings.Split(rel, ".")
 
 					if len(relPath) != 2 {
@@ -37,17 +37,14 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 					}
 
 					col.Relation = relPath
-					if len(comments) > 1 {
-						comments = comments[1:]
+				}
+
+				if len(lines) > 0 {
+					col.Comment = lines[0]
+
+					if len(lines) > 1 {
+						col.Description = strings.Join(lines[1:], "\n")
 					}
-				}
-
-				if len(comments) > 0 {
-					col.Comment = comments[0]
-				}
-
-				if len(comments) > 1 {
-					col.Description = strings.Join(comments[1:], "\n")
 				}
 			}
 		}
@@ -59,7 +56,13 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 	m.HasCreatedAt = m.Table.F(m.FieldKeyCreatedAt) != nil
 	m.HasUpdatedAt = m.Table.F(m.FieldKeyUpdatedAt) != nil
 
-	m.Keys = parseKeysFromDoc(comments)
+	keys, lines := parseKeysFromDoc(comments)
+	m.Keys = keys
+
+	if len(lines) > 0 {
+		m.Description = lines
+	}
+
 	if m.HasSoftDelete {
 		m.Keys.PatchUniqueIndexesWithSoftDelete(m.FieldKeySoftDelete)
 	}

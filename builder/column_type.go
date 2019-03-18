@@ -69,5 +69,5 @@ type ColumnType struct {
 	Null          bool
 	AutoIncrement bool
 
-	Comment     string
+	Comment string
 }

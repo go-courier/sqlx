@@ -25,7 +25,6 @@ type User struct {
 	Enabled   datatypes.Bool           `db:"f_enabled,default='0'"`
 }
 
-
 type GeomString struct {
 	V string
 }

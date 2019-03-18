@@ -1,6 +1,7 @@
 package database
 
 // @def primary ID
+// organization
 type Org struct {
 	ID   uint64 `db:"f_id,autoincrement"`
 	Name string `db:"f_name,default=''"`

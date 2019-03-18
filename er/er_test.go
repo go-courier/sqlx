@@ -3,10 +3,11 @@ package er_test
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/go-courier/sqlx/v2/er"
 	"github.com/go-courier/sqlx/v2/generator/__examples__/database"
 	"github.com/go-courier/sqlx/v2/postgresqlconnector"
-	"testing"
 )
 
 func TestDatabaseERFromDB(t *testing.T) {

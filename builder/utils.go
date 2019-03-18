@@ -84,6 +84,11 @@ func ScanDefToTable(rv reflect.Value, table *Table) {
 		if addr.CanInterface() {
 			i := addr.Interface()
 
+			if withTableDescription, ok := i.(WithTableDescription); ok {
+				desc := withTableDescription.TableDescription()
+				table.Description = desc
+			}
+
 			if withComments, ok := i.(WithComments); ok {
 				for fieldName, comment := range withComments.Comments() {
 					field := table.F(fieldName)

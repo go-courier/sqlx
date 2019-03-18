@@ -48,6 +48,7 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 					),
 				),
 		)
+
 		file.WriteBlock(
 			codegen.Func().
 				Named("TableName").
@@ -55,6 +56,18 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 				Return(codegen.Var(codegen.String)).
 				Do(
 					codegen.Return(file.Val(m.Config.TableName)),
+				),
+		)
+	}
+
+	if m.Description != nil {
+		file.WriteBlock(
+			codegen.Func().
+				Named("TableDescription").
+				MethodOf(codegen.Var(m.Type())).
+				Return(codegen.Var(codegen.Slice(codegen.String))).
+				Do(
+					codegen.Return(file.Val(m.Description)),
 				),
 		)
 	}
