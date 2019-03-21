@@ -16,12 +16,14 @@ func toInterfaces(list ...string) []interface{} {
 	return s
 }
 
-func dbFromInformationSchema(db *sqlx.DB) *sqlx.Database {
-	dbName := db.Name
-	dbSchema := db.Schema
-	tableNames := db.Tables.TableNames()
+func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
+	d := db.D()
 
-	d := sqlx.NewDatabase(dbName).WithSchema(dbSchema)
+	dbName := d.Name
+	dbSchema := d.Schema
+	tableNames := d.Tables.TableNames()
+
+	d = sqlx.NewDatabase(dbName).WithSchema(dbSchema)
 
 	tableColumnSchema := SchemaDatabase.T(&ColumnSchema{}).WithSchema("information_schema")
 	columnSchemaList := make([]ColumnSchema, 0)

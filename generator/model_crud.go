@@ -114,7 +114,7 @@ if _, ok := fieldValues[?]; !ok {
 func (m *Model) WriteCreate(file *codegen.File) {
 	file.WriteBlock(
 		codegen.Func(codegen.Var(
-			codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db")).
+			codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db")).
 			Named("Create").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
 			Return(codegen.Var(codegen.Error)).
@@ -124,9 +124,10 @@ func (m *Model) WriteCreate(file *codegen.File) {
 				m.SnippetSetUpdatedAtIfNeed(file),
 
 				codegen.Expr(`
-_, err := db.ExecExpr(db.Insert(m, nil))
+_, err := db.ExecExpr(?(db, m, nil))
 return err
 `,
+					codegen.Id(file.Use("github.com/go-courier/sqlx/v2", "InsertToDB")),
 				),
 			),
 	)
@@ -135,7 +136,7 @@ return err
 
 		file.WriteBlock(
 			codegen.Func(
-				codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+				codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db"),
 				codegen.Var(codegen.Slice(codegen.String), "updateFields"),
 			).
 				Named("CreateOnDuplicateWithUpdateFields").
@@ -192,7 +193,7 @@ for field := range fieldValues {
 	}
 }
 
-switch db.DriverName() {
+switch db.Dialect().DriverName() {
 	case "mysql":
 		_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().
 			Into(
@@ -236,7 +237,7 @@ return nil
 func (m *Model) WriteDelete(file *codegen.File) {
 	file.WriteBlock(
 		codegen.Func(codegen.Var(
-			codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db")).
+			codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db")).
 			Named("DeleteByStruct").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
 			Return(codegen.Var(codegen.Error)).
@@ -282,7 +283,7 @@ func (m *Model) WriteByKey(file *codegen.File) {
 
 				file.WriteBlock(
 					codegen.Func(codegen.Var(
-						codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db")).
+						codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db")).
 						Named(methodForFetch).
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
@@ -313,7 +314,7 @@ m,
 
 				file.WriteBlock(
 					codegen.Func(
-						codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+						codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db"),
 						codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValues")), "fieldValues"),
 					).
 						Named(methodForUpdateWithMap).
@@ -355,7 +356,7 @@ return nil
 
 				file.WriteBlock(
 					codegen.Func(
-						codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+						codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db"),
 						codegen.Var(codegen.Ellipsis(codegen.String), "zeroFields"),
 					).
 						Named(methodForUpdateWithStruct).
@@ -376,7 +377,7 @@ return m.` + methodForUpdateWithMap + `(db, fieldValues)
 
 				file.WriteBlock(
 					codegen.Func(codegen.Var(
-						codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db")).
+						codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db")).
 						Named(method).
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
@@ -410,7 +411,7 @@ m,
 
 				file.WriteBlock(
 					codegen.Func(codegen.Var(
-						codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db")).
+						codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db")).
 						Named(methodForDelete).
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
@@ -442,7 +443,7 @@ From(
 
 					file.WriteBlock(
 						codegen.Func(codegen.Var(
-							codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db")).
+							codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db")).
 							Named(methodForSoftDelete).
 							MethodOf(codegen.Var(m.PtrType(), "m")).
 							Return(codegen.Var(codegen.Error)).

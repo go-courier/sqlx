@@ -1,32 +1,39 @@
 package migration
 
 import (
+	"context"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/enummeta"
 )
-
-type Migrator interface {
-	Migrate(db *sqlx.DB, opt *MigrationOpts) error
-}
 
 type MigrationOpts struct {
 	SkipDropColumn bool
 	DryRun         bool
 }
 
-func MustMigrate(db *sqlx.DB, opts *MigrationOpts) {
+var contextKeyMigrationOpts = "#####MigrationOpts#####"
+
+func MigrationOptsFromContext(ctx context.Context) *MigrationOpts {
+	if opts, ok := ctx.Value(contextKeyMigrationOpts).(*MigrationOpts); ok {
+		if opts != nil {
+			return opts
+		}
+	}
+	return &MigrationOpts{}
+}
+
+func MustMigrate(db sqlx.DBExecutor, opts *MigrationOpts) {
 	if err := Migrate(db, opts); err != nil {
 		panic(err)
 	}
 }
 
-func Migrate(db *sqlx.DB, opts *MigrationOpts) error {
-	if migrator, ok := db.Dialect.(Migrator); ok {
-		if err := migrator.Migrate(db, opts); err != nil {
-			return err
-		}
-	}
+func Migrate(db sqlx.DBExecutor, opts *MigrationOpts) error {
+	ctx := context.WithValue(context.Background(), contextKeyMigrationOpts, opts)
 
+	if err := db.Migrate(ctx, db); err != nil {
+		return err
+	}
 	if err := enummeta.SyncEnum(db); err != nil {
 		return err
 	}

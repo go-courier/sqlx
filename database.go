@@ -52,13 +52,13 @@ func (database *Database) OpenDB(connector driver.Connector) *DB {
 	if dbNameBinder, ok := connector.(DBNameBinder); ok {
 		connector = dbNameBinder.WithDBName(database.Name)
 	}
-	dialet, ok := connector.(builder.Dialect)
+	dialect, ok := connector.(builder.Dialect)
 	if !ok {
 		panic(fmt.Errorf("connector should implement builder.Dialect"))
 	}
 	return &DB{
 		Database:    database,
-		Dialect:     dialet,
+		dialect:     dialect,
 		SqlExecutor: sql.OpenDB(connector),
 	}
 }
@@ -91,23 +91,4 @@ func (database *Database) Table(tableName string) *builder.Table {
 
 func (database *Database) T(model builder.Model) *builder.Table {
 	return database.Table(model.TableName())
-}
-
-func (database *Database) Assignments(model builder.Model, zeroFields ...string) builder.Assignments {
-	table := database.T(model)
-	return table.AssignmentsByFieldValues(database.FieldValuesFromModel(table, model, zeroFields...))
-}
-
-func (database *Database) Insert(model builder.Model, zeroFields []string, additions ...builder.Addition) builder.SqlExpr {
-	table := database.T(model)
-	cols, vals := table.ColumnsAndValuesByFieldValues(database.FieldValuesFromModel(table, model, zeroFields...))
-	return builder.Insert().Into(table, additions...).Values(cols, vals...)
-}
-
-func (database *Database) FieldValuesFromModel(table *builder.Table, model builder.Model, zeroFields ...string) builder.FieldValues {
-	fieldValues := builder.FieldValuesFromStructByNonZero(model, zeroFields...)
-	if autoIncrementCol := table.AutoIncrement(); autoIncrementCol != nil {
-		delete(fieldValues, autoIncrementCol.FieldName)
-	}
-	return fieldValues
 }

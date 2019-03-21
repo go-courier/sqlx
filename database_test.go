@@ -111,6 +111,9 @@ type User2 struct {
 func TestMigrate(t *testing.T) {
 	tt := require.New(t)
 	os.Setenv("PROJECT_FEATURE", "test")
+	defer func() {
+		os.Remove("PROJECT_FEATURE")
+	}()
 	dbTest := sqlx.NewFeatureDatabase("test_for_migrate")
 
 	for _, connector := range []driver.Connector{
@@ -141,7 +144,7 @@ func TestMigrate(t *testing.T) {
 			}
 
 			dbTest.Tables.Range(func(t *builder.Table, idx int) {
-				_, err := db.ExecExpr(db.DropTable(t))
+				_, err := db.ExecExpr(db.Dialect().DropTable(t))
 				tt.NoError(err)
 			})
 		}
@@ -169,14 +172,14 @@ func TestCRUD(t *testing.T) {
 				Gender: GenderMale,
 			}
 
-			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 			tt.NoError(err)
 
 			{
 				user.Gender = GenderFemale
 				_, err := db.ExecExpr(
 					builder.Update(dbTest.T(&user)).
-						Set(dbTest.Assignments(&user)...).
+						Set(sqlx.AsAssignments(db, &user)...).
 						Where(
 							userTable.F("Name").Eq(user.Name),
 						),
@@ -201,14 +204,14 @@ func TestCRUD(t *testing.T) {
 			}
 
 			{
-				_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+				_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 				t.Log(err)
 				tt.True(sqlx.DBErr(err).IsConflict())
 			}
 		}
 
 		db.Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.DropTable(t))
+			_, err := db.ExecExpr(db.Dialect().DropTable(t))
 			tt.NoError(err)
 		})
 	}
@@ -235,7 +238,7 @@ func TestSelect(t *testing.T) {
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 			tt.NoError(err)
 		}
 
@@ -281,7 +284,7 @@ func TestSelect(t *testing.T) {
 		}
 
 		db.Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.DropTable(t))
+			_, err := db.ExecExpr(db.Dialect().DropTable(t))
 			tt.NoError(err)
 		})
 	}

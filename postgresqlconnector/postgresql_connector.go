@@ -41,36 +41,37 @@ func (c PostgreSQLConnector) WithDBName(dbName string) driver.Connector {
 	return &c
 }
 
-func (c *PostgreSQLConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts) error {
-	if opts == nil {
-		opts = &migration.MigrationOpts{}
-	}
+func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error {
+	opts := migration.MigrationOptsFromContext(ctx)
 
 	prevDB := dbFromInformationSchema(db)
 
+	d := db.D()
+	dialect := db.Dialect()
+
 	if prevDB == nil {
 		prevDB = &sqlx.Database{
-			Name: db.Name,
+			Name: d.Name,
 		}
-		if _, err := db.ExecExpr(db.CreateDatabase(db.Name)); err != nil {
+		if _, err := db.ExecExpr(dialect.CreateDatabase(d.Name)); err != nil {
 			return err
 		}
 	}
 
-	if db.Schema != "" {
-		if _, err := db.ExecExpr(db.CreateSchema(db.Schema)); err != nil {
+	if d.Schema != "" {
+		if _, err := db.ExecExpr(dialect.CreateSchema(d.Schema)); err != nil {
 			return err
 		}
-		prevDB = prevDB.WithSchema(db.Schema)
+		prevDB = prevDB.WithSchema(d.Schema)
 	}
 
-	for _, name := range db.Tables.TableNames() {
-		table := db.Table(name)
+	for _, name := range d.Tables.TableNames() {
+		table := d.Table(name)
 
 		prevTable := prevDB.Table(name)
 
 		if prevTable == nil {
-			for _, expr := range db.CreateTableIsNotExists(table) {
+			for _, expr := range dialect.CreateTableIsNotExists(table) {
 				if _, err := db.ExecExpr(expr); err != nil {
 					return err
 				}
@@ -78,7 +79,7 @@ func (c *PostgreSQLConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts
 			continue
 		}
 
-		exprList := table.Diff(prevTable, db.Dialect, opts.SkipDropColumn)
+		exprList := table.Diff(prevTable, dialect, opts.SkipDropColumn)
 
 		for _, expr := range exprList {
 			if !(expr == nil || expr.IsNil()) {

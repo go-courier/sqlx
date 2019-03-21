@@ -41,30 +41,31 @@ func (c MysqlConnector) WithDBName(dbName string) driver.Connector {
 	return &c
 }
 
-func (c *MysqlConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts) error {
-	if opts == nil {
-		opts = &migration.MigrationOpts{}
-	}
+func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error {
+	opts := migration.MigrationOptsFromContext(ctx)
 
 	// mysql without schema
-	db = db.WithSchema("")
+	d := db.D().WithSchema("")
+	dialect := db.Dialect()
 
 	prevDB := dbFromInformationSchema(db)
 
 	if prevDB == nil {
 		prevDB = &sqlx.Database{
-			Name: db.Name,
+			Name: d.Name,
 		}
-		if _, err := db.ExecExpr(db.CreateDatabase(db.Name)); err != nil {
+		if _, err := db.ExecExpr(dialect.CreateDatabase(d.Name)); err != nil {
 			return err
 		}
 	}
 
-	for _, name := range db.Tables.TableNames() {
-		table := db.Tables.Table(name)
+	for _, name := range d.Tables.TableNames() {
+		table := d.Tables.Table(name)
 		prevTable := prevDB.Table(name)
+
+
 		if prevTable == nil {
-			for _, expr := range db.CreateTableIsNotExists(table) {
+			for _, expr := range dialect.CreateTableIsNotExists(table) {
 				if _, err := db.ExecExpr(expr); err != nil {
 					return err
 				}
@@ -72,7 +73,7 @@ func (c *MysqlConnector) Migrate(db *sqlx.DB, opts *migration.MigrationOpts) err
 			continue
 		}
 
-		exprList := table.Diff(prevTable, db.Dialect, opts.SkipDropColumn)
+		exprList := table.Diff(prevTable, dialect, opts.SkipDropColumn)
 
 		for _, expr := range exprList {
 			if !expr.IsNil() {

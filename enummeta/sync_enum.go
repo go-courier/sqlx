@@ -8,22 +8,24 @@ import (
 	"github.com/go-courier/sqlx/v2/builder"
 )
 
-func SyncEnum(db *sqlx.DB) error {
+func SyncEnum(db sqlx.DBExecutor) error {
 	metaEnumTable := builder.T((&SqlMetaEnum{}).TableName())
 	builder.ScanDefToTable(reflect.ValueOf(&SqlMetaEnum{}), metaEnumTable)
 
+	dialect := db.Dialect()
+
 	task := sqlx.NewTasks(db.WithSchema(""))
 
-	task = task.With(func(db *sqlx.DB) error {
-		_, err := db.ExecExpr(db.DropTable(metaEnumTable))
+	task = task.With(func(db sqlx.DBExecutor) error {
+		_, err := db.ExecExpr(dialect.DropTable(metaEnumTable))
 		return err
 	})
 
-	exprs := db.CreateTableIsNotExists(metaEnumTable)
+	exprs := dialect.CreateTableIsNotExists(metaEnumTable)
 
 	for i := range exprs {
 		expr := exprs[i]
-		task = task.With(func(db *sqlx.DB) error {
+		task = task.With(func(db sqlx.DBExecutor) error {
 			_, err := db.ExecExpr(expr)
 			return err
 		})
@@ -36,7 +38,7 @@ func SyncEnum(db *sqlx.DB) error {
 
 		columns := &builder.Columns{}
 
-		db.Tables.Range(func(table *builder.Table, idx int) {
+		db.D().Tables.Range(func(table *builder.Table, idx int) {
 			table.Columns.Range(func(col *builder.Column, idx int) {
 				v := reflect.New(col.ColumnType.Type).Interface()
 				if enumValue, ok := v.(enumeration.Enum); ok {
@@ -61,7 +63,7 @@ func SyncEnum(db *sqlx.DB) error {
 		if len(vals) > 0 {
 			stmtForInsert = stmtForInsert.Values(columns, vals...)
 
-			task = task.With(func(db *sqlx.DB) error {
+			task = task.With(func(db sqlx.DBExecutor) error {
 				_, err := db.ExecExpr(stmtForInsert)
 				return err
 			})

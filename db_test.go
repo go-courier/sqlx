@@ -10,6 +10,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func BenchmarkDB_DBExecutor(b *testing.B) {
+	dbTest := sqlx.NewDatabase("test_for_user")
+	db := dbTest.OpenDB(mysqlConnector)
+
+	run := func(db sqlx.DBExecutor) {
+		db.D()
+	}
+
+	for i := 0; i <= b.N; i++ {
+		run(db)
+	}
+}
+
 func TestWithTasks(t *testing.T) {
 	tt := require.New(t)
 
@@ -17,7 +30,7 @@ func TestWithTasks(t *testing.T) {
 	db := dbTest.OpenDB(mysqlConnector)
 
 	defer func() {
-		_, err := db.ExecExpr(db.DropDatabase(dbTest.Name))
+		_, err := db.ExecExpr(db.Dialect().DropDatabase(dbTest.Name))
 		tt.NoError(err)
 	}()
 
@@ -30,29 +43,29 @@ func TestWithTasks(t *testing.T) {
 	{
 		taskList := sqlx.NewTasks(db)
 
-		taskList = taskList.With(func(db *sqlx.DB) error {
+		taskList = taskList.With(func(db sqlx.DBExecutor) error {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 			return err
 		})
 
-		taskList = taskList.With(func(db *sqlx.DB) error {
+		taskList = taskList.With(func(db sqlx.DBExecutor) error {
 			subTaskList := sqlx.NewTasks(db)
 
-			subTaskList = subTaskList.With(func(db *sqlx.DB) error {
+			subTaskList = subTaskList.With(func(db sqlx.DBExecutor) error {
 				user := User{
 					Name:   uuid.New().String(),
 					Gender: GenderMale,
 				}
 
-				_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+				_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 				return err
 			})
 
-			subTaskList = subTaskList.With(func(db *sqlx.DB) error {
+			subTaskList = subTaskList.With(func(db sqlx.DBExecutor) error {
 				return fmt.Errorf("rollback")
 			})
 
@@ -65,35 +78,35 @@ func TestWithTasks(t *testing.T) {
 
 	taskList := sqlx.NewTasks(db)
 
-	taskList = taskList.With(func(db *sqlx.DB) error {
+	taskList = taskList.With(func(db sqlx.DBExecutor) error {
 		user := User{
 			Name:   uuid.New().String(),
 			Gender: GenderMale,
 		}
 
-		_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+		_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 
 		return err
 	})
 
-	taskList = taskList.With(func(db *sqlx.DB) error {
+	taskList = taskList.With(func(db sqlx.DBExecutor) error {
 		subTaskList := sqlx.NewTasks(db)
 
-		subTaskList = subTaskList.With(func(db *sqlx.DB) error {
+		subTaskList = subTaskList.With(func(db sqlx.DBExecutor) error {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 			return err
 		})
 
-		subTaskList = subTaskList.With(func(db *sqlx.DB) error {
+		subTaskList = subTaskList.With(func(db sqlx.DBExecutor) error {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
-			_, err := db.ExecExpr(dbTest.Insert(&user, nil))
+			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 			return err
 		})
 

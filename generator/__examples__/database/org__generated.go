@@ -83,7 +83,7 @@ func (m *Org) IndexFieldNames() []string {
 	}
 }
 
-func (m *Org) ConditionByStruct(db *github_com_go_courier_sqlx_v2.DB) *github_com_go_courier_sqlx_v2_builder.Condition {
+func (m *Org) ConditionByStruct(db github_com_go_courier_sqlx_v2.DBExecutor) *github_com_go_courier_sqlx_v2_builder.Condition {
 	table := db.T(m)
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m)
 
@@ -109,14 +109,14 @@ func (m *Org) ConditionByStruct(db *github_com_go_courier_sqlx_v2.DB) *github_co
 	return condition
 }
 
-func (m *Org) Create(db *github_com_go_courier_sqlx_v2.DB) error {
+func (m *Org) Create(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
-	_, err := db.ExecExpr(db.Insert(m, nil))
+	_, err := db.ExecExpr(github_com_go_courier_sqlx_v2.InsertToDB(db, m, nil))
 	return err
 
 }
 
-func (m *Org) DeleteByStruct(db *github_com_go_courier_sqlx_v2.DB) error {
+func (m *Org) DeleteByStruct(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
 	_, err := db.ExecExpr(
 		github_com_go_courier_sqlx_v2_builder.Delete().
@@ -130,7 +130,7 @@ func (m *Org) DeleteByStruct(db *github_com_go_courier_sqlx_v2.DB) error {
 	return err
 }
 
-func (m *Org) FetchByID(db *github_com_go_courier_sqlx_v2.DB) error {
+func (m *Org) FetchByID(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
 	table := db.T(m)
 
@@ -149,7 +149,7 @@ func (m *Org) FetchByID(db *github_com_go_courier_sqlx_v2.DB) error {
 	return err
 }
 
-func (m *Org) UpdateByIDWithMap(db *github_com_go_courier_sqlx_v2.DB, fieldValues github_com_go_courier_sqlx_v2_builder.FieldValues) error {
+func (m *Org) UpdateByIDWithMap(db github_com_go_courier_sqlx_v2.DBExecutor, fieldValues github_com_go_courier_sqlx_v2_builder.FieldValues) error {
 
 	table := db.T(m)
 
@@ -177,14 +177,14 @@ func (m *Org) UpdateByIDWithMap(db *github_com_go_courier_sqlx_v2.DB, fieldValue
 
 }
 
-func (m *Org) UpdateByIDWithStruct(db *github_com_go_courier_sqlx_v2.DB, zeroFields ...string) error {
+func (m *Org) UpdateByIDWithStruct(db github_com_go_courier_sqlx_v2.DBExecutor, zeroFields ...string) error {
 
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m, zeroFields...)
 	return m.UpdateByIDWithMap(db, fieldValues)
 
 }
 
-func (m *Org) FetchByIDForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
+func (m *Org) FetchByIDForUpdate(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
 	table := db.T(m)
 
@@ -204,7 +204,7 @@ func (m *Org) FetchByIDForUpdate(db *github_com_go_courier_sqlx_v2.DB) error {
 	return err
 }
 
-func (m *Org) DeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
+func (m *Org) DeleteByID(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
 	table := db.T(m)
 
@@ -222,7 +222,7 @@ func (m *Org) DeleteByID(db *github_com_go_courier_sqlx_v2.DB) error {
 	return err
 }
 
-func (m *Org) List(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) ([]Org, error) {
+func (m *Org) List(db github_com_go_courier_sqlx_v2.DBExecutor, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) ([]Org, error) {
 
 	list := make([]Org, 0)
 
@@ -248,7 +248,7 @@ func (m *Org) List(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_g
 
 }
 
-func (m *Org) Count(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) (int, error) {
+func (m *Org) Count(db github_com_go_courier_sqlx_v2.DBExecutor, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) (int, error) {
 
 	count := -1
 
@@ -276,7 +276,7 @@ func (m *Org) Count(db *github_com_go_courier_sqlx_v2.DB, condition *github_com_
 
 }
 
-func (m *Org) BatchFetchByIDList(db *github_com_go_courier_sqlx_v2.DB, values []uint64) ([]Org, error) {
+func (m *Org) BatchFetchByIDList(db github_com_go_courier_sqlx_v2.DBExecutor, values []uint64) ([]Org, error) {
 
 	if len(values) == 0 {
 		return nil, nil

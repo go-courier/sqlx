@@ -128,7 +128,7 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 
 	file.WriteBlock(
 		codegen.Func(
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DB"))), "db"),
+			codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db"),
 		).
 			Named("ConditionByStruct").
 			MethodOf(codegen.Var(m.PtrType(), "m")).

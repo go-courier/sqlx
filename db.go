@@ -1,6 +1,7 @@
 package sqlx
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -19,15 +20,54 @@ type SqlExecutor interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
+type Migrator interface {
+	Migrate(ctx context.Context, db DBExecutor) error
+}
+
+type DBExecutor interface {
+	Dialect() builder.Dialect
+	D() *Database
+	T(model builder.Model) *builder.Table
+
+	WithSchema(schema string) DBExecutor
+
+	SqlExecutor
+	ExecExpr(expr builder.SqlExpr) (sql.Result, error)
+	QueryExpr(expr builder.SqlExpr) (*sql.Rows, error)
+	QueryExprAndScan(expr builder.SqlExpr, v interface{}) error
+
+	IsTx() bool
+	Begin() (DBExecutor, error)
+	Commit() error
+	Rollback() error
+
+	Migrator
+}
+
 type DB struct {
 	*Database
-	builder.Dialect
+	dialect builder.Dialect
 	SqlExecutor
 }
 
-func (d DB) WithSchema(schema string) *DB {
+func (d *DB) Dialect() builder.Dialect {
+	return d.dialect
+}
+
+func (d DB) WithSchema(schema string) DBExecutor {
 	d.Database = d.Database.WithSchema(schema)
 	return &d
+}
+
+func (d *DB) Migrate(ctx context.Context, db DBExecutor) error {
+	if migrator, ok := d.dialect.(Migrator); ok {
+		return migrator.Migrate(ctx, db)
+	}
+	return nil
+}
+
+func (d *DB) D() *Database {
+	return d.Database
 }
 
 func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
@@ -38,10 +78,10 @@ func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.Flatten().ReplaceValueHolder(d.BindVar)
+	e = e.Flatten().ReplaceValueHolder(d.dialect.BindVar)
 	result, err := d.Exec(e.Query(), e.Args()...)
 	if err != nil {
-		if d.IsErrorConflict(err) {
+		if d.dialect.IsErrorConflict(err) {
 			return nil, NewSqlError(sqlErrTypeConflict, err.Error())
 		}
 		return nil, err
@@ -57,7 +97,7 @@ func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.Flatten().ReplaceValueHolder(d.BindVar)
+	e = e.Flatten().ReplaceValueHolder(d.dialect.BindVar)
 	return d.Query(e.Query(), e.Args()...)
 }
 
@@ -74,7 +114,7 @@ func (d *DB) IsTx() bool {
 	return ok
 }
 
-func (d *DB) Begin() (*DB, error) {
+func (d *DB) Begin() (DBExecutor, error) {
 	if d.IsTx() {
 		return nil, ErrNotDB
 	}
@@ -84,7 +124,7 @@ func (d *DB) Begin() (*DB, error) {
 	}
 	return &DB{
 		Database:    d.Database,
-		Dialect:     d.Dialect,
+		dialect:     d.dialect,
 		SqlExecutor: db,
 	}, nil
 }
@@ -115,9 +155,9 @@ func (d *DB) SetConnMaxLifetime(t time.Duration) {
 	d.SqlExecutor.(*sql.DB).SetConnMaxLifetime(t)
 }
 
-type Task func(db *DB) error
+type Task func(db DBExecutor) error
 
-func (task Task) Run(db *DB) (err error) {
+func (task Task) Run(db DBExecutor) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("panic: %s; calltrace:%s", fmt.Sprint(e), string(debug.Stack()))
@@ -126,14 +166,14 @@ func (task Task) Run(db *DB) (err error) {
 	return task(db)
 }
 
-func NewTasks(db *DB) *Tasks {
+func NewTasks(db DBExecutor) *Tasks {
 	return &Tasks{
 		db: db,
 	}
 }
 
 type Tasks struct {
-	db    *DB
+	db    DBExecutor
 	tasks []Task
 }
 
