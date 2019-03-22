@@ -22,7 +22,7 @@ type User struct {
 	Geom      GeomString               `db:"f_geom"`
 	CreatedAt datatypes.MySQLTimestamp `db:"f_created_at,default='0'"`
 	UpdatedAt datatypes.MySQLTimestamp `db:"f_updated_at,default='0'"`
-	Enabled   datatypes.Bool           `db:"f_enabled,default='0'"`
+	DeletedAt datatypes.MySQLTimestamp `db:"f_deleted_at,default='0'"`
 }
 
 type GeomString struct {

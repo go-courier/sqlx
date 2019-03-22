@@ -210,14 +210,12 @@ func (m *Org) DeleteByID(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
 	_, err := db.ExecExpr(
 		github_com_go_courier_sqlx_v2_builder.Delete().
-			From(
-				db.T(m),
+			From(db.T(m),
 				github_com_go_courier_sqlx_v2_builder.Where(github_com_go_courier_sqlx_v2_builder.And(
 					table.F("ID").Eq(m.ID),
 				)),
 				github_com_go_courier_sqlx_v2_builder.Comment("Org.DeleteByID"),
-			),
-	)
+			))
 
 	return err
 }

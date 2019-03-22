@@ -4,12 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"runtime/debug"
 	"time"
 
 	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/sirupsen/logrus"
 )
 
 var ErrNotTx = errors.New("db is not *sql.Tx")
@@ -20,43 +17,51 @@ type SqlExecutor interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
+type SqlxExecutor interface {
+	SqlExecutor
+	ExecExpr(expr builder.SqlExpr) (sql.Result, error)
+	QueryExpr(expr builder.SqlExpr) (*sql.Rows, error)
+
+	QueryExprAndScan(expr builder.SqlExpr, v interface{}) error
+}
+
 type Migrator interface {
 	Migrate(ctx context.Context, db DBExecutor) error
 }
 
 type DBExecutor interface {
+	SqlxExecutor
+
+	// dialect of databases
 	Dialect() builder.Dialect
+	// return database which is connecting
 	D() *Database
-	T(model builder.Model) *builder.Table
-
+	// switch database schema
 	WithSchema(schema string) DBExecutor
+	// return table of the connecting database
+	T(model builder.Model) *builder.Table
+}
 
-	SqlExecutor
-	ExecExpr(expr builder.SqlExpr) (sql.Result, error)
-	QueryExpr(expr builder.SqlExpr) (*sql.Rows, error)
-	QueryExprAndScan(expr builder.SqlExpr, v interface{}) error
-
+type MaybeTxExecutor interface {
 	IsTx() bool
 	Begin() (DBExecutor, error)
 	Commit() error
 	Rollback() error
-
-	Migrator
 }
 
 type DB struct {
-	*Database
 	dialect builder.Dialect
+	*Database
 	SqlExecutor
-}
-
-func (d *DB) Dialect() builder.Dialect {
-	return d.dialect
 }
 
 func (d DB) WithSchema(schema string) DBExecutor {
 	d.Database = d.Database.WithSchema(schema)
 	return &d
+}
+
+func (d *DB) Dialect() builder.Dialect {
+	return d.dialect
 }
 
 func (d *DB) Migrate(ctx context.Context, db DBExecutor) error {
@@ -153,72 +158,4 @@ func (d *DB) SetMaxIdleConns(n int) {
 
 func (d *DB) SetConnMaxLifetime(t time.Duration) {
 	d.SqlExecutor.(*sql.DB).SetConnMaxLifetime(t)
-}
-
-type Task func(db DBExecutor) error
-
-func (task Task) Run(db DBExecutor) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("panic: %s; calltrace:%s", fmt.Sprint(e), string(debug.Stack()))
-		}
-	}()
-	return task(db)
-}
-
-func NewTasks(db DBExecutor) *Tasks {
-	return &Tasks{
-		db: db,
-	}
-}
-
-type Tasks struct {
-	db    DBExecutor
-	tasks []Task
-}
-
-func (tasks Tasks) With(task ...Task) *Tasks {
-	tasks.tasks = append(tasks.tasks, task...)
-	return &tasks
-}
-
-func (tasks *Tasks) Do() (err error) {
-	if len(tasks.tasks) == 0 {
-		return nil
-	}
-
-	db := tasks.db
-	inTxScope := false
-
-	if !db.IsTx() {
-		db, err = db.Begin()
-		if err != nil {
-			return err
-		}
-		inTxScope = true
-	}
-
-	for _, task := range tasks.tasks {
-		if runErr := task.Run(db); runErr != nil {
-			if inTxScope {
-				// err will bubble up，just handle and rollback in outermost layer
-				logrus.Errorf("SQL FAILED: %s", runErr.Error())
-				if rollBackErr := db.Rollback(); rollBackErr != nil {
-					logrus.Errorf("ROLLBACK FAILED: %s", rollBackErr.Error())
-					err = rollBackErr
-					return
-				}
-			}
-			return runErr
-		}
-	}
-
-	if inTxScope {
-		if commitErr := db.Commit(); commitErr != nil {
-			logrus.Errorf("TRANSACTION COMMIT FAILED: %s", commitErr.Error())
-			return commitErr
-		}
-	}
-
-	return nil
 }

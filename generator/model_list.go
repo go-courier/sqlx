@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/go-courier/codegen"
-	"github.com/go-courier/packagesx"
 )
 
 func (m *Model) WriteCount(file *codegen.File) {
@@ -29,11 +28,10 @@ _ = table
 `),
 
 				func() codegen.Snippet {
-					if m.HasSoftDelete {
+					if m.HasDeletedAt {
 						return codegen.Expr(
-							`condition = ?(condition, table.F("`+m.FieldKeySoftDelete+`").Eq(?))`,
+							`condition = ?(condition, table.F("`+m.FieldKeyDeletedAt+`").Eq(0))`,
 							codegen.Id(file.Use("github.com/go-courier/sqlx/v2/builder", "And")),
-							codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue))),
 						)
 					}
 					return nil
@@ -88,11 +86,10 @@ _ = table
 `),
 
 				func() codegen.Snippet {
-					if m.HasSoftDelete {
+					if m.HasDeletedAt {
 						return codegen.Expr(
-							`condition = ?(condition, table.F("`+m.FieldKeySoftDelete+`").Eq(?))`,
+							`condition = ?(condition, table.F("`+m.FieldKeyDeletedAt+`").Eq(0))`,
 							codegen.Id(file.Use("github.com/go-courier/sqlx/v2/builder", "And")),
-							codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue))),
 						)
 					}
 					return nil

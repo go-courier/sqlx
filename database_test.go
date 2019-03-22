@@ -35,8 +35,8 @@ func init() {
 }
 
 type TableOperateTime struct {
-	CreatedAt datatypes.MySQLDatetime `db:"F_created_at,default=CURRENT_TIMESTAMP,onupdate=CURRENT_TIMESTAMP"`
-	UpdatedAt int64                   `db:"F_updated_at,default='0'"`
+	CreatedAt datatypes.MySQLDatetime `db:"f_created_at,default=CURRENT_TIMESTAMP,onupdate=CURRENT_TIMESTAMP"`
+	UpdatedAt int64                   `db:"f_updated_at,default='0'"`
 }
 
 type Gender int
@@ -68,11 +68,11 @@ func (g Gender) String() string {
 }
 
 type User struct {
-	ID       uint64 `db:"F_id,autoincrement"`
-	Name     string `db:"F_name,size=255,default=''"`
-	Nickname string `db:"F_nickname,size=255,default=''"`
-	Username string `db:"F_username,default=''"`
-	Gender   Gender `db:"F_gender,default='0'"`
+	ID       uint64 `db:"f_id,autoincrement"`
+	Name     string `db:"f_name,size=255,default=''"`
+	Nickname string `db:"f_nickname,size=255,default=''"`
+	Username string `db:"f_username,default=''"`
+	Gender   Gender `db:"f_gender,default='0'"`
 
 	TableOperateTime
 }
@@ -105,7 +105,7 @@ func (user *User) UniqueIndexes() builder.Indexes {
 
 type User2 struct {
 	User
-	Age int32 `db:"F_age,default='0'"`
+	Age int32 `db:"f_age,default='0'"`
 }
 
 func TestMigrate(t *testing.T) {
@@ -231,7 +231,7 @@ func TestSelect(t *testing.T) {
 
 		table := dbTest.Register(&User{})
 		err := migration.Migrate(db, nil)
-		tt.Nil(err)
+		tt.NoError(err)
 
 		for i := 0; i < 10; i++ {
 			user := User{

@@ -66,7 +66,11 @@ func (dt *MySQLTimestamp) Scan(value interface{}) error {
 }
 
 func (dt MySQLTimestamp) Value() (driver.Value, error) {
-	return (time.Time)(dt).Unix(), nil
+	s := (time.Time)(dt).Unix()
+	if s < 0 {
+		s = 0
+	}
+	return s, nil
 }
 
 func (dt MySQLTimestamp) String() string {

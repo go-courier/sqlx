@@ -31,7 +31,7 @@ func MustMigrate(db sqlx.DBExecutor, opts *MigrationOpts) {
 func Migrate(db sqlx.DBExecutor, opts *MigrationOpts) error {
 	ctx := context.WithValue(context.Background(), contextKeyMigrationOpts, opts)
 
-	if err := db.Migrate(ctx, db); err != nil {
+	if err := db.(sqlx.Migrator).Migrate(ctx, db); err != nil {
 		return err
 	}
 	if err := enummeta.SyncEnum(db); err != nil {

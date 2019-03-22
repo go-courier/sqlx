@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/go-courier/sqlx/v2/datatypes"
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/go-courier/sqlx/v2/mysqlconnector"
 	"github.com/go-courier/sqlx/v2/postgresqlconnector"
@@ -41,39 +40,51 @@ func TestUserCRUD(t *testing.T) {
 	} {
 		db := DBTest.OpenDB(connector)
 
-		for _, t := range DBTest.Tables {
-			_, err := db.ExecExpr(db.DropTable(t))
+		db.D().Tables.Range(func(t *builder.Table, idx int) {
+			_, err := db.ExecExpr(db.Dialect().DropTable(t))
 			tt.NoError(err)
-		}
+		})
 
 		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
-		user := User{}
-		user.Name = uuid.New().String()
-		user.Geom = GeomString{
-			V: "Point(0 0)",
-		}
-
-		errForCreate := user.Create(db)
-		tt.NoError(errForCreate)
-		tt.Equal(uint64(0), user.ID)
-
-		user.Gender = GenderMale
-		{
-			err := user.CreateOnDuplicateWithUpdateFields(db, []string{"Gender"})
-			tt.NoError(err)
-		}
-		{
-			userForFetch := User{
-				Name: user.Name,
+		t.Run("Create flow", func(t *testing.T) {
+			user := User{}
+			user.Name = uuid.New().String()
+			user.Geom = GeomString{
+				V: "Point(0 0)",
 			}
-			err := userForFetch.FetchByName(db)
-			tt.NoError(err)
 
-			tt.Equal(user.Gender, userForFetch.Gender)
-		}
-		{
+			errForCreate := user.Create(db)
+			tt.NoError(errForCreate)
+			tt.Equal(uint64(0), user.ID)
+
+			user.Gender = GenderMale
+			{
+				err := user.CreateOnDuplicateWithUpdateFields(db, []string{"Gender"})
+				tt.NoError(err)
+			}
+			{
+				userForFetch := User{
+					Name: user.Name,
+				}
+				err := userForFetch.FetchByName(db)
+
+				tt.NoError(err)
+				tt.Equal(user.Gender, userForFetch.Gender)
+			}
+		})
+
+		t.Run("delete flow", func(t *testing.T) {
+			user := User{}
+			user.Name = uuid.New().String()
+			user.Geom = GeomString{
+				V: "Point(0 0)",
+			}
+
+			errForCreate := user.Create(db)
+			tt.NoError(errForCreate)
+
 			{
 				userForDelete := User{
 					Name: user.Name,
@@ -81,42 +92,18 @@ func TestUserCRUD(t *testing.T) {
 				err := userForDelete.SoftDeleteByName(db)
 				tt.NoError(err)
 
-				userForSelect := User{
+				userForSelect := &User{
 					Name: user.Name,
 				}
-				stmt := builder.Select(nil).From(db.T(userForSelect), builder.Where(
-					userForSelect.FieldName().Eq(userForSelect.Name),
-				))
-				errForSelect := db.QueryExprAndScan(stmt, &userForSelect)
-				tt.NoError(errForSelect)
-				tt.Equal(datatypes.BOOL_FALSE, userForSelect.Enabled)
-
-				{
-					err := user.Create(db)
-					tt.NoError(err)
-					tt.Equal(uint64(3), user.ID)
-
-					userForDelete := User{}
-					errForSoftDelete := userForDelete.SoftDeleteByName(db)
-					tt.Nil(errForSoftDelete)
-
-					users := make([]User, 0)
-					stmt := builder.Select(nil).From(db.T(userForSelect), builder.Where(
-						userForSelect.FieldEnabled().Eq(datatypes.BOOL_FALSE),
-					))
-
-					errForSelect := db.QueryExprAndScan(stmt, &users)
-					tt.Nil(errForSelect)
-					tt.Len(users, 1)
-					tt.Equal(uint64(1), users[0].ID)
-				}
+				errForSelect := userForSelect.FetchByName(db)
+				tt.Error(errForSelect)
 			}
-		}
+		})
 
-		for _, t := range DBTest.Tables {
-			_, err := db.ExecExpr(db.DropTable(t))
+		db.D().Tables.Range(func(t *builder.Table, idx int) {
+			_, err := db.ExecExpr(db.Dialect().DropTable(t))
 			tt.NoError(err)
-		}
+		})
 	}
 }
 
@@ -128,6 +115,11 @@ func TestUserList(t *testing.T) {
 		postgresConnector,
 	} {
 		db := DBTest.OpenDB(connector)
+
+		db.D().Tables.Range(func(t *builder.Table, idx int) {
+			_, err := db.ExecExpr(db.Dialect().DropTable(t))
+			tt.NoError(err)
+		})
 
 		err := migration.Migrate(db, nil)
 		tt.NoError(err)
@@ -166,9 +158,9 @@ func TestUserList(t *testing.T) {
 			tt.Len(list, 10)
 		}
 
-		for _, t := range DBTest.Tables {
-			_, err := db.ExecExpr(db.DropTable(t))
+		db.D().Tables.Range(func(t *builder.Table, idx int) {
+			_, err := db.ExecExpr(db.Dialect().DropTable(t))
 			tt.NoError(err)
-		}
+		})
 	}
 }

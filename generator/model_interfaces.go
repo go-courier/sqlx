@@ -4,7 +4,6 @@ import (
 	"sort"
 
 	"github.com/go-courier/codegen"
-	"github.com/go-courier/packagesx"
 	"github.com/go-courier/sqlx/v2/builder"
 )
 
@@ -19,8 +18,8 @@ func (m *Model) IndexFieldNames() []string {
 	indexedFields = stringUniq(indexedFields)
 
 	indexedFields = stringFilter(indexedFields, func(item string, i int) bool {
-		if m.HasSoftDelete {
-			return item != m.FieldKeySoftDelete
+		if m.HasDeletedAt {
+			return item != m.FieldKeyDeletedAt
 		}
 		return true
 	})
@@ -31,34 +30,32 @@ func (m *Model) IndexFieldNames() []string {
 }
 
 func (m *Model) WriteTableInterfaces(file *codegen.File) {
-	if m.WithTableInterfaces {
-		file.WriteBlock(
-			codegen.DeclVar(codegen.Var(codegen.Star(
-				codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))),
-				m.VarTable(),
-			)),
+	file.WriteBlock(
+		codegen.DeclVar(codegen.Var(codegen.Star(
+			codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))),
+			m.VarTable(),
+		)),
 
-			codegen.Func().
-				Named("init").
-				Do(
-					codegen.Expr("? = ?.Register(&?{})",
-						codegen.Id(m.VarTable()),
-						codegen.Id(m.Database),
-						codegen.Id(m.StructName),
-					),
+		codegen.Func().
+			Named("init").
+			Do(
+				codegen.Expr("? = ?.Register(&?{})",
+					codegen.Id(m.VarTable()),
+					codegen.Id(m.Database),
+					codegen.Id(m.StructName),
 				),
-		)
+			),
+	)
 
-		file.WriteBlock(
-			codegen.Func().
-				Named("TableName").
-				MethodOf(codegen.Var(m.Type())).
-				Return(codegen.Var(codegen.String)).
-				Do(
-					codegen.Return(file.Val(m.Config.TableName)),
-				),
-		)
-	}
+	file.WriteBlock(
+		codegen.Func().
+			Named("TableName").
+			MethodOf(codegen.Var(m.Type())).
+			Return(codegen.Var(codegen.String)).
+			Do(
+				codegen.Return(file.Val(m.Config.TableName)),
+			),
+	)
 
 	if m.Description != nil {
 		file.WriteBlock(
@@ -71,8 +68,6 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 				),
 		)
 	}
-
-
 
 	file.WriteBlock(
 		codegen.Func().
@@ -158,11 +153,10 @@ condition := `+file.Use("github.com/go-courier/sqlx/v2/builder", "And")+`(condit
 `),
 
 				func() codegen.Snippet {
-					if m.HasSoftDelete {
+					if m.HasDeletedAt {
 						return codegen.Expr(
-							`condition = `+file.Use("github.com/go-courier/sqlx/v2/builder", "And")+`(condition, table.F(?).Eq(?))`,
-							file.Val(m.FieldKeySoftDelete),
-							file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue)),
+							`condition = `+file.Use("github.com/go-courier/sqlx/v2/builder", "And")+`(condition, table.F(?).Eq(0))`,
+							file.Val(m.FieldKeyDeletedAt),
 						)
 					}
 					return codegen.Expr("")

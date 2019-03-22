@@ -10,59 +10,32 @@ import (
 	"github.com/go-courier/sqlx/v2/builder"
 )
 
-func (m *Model) SnippetEnableIfNeed(file *codegen.File) codegen.Snippet {
-	if m.HasSoftDelete {
-		return codegen.Expr("m.? = ?",
-			codegen.Id(m.FieldKeySoftDelete),
-			codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue))),
-		)
-	}
-	return nil
-}
-
-func (m *Model) SnippetDisableIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
-	if m.HasSoftDelete {
-		return codegen.Expr(`if _, ok := fieldValues["?"]; !ok {
-			fieldValues["?"] = ?
+func (m *Model) snippetSetDeletedAtIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
+	if m.HasDeletedAt {
+		return codegen.Expr(`if _, ok := fieldValues["`+m.FieldKeyDeletedAt+`"]; !ok {
+			fieldValues["`+m.FieldKeyDeletedAt+`"] = ?(`+file.Use("time", "Now")+`())
 		}`,
-			codegen.Id(m.FieldKeySoftDelete),
-			codegen.Id(m.FieldKeySoftDelete),
-			codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteFalse))),
+			m.FieldType(file, m.FieldKeyDeletedAt),
 		)
 	}
 	return nil
 }
 
-func (m *Model) SnippetEnableIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
-	if m.HasSoftDelete {
-		return codegen.Expr(`if _, ok := fieldValues["?"]; !ok {
-			fieldValues["?"] = ?
-		}`,
-			codegen.Id(m.FieldKeySoftDelete),
-			codegen.Id(m.FieldKeySoftDelete),
-			codegen.Id(file.Use(packagesx.GetPkgImportPathAndExpose(m.ConstSoftDeleteTrue))),
-		)
-	}
-	return nil
-}
-
-func (m *Model) SnippetSetCreatedAtIfNeed(file *codegen.File) codegen.Snippet {
+func (m *Model) snippetSetCreatedAtIfNeed(file *codegen.File) codegen.Snippet {
 	if m.HasCreatedAt {
 		return codegen.Expr(`
-if m.?.IsZero() {
-	m.? = ?(?())
+if m.`+m.FieldKeyCreatedAt+`.IsZero() {
+	m.`+m.FieldKeyCreatedAt+` = ?(`+file.Use("time", "Now")+`())
 }
 `,
-			codegen.Id(m.FieldKeyCreatedAt),
-			codegen.Id(m.FieldKeyCreatedAt),
 			m.FieldType(file, m.FieldKeyCreatedAt),
-			codegen.Id(file.Use("time", "Now")))
+		)
 	}
 
 	return nil
 }
 
-func (m *Model) SnippetSetLastInsertIdIfNeed(file *codegen.File) codegen.Snippet {
+func (m *Model) snippetSetLastInsertIdIfNeed(file *codegen.File) codegen.Snippet {
 	if m.HasAutoIncrement {
 		return codegen.Expr(`
 if err == nil {
@@ -80,23 +53,21 @@ _ = result
 `)
 }
 
-func (m *Model) SnippetSetUpdatedAtIfNeed(file *codegen.File) codegen.Snippet {
+func (m *Model) snippetSetUpdatedAtIfNeed(file *codegen.File) codegen.Snippet {
 	if m.HasUpdatedAt {
 		return codegen.Expr(`
-if m.?.IsZero() {
-	m.? = ?(?())
+if m.`+m.FieldKeyUpdatedAt+`.IsZero() {
+	m.`+m.FieldKeyUpdatedAt+` = ?(`+file.Use("time", "Now")+`())
 }
 `,
-			codegen.Id(m.FieldKeyUpdatedAt),
-			codegen.Id(m.FieldKeyUpdatedAt),
 			m.FieldType(file, m.FieldKeyUpdatedAt),
-			codegen.Id(file.Use("time", "Now")))
+		)
 	}
 
 	return codegen.Expr("")
 }
 
-func (m *Model) SnippetSetUpdatedAtIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
+func (m *Model) snippetSetUpdatedAtIfNeedForFieldValues(file *codegen.File) codegen.Snippet {
 	if m.HasUpdatedAt {
 		return codegen.Expr(`
 if _, ok := fieldValues[?]; !ok {
@@ -119,9 +90,8 @@ func (m *Model) WriteCreate(file *codegen.File) {
 			MethodOf(codegen.Var(m.PtrType(), "m")).
 			Return(codegen.Var(codegen.Error)).
 			Do(
-				m.SnippetEnableIfNeed(file),
-				m.SnippetSetCreatedAtIfNeed(file),
-				m.SnippetSetUpdatedAtIfNeed(file),
+				m.snippetSetCreatedAtIfNeed(file),
+				m.snippetSetUpdatedAtIfNeed(file),
 
 				codegen.Expr(`
 _, err := db.ExecExpr(?(db, m, nil))
@@ -149,9 +119,8 @@ if len(updateFields) == 0 {
 }
 `),
 
-					m.SnippetEnableIfNeed(file),
-					m.SnippetSetCreatedAtIfNeed(file),
-					m.SnippetSetUpdatedAtIfNeed(file),
+					m.snippetSetCreatedAtIfNeed(file),
+					m.snippetSetUpdatedAtIfNeed(file),
 
 					codegen.Expr(`
 fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValuesFromStructByNonZero")+`(m, updateFields...)
@@ -193,37 +162,30 @@ for field := range fieldValues {
 	}
 }
 
-switch db.Dialect().DriverName() {
-	case "mysql":
-		_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().
-			Into(
-				table,
-				`+file.Use("github.com/go-courier/sqlx/v2/builder", "OnDuplicateKeyUpdate")+`(table.AssignmentsByFieldValues(fieldValues)...),
-				`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
-			).
-			Values(cols, vals...),
-		)
-		return err
-	case "postgres":
-		indexes := m.UniqueIndexes()
-		fields := make([]string, 0)
-		for _, fs := range indexes {
-			fields = append(fields, fs...)
-		}
-		indexFields, _ := db.T(m).Fields(fields...)
+additions := `+file.Use("github.com/go-courier/sqlx/v2/builder", "Additions")+`{}
 
-		_, err := db.ExecExpr(`+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().
-			Into(
-				table,
-				`+file.Use("github.com/go-courier/sqlx/v2/builder", "OnConflict")+`(indexFields).
-					DoUpdateSet(table.AssignmentsByFieldValues(fieldValues)...),
-				`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
-			).
-			Values(cols, vals...),
-		)
-		return err
+switch db.Dialect().DriverName() {
+case "mysql":	
+	additions = append(additions, `+file.Use("github.com/go-courier/sqlx/v2/builder", "OnDuplicateKeyUpdate")+`(table.AssignmentsByFieldValues(fieldValues)...))
+case "postgres":
+	indexes := m.UniqueIndexes()
+	fields := make([]string, 0)
+	for _, fs := range indexes {
+		fields = append(fields, fs...)
 	}
-return nil
+	indexFields, _ := db.T(m).Fields(fields...)
+
+	additions = append(additions,
+			`+file.Use("github.com/go-courier/sqlx/v2/builder", "OnConflict")+`(indexFields).
+				DoUpdateSet(table.AssignmentsByFieldValues(fieldValues)...))
+}
+
+additions = append(additions, `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`("User.CreateOnDuplicateWithUpdateFields"))
+
+expr := `+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().Into(table, additions...).Values(cols, vals...)
+
+_, err := db.ExecExpr(expr)
+return err
 `,
 						file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields"),
 						file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields"),
@@ -231,7 +193,6 @@ return nil
 				),
 		)
 	}
-
 }
 
 func (m *Model) WriteDelete(file *codegen.File) {
@@ -242,9 +203,6 @@ func (m *Model) WriteDelete(file *codegen.File) {
 			MethodOf(codegen.Var(m.PtrType(), "m")).
 			Return(codegen.Var(codegen.Error)).
 			Do(
-				m.SnippetEnableIfNeed(file),
-				m.SnippetSetUpdatedAtIfNeed(file),
-
 				codegen.Expr(`
 _, err := db.ExecExpr(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Delete")+`().
@@ -267,14 +225,14 @@ func (m *Model) WriteByKey(file *codegen.File) {
 		fieldNames := key.Columns.FieldNames()
 
 		fieldNamesWithoutEnabled := stringFilter(fieldNames, func(item string, i int) bool {
-			if m.HasSoftDelete {
-				return item != m.FieldKeySoftDelete
+			if m.HasDeletedAt {
+				return item != m.FieldKeyDeletedAt
 			}
 			return true
 		})
 
-		if m.HasSoftDelete && key.IsPrimary() {
-			fieldNames = append(fieldNames, m.FieldKeySoftDelete)
+		if m.HasDeletedAt && key.IsPrimary() {
+			fieldNames = append(fieldNames, m.FieldKeyDeletedAt)
 		}
 
 		if key.IsUnique {
@@ -288,8 +246,6 @@ func (m *Model) WriteByKey(file *codegen.File) {
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
 						Do(
-							m.SnippetEnableIfNeed(file),
-
 							codegen.Expr(`
 table := db.T(m)
 
@@ -321,9 +277,7 @@ m,
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
 						Do(
-							m.SnippetSetUpdatedAtIfNeedForFieldValues(file),
-							m.SnippetEnableIfNeed(file),
-
+							m.snippetSetUpdatedAtIfNeedForFieldValues(file),
 							codegen.Expr(`
 table := db.T(m)
 
@@ -382,8 +336,6 @@ return m.` + methodForUpdateWithMap + `(db, fieldValues)
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
 						Do(
-							m.SnippetEnableIfNeed(file),
-
 							codegen.Expr(`
 table := db.T(m)
 
@@ -416,19 +368,15 @@ m,
 						MethodOf(codegen.Var(m.PtrType(), "m")).
 						Return(codegen.Var(codegen.Error)).
 						Do(
-							m.SnippetEnableIfNeed(file),
-
 							codegen.Expr(`
 table := db.T(m)
 
 _, err := db.ExecExpr(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Delete")+`().
-From(
-	db.T(m),
-`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(`+toExactlyConditionFrom(file, fieldNames...)+`),
-`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
-),
-)
+	From(db.T(m),
+	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(`+toExactlyConditionFrom(file, fieldNames...)+`),
+	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(`+string(file.Val(m.StructName + "." + methodForDelete).Bytes())+`),
+))
 `,
 								file.Val(m.StructName+"."+methodForDelete),
 							),
@@ -437,7 +385,7 @@ From(
 						),
 				)
 
-				if m.HasSoftDelete {
+				if m.HasDeletedAt {
 
 					methodForSoftDelete := createMethod("SoftDeleteBy%s", fieldNamesWithoutEnabled...)
 
@@ -448,39 +396,26 @@ From(
 							MethodOf(codegen.Var(m.PtrType(), "m")).
 							Return(codegen.Var(codegen.Error)).
 							Do(
-								m.SnippetEnableIfNeed(file),
-
 								codegen.Expr(`
 table := db.T(m)
 
 fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValues")+`{}`),
 
-								m.SnippetDisableIfNeedForFieldValues(file),
-								m.SnippetSetUpdatedAtIfNeedForFieldValues(file),
+								m.snippetSetDeletedAtIfNeedForFieldValues(file),
+								m.snippetSetUpdatedAtIfNeedForFieldValues(file),
 
 								codegen.Expr(`
-
 _, err := db.ExecExpr(
-`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(db.T(m)).
-	Where(
-		`+toExactlyConditionFrom(file, fieldNames...)+`,
-		`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?),
-	).
-	Set(table.AssignmentsByFieldValues(fieldValues)...),
+	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(db.T(m)).
+		Where(
+			`+toExactlyConditionFrom(file, fieldNames...)+`,
+			`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(`+string(file.Val(m.StructName + "." + methodForSoftDelete).Bytes())+`),
+		).
+		Set(table.AssignmentsByFieldValues(fieldValues)...),
 )
 
-if err != nil {
-	dbErr := `+file.Use("github.com/go-courier/sqlx/v2", "DBErr")+`(err)
-	if dbErr.IsConflict() {
-		return 	m.`+methodForDelete+`(db)
-	}
-}
-
-return nil
-`,
-
-									file.Val(m.StructName+"."+methodForSoftDelete),
-								),
+return err
+`),
 							),
 					)
 				}

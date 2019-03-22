@@ -28,19 +28,17 @@ type Config struct {
 
 	WithComments        bool
 	WithTableInterfaces bool
+	WithMethods bool
 
-	FieldPrimaryKey    string
-	FieldKeySoftDelete string
-	FieldKeyCreatedAt  string
-	FieldKeyUpdatedAt  string
-
-	ConstSoftDeleteTrue  string
-	ConstSoftDeleteFalse string
+	FieldPrimaryKey   string
+	FieldKeyDeletedAt string
+	FieldKeyCreatedAt string
+	FieldKeyUpdatedAt string
 }
 
 func (g *Config) SetDefaults() {
-	if g.FieldKeySoftDelete == "" {
-		g.FieldKeySoftDelete = "Enabled"
+	if g.FieldKeyDeletedAt == "" {
+		g.FieldKeyDeletedAt = "DeletedAt"
 	}
 
 	if g.FieldKeyCreatedAt == "" {
@@ -49,14 +47,6 @@ func (g *Config) SetDefaults() {
 
 	if g.FieldKeyUpdatedAt == "" {
 		g.FieldKeyUpdatedAt = "UpdatedAt"
-	}
-
-	if g.ConstSoftDeleteTrue == "" {
-		g.ConstSoftDeleteTrue = "github.com/go-courier/sqlx/v2/datatypes.BOOL_TRUE"
-	}
-
-	if g.ConstSoftDeleteFalse == "" {
-		g.ConstSoftDeleteFalse = "github.com/go-courier/sqlx/v2/datatypes.BOOL_FALSE"
 	}
 
 	if g.TableName == "" {

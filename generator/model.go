@@ -49,7 +49,7 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 		m.addColumn(col, structVal)
 	})
 
-	m.HasSoftDelete = m.Table.F(m.FieldKeySoftDelete) != nil
+	m.HasDeletedAt = m.Table.F(m.FieldKeyDeletedAt) != nil
 	m.HasCreatedAt = m.Table.F(m.FieldKeyCreatedAt) != nil
 	m.HasUpdatedAt = m.Table.F(m.FieldKeyUpdatedAt) != nil
 
@@ -60,8 +60,8 @@ func NewModel(pkg *packagesx.Package, typeName *types.TypeName, comments string,
 		m.Description = lines
 	}
 
-	if m.HasSoftDelete {
-		m.Keys.PatchUniqueIndexesWithSoftDelete(m.FieldKeySoftDelete)
+	if m.HasDeletedAt {
+		m.Keys.PatchUniqueIndexesWithSoftDelete(m.FieldKeyDeletedAt)
 	}
 	m.Keys.Bind(m.Table)
 
@@ -80,7 +80,7 @@ type Model struct {
 	*builder.Table
 	Fields                map[string]*types.Var
 	FieldKeyAutoIncrement string
-	HasSoftDelete         bool
+	HasDeletedAt          bool
 	HasCreatedAt          bool
 	HasUpdatedAt          bool
 	HasAutoIncrement      bool
@@ -96,11 +96,17 @@ func (m *Model) addColumn(col *builder.Column, tpe *types.Var) {
 
 func (m *Model) WriteTo(file *codegen.File) {
 	m.WriteTableKeyInterfaces(file)
-	m.WriteTableInterfaces(file)
-	m.WriteCRUD(file)
-	m.WriteList(file)
-	m.WriteCount(file)
-	m.WriteBatchList(file)
+
+	if m.WithTableInterfaces {
+		m.WriteTableInterfaces(file)
+	}
+
+	if m.WithMethods {
+		m.WriteCRUD(file)
+		m.WriteList(file)
+		m.WriteCount(file)
+		m.WriteBatchList(file)
+	}
 }
 
 func (m *Model) Type() codegen.SnippetType {
