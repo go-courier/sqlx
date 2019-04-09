@@ -29,7 +29,7 @@ func MustMigrate(db sqlx.DBExecutor, opts *MigrationOpts) {
 }
 
 func Migrate(db sqlx.DBExecutor, opts *MigrationOpts) error {
-	ctx := context.WithValue(context.Background(), contextKeyMigrationOpts, opts)
+	ctx := context.WithValue(db.Context(), contextKeyMigrationOpts, opts)
 
 	if err := db.(sqlx.Migrator).Migrate(ctx, db); err != nil {
 		return err

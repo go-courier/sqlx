@@ -65,36 +65,36 @@ func (d *PostgreSQLLoggingDriver) Open(dsn string) (driver.Conn, error) {
 	if pass, ok := opts["password"]; ok {
 		opts["password"] = strings.Repeat("*", len(pass))
 	}
-
 	conn, err := d.Driver.Open(conf)
 	if err != nil {
 		d.Logger.Errorf("failed to open connection: %s %s", opts, err)
 		return nil, err
 	}
 	d.Logger.Debugf("connected %s", opts)
-	return &loggerConn{Conn: conn, cfg: opts, logger: d.Logger}, nil
+	return &loggerConn{Conn: conn, cfg: opts, logger: d.Logger.WithField("driver", "postgres")}, nil
 }
 
 var _ interface {
-	driver.Conn
+	driver.ConnBeginTx
 	driver.ExecerContext
 	driver.QueryerContext
 } = (*loggerConn)(nil)
 
 type loggerConn struct {
-	logger *logrus.Logger
+	logger *logrus.Entry
 	cfg    PostgreSQLOpts
 	driver.Conn
 }
 
-func (c *loggerConn) Begin() (driver.Tx, error) {
-	c.logger.Debugf("=========== Beginning Transaction ===========")
-	tx, err := c.Conn.Begin()
+func (c *loggerConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	logger := c.logger.WithContext(ctx)
+	logger.Debug("=========== Beginning Transaction ===========")
+	tx, err := c.Conn.(driver.ConnBeginTx).BeginTx(ctx, opts)
 	if err != nil {
-		c.logger.Errorf("failed to begin transaction: %s", err)
+		logger.Errorf("failed to begin transaction: %s", err)
 		return nil, err
 	}
-	return &loggingTx{tx: tx, logger: c.logger}, nil
+	return &loggingTx{tx: tx, logger: logger}, nil
 }
 
 func (c *loggerConn) Close() error {
@@ -111,18 +111,19 @@ func (c *loggerConn) Prepare(query string) (driver.Stmt, error) {
 
 func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {
 	cost := startTimer()
+	logger := c.logger.WithContext(ctx)
 
 	defer func() {
 		query = interpolateParams(query, args)
 
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); !ok {
-				c.logger.Errorf("failed query %s: %s", err, query)
+				logger.Errorf("failed query %s: %s", err, query)
 			} else {
-				c.logger.Warnf("failed query %s: %s", pgErr, query)
+				logger.Warnf("failed query %s: %s", pgErr, query)
 			}
 		} else {
-			c.logger.WithField("cost", cost().String()).Debugf(query)
+			logger.WithField("cost", cost().String()).Debugf(query)
 		}
 	}()
 
@@ -132,22 +133,23 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 func (c *loggerConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (result driver.Result, err error) {
 	cost := startTimer()
+	logger := c.logger.WithContext(ctx)
 
 	defer func() {
 		query = interpolateParams(query, args)
 
 		if err != nil {
 			if pgError, ok := err.(*pq.Error); !ok {
-				c.logger.Errorf("failed exec %s: %s", err, query)
+				logger.Errorf("failed exec %s: %s", err, query)
 			} else if pgError.Code == "23505" {
-				c.logger.Warnf("failed exec %s: %s", err, query)
+				logger.Warnf("failed exec %s: %s", err, query)
 			} else {
-				c.logger.Errorf("failed exec %s: %s", pgError, query)
+				logger.Errorf("failed exec %s: %s", pgError, query)
 			}
 			return
 		}
 
-		c.logger.WithField("cost", cost().String()).Debugf(query)
+		logger.WithField("cost", cost().String()).Debugf(query)
 	}()
 
 	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
@@ -162,7 +164,7 @@ func startTimer() func() time.Duration {
 }
 
 type loggingTx struct {
-	logger *logrus.Logger
+	logger *logrus.Entry
 	tx     driver.Tx
 }
 

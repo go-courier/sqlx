@@ -40,29 +40,31 @@ func (d *MySqlLoggingDriver) Open(dsn string) (driver.Conn, error) {
 	}
 
 	d.Logger.Debugf("connected %s", cfg.FormatDSN())
-	return &loggerConn{Conn: conn, cfg: cfg, logger: d.Logger}, nil
+	return &loggerConn{Conn: conn, cfg: cfg, logger: d.Logger.WithField("driver", "mysql")}, nil
 }
 
 var _ interface {
-	driver.Conn
+	driver.ConnBeginTx
 	driver.ExecerContext
 	driver.QueryerContext
 } = (*loggerConn)(nil)
 
 type loggerConn struct {
-	logger *logrus.Logger
+	logger *logrus.Entry
 	cfg    *mysql.Config
 	driver.Conn
 }
 
-func (c *loggerConn) Begin() (driver.Tx, error) {
-	c.logger.Debugf(("=========== Beginning Transaction ==========="))
-	tx, err := c.Conn.Begin()
+func (c *loggerConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	logger := c.logger.WithContext(ctx)
+
+	logger.Debug("=========== Beginning Transaction ===========")
+	tx, err := c.Conn.(driver.ConnBeginTx).BeginTx(ctx, opts)
 	if err != nil {
-		c.logger.Errorf("failed to begin transaction: %s", err)
+		logger.Errorf("failed to begin transaction: %s", err)
 		return nil, err
 	}
-	return &loggingTx{tx: tx, logger: c.logger}, nil
+	return &loggingTx{Tx: tx, logger: logger}, nil
 }
 
 func (c *loggerConn) Close() error {
@@ -77,52 +79,54 @@ func (c *loggerConn) Prepare(query string) (driver.Stmt, error) {
 	panic(fmt.Errorf("don't use Prepare"))
 }
 
-func (s *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {
+func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {
 	cost := startTimer()
+	logger := c.logger.WithContext(ctx)
 
 	defer func() {
-		query = s.interpolateParams(query, args)
+		query = c.interpolateParams(query, args)
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				s.logger.Errorf("failed query %s: %s", err, query)
+				logger.Errorf("failed query %s: %s", err, query)
 			} else {
-				s.logger.Warnf("failed query %s: %s", mysqlErr, query)
+				logger.Warnf("failed query %s: %s", mysqlErr, query)
 			}
 		} else {
-			s.logger.WithField("cost", cost().String()).Debug(query)
+			logger.WithField("cost", cost().String()).Debug(query)
 		}
 	}()
 
-	rows, err = s.Conn.(driver.QueryerContext).QueryContext(ctx, query, args)
+	rows, err = c.Conn.(driver.QueryerContext).QueryContext(ctx, query, args)
 	return
 }
 
-func (s *loggerConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (result driver.Result, err error) {
+func (c *loggerConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (result driver.Result, err error) {
 	cost := startTimer()
+	logger := c.logger.WithContext(ctx)
 
 	defer func() {
-		query = s.interpolateParams(query, args)
+		query = c.interpolateParams(query, args)
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				s.logger.Errorf("failed exec %s: %s", err, query)
+				logger.Errorf("failed exec %s: %s", err, query)
 			} else if mysqlErr.Number == DuplicateEntryErrNumber {
-				s.logger.Warnf("failed exec %s: %s", err, query)
+				logger.Warnf("failed exec %s: %s", err, query)
 			} else {
-				s.logger.Errorf("failed exec %s: %s", mysqlErr, query)
+				logger.Errorf("failed exec %s: %s", mysqlErr, query)
 			}
 			return
 		}
 
-		s.logger.WithField("cost", cost().String()).Debug(query)
+		logger.WithField("cost", cost().String()).Debug(query)
 	}()
 
-	result, err = s.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
+	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
 	return
 }
 
-func (s *loggerConn) interpolateParams(query string, args []driver.NamedValue) string {
+func (c *loggerConn) interpolateParams(query string, args []driver.NamedValue) string {
 	if len(args) == 0 {
 		return query
 	}
@@ -130,7 +134,7 @@ func (s *loggerConn) interpolateParams(query string, args []driver.NamedValue) s
 	if err != nil {
 		return query
 	}
-	sqlForLog, err := interpolateParams(query, argValues, s.cfg.Loc, s.cfg.MaxAllowedPacket)
+	sqlForLog, err := interpolateParams(query, argValues, c.cfg.Loc, c.cfg.MaxAllowedPacket)
 	if err != nil {
 		return query
 	}
@@ -147,12 +151,12 @@ func startTimer() func() time.Duration {
 }
 
 type loggingTx struct {
-	logger *logrus.Logger
-	tx     driver.Tx
+	logger *logrus.Entry
+	driver.Tx
 }
 
 func (tx *loggingTx) Commit() error {
-	if err := tx.tx.Commit(); err != nil {
+	if err := tx.Tx.Commit(); err != nil {
 		tx.logger.Debugf("failed to commit transaction: %s", err)
 		return err
 	}
@@ -161,7 +165,7 @@ func (tx *loggingTx) Commit() error {
 }
 
 func (tx *loggingTx) Rollback() error {
-	if err := tx.tx.Rollback(); err != nil {
+	if err := tx.Tx.Rollback(); err != nil {
 		tx.logger.Debugf("failed to rollback transaction: %s", err)
 		return err
 	}

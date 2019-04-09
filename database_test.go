@@ -1,10 +1,12 @@
 package sqlx_test
 
 import (
+	"context"
 	"database/sql/driver"
 	"os"
 	"testing"
 
+	"github.com/go-courier/metax"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/datatypes"
@@ -32,6 +34,24 @@ var (
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
+	logrus.AddHook(&MetaHook{})
+}
+
+type MetaHook struct {
+}
+
+func (hook *MetaHook) Fire(entry *logrus.Entry) error {
+	ctx := entry.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	meta := metax.MetaFromContext(ctx)
+	entry.Data["meta"] = meta.String()
+	return nil
+}
+
+func (hook *MetaHook) Levels() []logrus.Level {
+	return logrus.AllLevels
 }
 
 type TableOperateTime struct {
@@ -160,9 +180,12 @@ func TestCRUD(t *testing.T) {
 		mysqlConnector,
 		postgresConnector,
 	} {
-		db := dbTest.OpenDB(connector)
+		d := dbTest.OpenDB(connector)
+
+		db := d.WithContext(metax.ContextWithMeta(d.Context(), metax.ParseMeta("_id=11111")))
 
 		userTable := dbTest.Register(&User{})
+
 		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
@@ -210,7 +233,7 @@ func TestCRUD(t *testing.T) {
 			}
 		}
 
-		db.Tables.Range(func(t *builder.Table, idx int) {
+		db.(*sqlx.DB).Tables.Range(func(t *builder.Table, idx int) {
 			_, err := db.ExecExpr(db.Dialect().DropTable(t))
 			tt.NoError(err)
 		})

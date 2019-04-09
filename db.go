@@ -13,8 +13,8 @@ var ErrNotTx = errors.New("db is not *sql.Tx")
 var ErrNotDB = errors.New("db is not *sql.DB")
 
 type SqlExecutor interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }
 
 type SqlxExecutor interface {
@@ -40,10 +40,14 @@ type DBExecutor interface {
 	WithSchema(schema string) DBExecutor
 	// return table of the connecting database
 	T(model builder.Model) *builder.Table
+
+	Context() context.Context
+	WithContext(ctx context.Context) DBExecutor
 }
 
 type MaybeTxExecutor interface {
 	IsTx() bool
+	BeginTx(*sql.TxOptions) (DBExecutor, error)
 	Begin() (DBExecutor, error)
 	Commit() error
 	Rollback() error
@@ -53,6 +57,21 @@ type DB struct {
 	dialect builder.Dialect
 	*Database
 	SqlExecutor
+	ctx context.Context
+}
+
+func (d *DB) WithContext(ctx context.Context) DBExecutor {
+	dd := new(DB)
+	*dd = *d
+	dd.ctx = ctx
+	return dd
+}
+
+func (d *DB) Context() context.Context {
+	if d.ctx != nil {
+		return d.ctx
+	}
+	return context.Background()
 }
 
 func (d DB) WithSchema(schema string) DBExecutor {
@@ -84,7 +103,7 @@ func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
 		return nil, err
 	}
 	e = e.Flatten().ReplaceValueHolder(d.dialect.BindVar)
-	result, err := d.Exec(e.Query(), e.Args()...)
+	result, err := d.ExecContext(d.Context(), e.Query(), e.Args()...)
 	if err != nil {
 		if d.dialect.IsErrorConflict(err) {
 			return nil, NewSqlError(sqlErrTypeConflict, err.Error())
@@ -103,7 +122,7 @@ func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
 		return nil, err
 	}
 	e = e.Flatten().ReplaceValueHolder(d.dialect.BindVar)
-	return d.Query(e.Query(), e.Args()...)
+	return d.QueryContext(d.Context(), e.Query(), e.Args()...)
 }
 
 func (d *DB) QueryExprAndScan(expr builder.SqlExpr, v interface{}) error {
@@ -120,10 +139,14 @@ func (d *DB) IsTx() bool {
 }
 
 func (d *DB) Begin() (DBExecutor, error) {
+	return d.BeginTx(nil)
+}
+
+func (d *DB) BeginTx(opt *sql.TxOptions) (DBExecutor, error) {
 	if d.IsTx() {
 		return nil, ErrNotDB
 	}
-	db, err := d.SqlExecutor.(*sql.DB).Begin()
+	db, err := d.SqlExecutor.(*sql.DB).BeginTx(d.Context(), opt)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +154,7 @@ func (d *DB) Begin() (DBExecutor, error) {
 		Database:    d.Database,
 		dialect:     d.dialect,
 		SqlExecutor: db,
+		ctx:         d.Context(),
 	}, nil
 }
 
