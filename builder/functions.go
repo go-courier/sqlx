@@ -1,6 +1,9 @@
 package builder
 
 func Count(sqlExprs ...SqlExpr) *Function {
+	if len(sqlExprs) == 0 {
+		return Func("COUNT", Expr("1"))
+	}
 	return Func("COUNT", sqlExprs...)
 }
 

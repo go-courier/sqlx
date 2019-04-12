@@ -15,7 +15,7 @@ func TestFunc(t *testing.T) {
 		},
 		"COUNT": {
 			Count(),
-			Expr("COUNT(*)"),
+			Expr("COUNT(1)"),
 		},
 		"AVG": {
 			Avg(),
