@@ -55,7 +55,7 @@ func (s *StmtInsert) Expr() *Ex {
 	return e
 }
 
-func OnDuplicateKeyUpdate(assignments ...*Assignment) *otherAddition {
+func OnDuplicateKeyUpdate(assignments ...*Assignment) *OtherAddition {
 	assigns := Assignments(assignments)
 	if assigns.IsNil() {
 		return nil
@@ -66,7 +66,7 @@ func OnDuplicateKeyUpdate(assignments ...*Assignment) *otherAddition {
 	return AsAddition(e)
 }
 
-func Returning(expr SqlExpr) *otherAddition {
+func Returning(expr SqlExpr) *OtherAddition {
 	e := Expr("RETURNING ")
 	if expr == nil || expr.IsNil() {
 		e.WriteByte('*')

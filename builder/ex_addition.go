@@ -73,9 +73,12 @@ var _ Addition = (*where)(nil)
 
 type where struct {
 	SqlCondition
+	WhereAddition
 }
 
-func (where) weight() additionWeight {
+type WhereAddition struct{}
+
+func (WhereAddition) weight() additionWeight {
 	return whereStmt
 }
 
@@ -101,12 +104,16 @@ func GroupBy(groups ...SqlExpr) *groupBy {
 var _ Addition = (*groupBy)(nil)
 
 type groupBy struct {
+	GroupByAddition
 	groups []SqlExpr
 	// HAVING
 	havingCond SqlCondition
 }
 
-func (groupBy) weight() additionWeight {
+type GroupByAddition struct {
+}
+
+func (GroupByAddition) weight() additionWeight {
 	return groupByStmt
 }
 
@@ -149,10 +156,14 @@ func OrderBy(orders ...*order) *orderBy {
 var _ Addition = (*orderBy)(nil)
 
 type orderBy struct {
+	OrderByAddition
 	orders []*order
 }
 
-func (orderBy) weight() additionWeight {
+type OrderByAddition struct {
+}
+
+func (OrderByAddition) weight() additionWeight {
 	return orderByStmt
 }
 
@@ -225,13 +236,17 @@ func Limit(rowCount int64) *limit {
 var _ Addition = (*limit)(nil)
 
 type limit struct {
+	LimitAddition
 	// LIMIT
 	rowCount int64
 	// OFFSET
 	offsetCount int64
 }
 
-func (limit) weight() additionWeight {
+type LimitAddition struct {
+}
+
+func (LimitAddition) weight() additionWeight {
 	return limitStmt
 }
 
@@ -266,6 +281,7 @@ func OnConflict(columns *Columns) *onConflict {
 }
 
 type onConflict struct {
+	OnConflictAddition
 	columns     *Columns
 	doNothing   bool
 	assignments Assignments
@@ -281,7 +297,10 @@ func (o onConflict) DoUpdateSet(assignments ...*Assignment) *onConflict {
 	return &o
 }
 
-func (onConflict) weight() additionWeight {
+type OnConflictAddition struct {
+}
+
+func (OnConflictAddition) weight() additionWeight {
 	return onConflictStmt
 }
 
@@ -310,22 +329,22 @@ func (o *onConflict) Expr() *Ex {
 	return e
 }
 
-func AsAddition(expr SqlExpr) *otherAddition {
-	return &otherAddition{
+func AsAddition(expr SqlExpr) *OtherAddition {
+	return &OtherAddition{
 		SqlExpr: expr,
 	}
 }
 
-type otherAddition struct {
+type OtherAddition struct {
 	SqlExpr
 }
 
-func (a *otherAddition) IsNil() bool {
-	return a == nil || a.SqlExpr.IsNil()
+func (OtherAddition) weight() additionWeight {
+	return otherStmt
 }
 
-func (otherAddition) weight() additionWeight {
-	return otherStmt
+func (a *OtherAddition) IsNil() bool {
+	return a == nil || a.SqlExpr.IsNil()
 }
 
 func Comment(c string) comment {

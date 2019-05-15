@@ -51,6 +51,6 @@ func (s *StmtSelect) Expr() *Ex {
 	return e
 }
 
-func ForUpdate() *otherAddition {
+func ForUpdate() *OtherAddition {
 	return AsAddition(Expr("FOR UPDATE"))
 }
