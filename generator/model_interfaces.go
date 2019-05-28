@@ -181,6 +181,7 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 	}
 
 	if len(m.Keys.Indexes) > 0 {
+
 		file.WriteBlock(
 			codegen.Func().
 				Named("Indexes").
@@ -193,6 +194,26 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 	}
 
 	if len(m.Keys.UniqueIndexes) > 0 {
+		indexKeys := make([]string, 0)
+
+		for k := range m.Keys.UniqueIndexes {
+			indexKeys = append(indexKeys, k)
+		}
+
+		sort.Strings(indexKeys)
+
+		for _, k := range indexKeys {
+			file.WriteBlock(
+				codegen.Func().
+					Named("UniqueIndex" + codegen.UpperCamelCase(k)).
+					MethodOf(codegen.Var(m.Type())).
+					Return(codegen.Var(codegen.String)).
+					Do(
+						codegen.Return(file.Val(k)),
+					),
+			)
+		}
+
 		file.WriteBlock(
 			codegen.Func().
 				Named("UniqueIndexes").

@@ -29,6 +29,10 @@ func (User) Indexes() github_com_go_courier_sqlx_v2_builder.Indexes {
 	}
 }
 
+func (User) UniqueIndexIName() string {
+	return "I_name"
+}
+
 func (User) UniqueIndexes() github_com_go_courier_sqlx_v2_builder.Indexes {
 	return github_com_go_courier_sqlx_v2_builder.Indexes{
 		"I_name": []string{
