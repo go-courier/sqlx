@@ -15,5 +15,5 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/sirupsen/logrus v1.4.1
 	github.com/stretchr/testify v1.3.0
-	google.golang.org/appengine v1.4.0 // indirect
+	google.golang.org/appengine v1.6.1 // indirect
 )
