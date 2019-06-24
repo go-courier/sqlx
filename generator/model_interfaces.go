@@ -29,7 +29,7 @@ func (m *Model) IndexFieldNames() []string {
 	return indexedFields
 }
 
-func (m *Model) WriteTableInterfaces(file *codegen.File) {
+func (m *Model) WriteTableName(file *codegen.File)  {
 	file.WriteBlock(
 		codegen.DeclVar(codegen.Var(codegen.Star(
 			codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Table"))),
@@ -56,7 +56,9 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 				codegen.Return(file.Val(m.Config.TableName)),
 			),
 	)
+}
 
+func (m *Model) WriteTableInterfaces(file *codegen.File) {
 	if m.Description != nil {
 		file.WriteBlock(
 			codegen.Func().

@@ -97,6 +97,10 @@ func (m *Model) addColumn(col *builder.Column, tpe *types.Var) {
 func (m *Model) WriteTo(file *codegen.File) {
 	m.WriteTableKeyInterfaces(file)
 
+	if m.WithTableName {
+		m.WriteTableName(file)
+	}
+
 	if m.WithTableInterfaces {
 		m.WriteTableInterfaces(file)
 	}

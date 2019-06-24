@@ -15,6 +15,7 @@ func TestSqlFuncGenerator(t *testing.T) {
 	for _, name := range []string{"User", "Org"} {
 		g := NewSqlFuncGenerator(pkg)
 		g.WithComments = true
+		g.WithTableName = true
 		g.WithTableInterfaces = true
 		g.WithMethods = true
 		g.Database = "DBTest"

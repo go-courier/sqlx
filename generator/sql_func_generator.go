@@ -27,8 +27,9 @@ type Config struct {
 	Database   string
 
 	WithComments        bool
+	WithTableName       bool
 	WithTableInterfaces bool
-	WithMethods bool
+	WithMethods         bool
 
 	FieldPrimaryKey   string
 	FieldKeyDeletedAt string
