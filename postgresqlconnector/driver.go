@@ -114,16 +114,16 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 	logger := c.logger.WithContext(ctx)
 
 	defer func() {
-		query = interpolateParams(query, args)
+		q := interpolateParams(query, args)
 
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); !ok {
-				logger.Errorf("failed query %s: %s", err, query)
+				logger.Errorf("failed query %s: %s", err, q)
 			} else {
-				logger.Warnf("failed query %s: %s", pgErr, query)
+				logger.Warnf("failed query %s: %s", pgErr, q)
 			}
 		} else {
-			logger.WithField("cost", cost().String()).Debugf(query)
+			logger.WithField("cost", cost().String()).Debugf("%s", q)
 		}
 	}()
 
@@ -136,20 +136,20 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 	logger := c.logger.WithContext(ctx)
 
 	defer func() {
-		query = interpolateParams(query, args)
+		q := interpolateParams(query, args)
 
 		if err != nil {
 			if pgError, ok := err.(*pq.Error); !ok {
-				logger.Errorf("failed exec %s: %s", err, query)
+				logger.Errorf("failed exec %s: %s", err, q)
 			} else if pgError.Code == "23505" {
-				logger.Warnf("failed exec %s: %s", err, query)
+				logger.Warnf("failed exec %s: %s", err, q)
 			} else {
-				logger.Errorf("failed exec %s: %s", pgError, query)
+				logger.Errorf("failed exec %s: %s", pgError, q)
 			}
 			return
 		}
 
-		logger.WithField("cost", cost().String()).Debugf(query)
+		logger.WithField("cost", cost().String()).Debugf("%s", q)
 	}()
 
 	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)

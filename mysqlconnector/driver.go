@@ -84,16 +84,16 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 	logger := c.logger.WithContext(ctx)
 
 	defer func() {
-		query = c.interpolateParams(query, args)
+		q := c.interpolateParams(query, args)
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				logger.Errorf("failed query %s: %s", err, query)
+				logger.Errorf("failed query %s: %s", err, q)
 			} else {
-				logger.Warnf("failed query %s: %s", mysqlErr, query)
+				logger.Warnf("failed query %s: %s", mysqlErr, q)
 			}
 		} else {
-			logger.WithField("cost", cost().String()).Debug(query)
+			logger.WithField("cost", cost().String()).Debugf("%s", q)
 		}
 	}()
 
@@ -106,38 +106,49 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 	logger := c.logger.WithContext(ctx)
 
 	defer func() {
-		query = c.interpolateParams(query, args)
+		q := c.interpolateParams(query, args)
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				logger.Errorf("failed exec %s: %s", err, query)
+				logger.Errorf("failed exec %s: %s", err, q)
 			} else if mysqlErr.Number == DuplicateEntryErrNumber {
-				logger.Warnf("failed exec %s: %s", err, query)
+				logger.Warnf("failed exec %s: %s", err, q)
 			} else {
-				logger.Errorf("failed exec %s: %s", mysqlErr, query)
+				logger.Errorf("failed exec %s: %s", mysqlErr, q)
 			}
 			return
 		}
 
-		logger.WithField("cost", cost().String()).Debug(query)
+		logger.WithField("cost", cost().String()).Debugf("%s", q)
 	}()
 
 	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
 	return
 }
 
-func (c *loggerConn) interpolateParams(query string, args []driver.NamedValue) string {
-	if len(args) == 0 {
-		return query
+func (c *loggerConn) interpolateParams(query string, args []driver.NamedValue) fmt.Stringer {
+	return &SqlPrinter{query, args, c.cfg}
+}
+
+type SqlPrinter struct {
+	query string
+	args  []driver.NamedValue
+	cfg   *mysql.Config
+}
+
+func (p *SqlPrinter) String() string {
+	if len(p.args) == 0 {
+		return p.query
 	}
-	argValues, err := namedValueToValue(args)
+	argValues, err := namedValueToValue(p.args)
 	if err != nil {
-		return query
+		return p.query
 	}
-	sqlForLog, err := interpolateParams(query, argValues, c.cfg.Loc, c.cfg.MaxAllowedPacket)
+	sqlForLog, err := interpolateParams(p.query, argValues, p.cfg.Loc, p.cfg.MaxAllowedPacket)
 	if err != nil {
-		return query
+		return p.query
 	}
+
 	return sqlForLog
 }
 
