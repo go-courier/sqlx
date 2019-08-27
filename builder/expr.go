@@ -135,11 +135,16 @@ func (e *Ex) Flatten() *Ex {
 	index := 0
 	expr := Expr("")
 	data := e.Bytes()
+	argsLen := e.ArgsLen()
 
 	for i := range data {
 		c := data[i]
 		switch c {
 		case '?':
+			if argsLen == 0 {
+				expr.WriteByte(c)
+				continue
+			}
 			arg := e.args[index]
 			switch a := arg.(type) {
 			case ValuerExpr:
@@ -180,11 +185,16 @@ func (e *Ex) ReplaceValueHolder(bindVar func(idx int) string) *Ex {
 	index := 0
 	expr := Expr("")
 	data := e.Bytes()
+	argsLen := e.ArgsLen()
 
 	for i := range data {
 		c := data[i]
 		switch c {
 		case '?':
+			if argsLen == 0 {
+				expr.WriteByte(c)
+				continue
+			}
 			expr.WriteString(bindVar(index))
 			expr.AppendArgs(e.args[index])
 			index++
