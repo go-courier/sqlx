@@ -9,14 +9,16 @@ services:
 - postgresql
 
 addons:
-  postgresql: 9.6
+  postgresql: 10
   apt:
     sources:
     - mysql-5.7-trusty
     packages:
     - mysql-server
     - mysql-client
-    - postgresql-9.6-postgis-2.3
+    - postgresql-10-postgis-2.4
+    - postgresql-10-postgis-2.4-scripts
+    - postgresql-client-10
 
 before_install:
 - sudo service mysql restart
