@@ -238,7 +238,18 @@ func TestCRUD(t *testing.T) {
 			tt.NoError(err)
 		})
 	}
+}
 
+type UserSet map[string]*User
+
+func (UserSet) New() interface{} {
+	return &User{}
+}
+
+func (u UserSet) Next(v interface{}) error {
+	user := v.(*User)
+	u[user.Name] = user
+	return nil
 }
 
 func TestSelect(t *testing.T) {
@@ -253,6 +264,11 @@ func TestSelect(t *testing.T) {
 		db := dbTest.OpenDB(connector)
 
 		table := dbTest.Register(&User{})
+
+		db.Tables.Range(func(t *builder.Table, idx int) {
+			db.ExecExpr(db.Dialect().DropTable(t))
+		})
+
 		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
@@ -274,6 +290,17 @@ func TestSelect(t *testing.T) {
 			tt.NoError(err)
 			tt.Len(users, 10)
 		}
+
+		{
+			userSet := UserSet{}
+			err := db.QueryExprAndScan(
+				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
+				userSet,
+			)
+			tt.NoError(err)
+			tt.Len(userSet, 10)
+		}
+
 		{
 			user := User{}
 			err := db.QueryExprAndScan(
