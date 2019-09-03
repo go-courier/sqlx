@@ -51,7 +51,7 @@ func Scan(rows *sql.Rows, v interface{}) error {
 		}
 	}
 
-	if !modelScanner.direct && !modelScanner.isSlice && modelScanner.count == 0 {
+	if !modelScanner.direct && !modelScanner.isSlice && modelScanner.scanIterator == nil && modelScanner.count == 0 {
 		return NewSqlError(sqlErrTypeNotFound, "record is not found")
 	}
 
