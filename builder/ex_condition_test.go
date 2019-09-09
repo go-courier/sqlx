@@ -9,29 +9,9 @@ func TestBuilderCond(t *testing.T) {
 		expr   SqlExpr
 		expect SqlExpr
 	}{
-		"CondRules with nil": {
-			NewCondRules(),
-			nil,
-		},
-		"CondRules with all false": {
-			NewCondRules().
-				When(false, Col("a").Eq(1)).
-				When(false, Col("b").Like(`g`)).
-				When(false, Col("b").Like(`g`)),
-			nil,
-		},
-		"CondRules": {
-			NewCondRules().
-				When(true, Col("a").Eq(1)).
-				When(true, Col("b").Like(`g`)).
-				When(false, Col("b").Like(`g`)),
-			Expr(
-				"(a = ?) AND (b LIKE ?)",
-				1, "%g%",
-			),
-		},
 		"Chain Condition": {
 			Col("a").Eq(1).
+				And(nil).
 				And(Col("b").LeftLike("c")).
 				Or(Col("a").Eq(2)).
 				Xor(Col("b").RightLike("g")),
