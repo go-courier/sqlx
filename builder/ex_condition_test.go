@@ -44,6 +44,10 @@ func TestBuilderCond(t *testing.T) {
 			Xor(
 				Or(
 					And(
+						(*Condition)(nil),
+						(*Condition)(nil),
+						(*Condition)(nil),
+						(*Condition)(nil),
 						Col("a").Eq(1),
 						Col("b").Like("c"),
 					),

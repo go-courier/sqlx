@@ -29,7 +29,7 @@ func (c *Condition) IsNil() bool {
 	return c == nil || c.SqlExpr.IsNil()
 }
 
-func (c Condition) And(cond SqlCondition) *Condition {
+func (c *Condition) And(cond SqlCondition) *Condition {
 	if c.IsNil() {
 		if cond.IsNil() {
 			return nil
@@ -38,7 +38,7 @@ func (c Condition) And(cond SqlCondition) *Condition {
 	}
 	e := Expr("")
 	e.WriteGroup(func(e *Ex) {
-		e.WriteExpr(&c)
+		e.WriteExpr(c)
 	})
 	e.WriteString(" AND ")
 	e.WriteGroup(func(e *Ex) {
@@ -47,13 +47,13 @@ func (c Condition) And(cond SqlCondition) *Condition {
 	return AsCond(e)
 }
 
-func (c Condition) Or(cond SqlCondition) *Condition {
+func (c *Condition) Or(cond SqlCondition) *Condition {
 	if c.IsNil() {
 		return AsCond(cond.Expr())
 	}
 	e := Expr("")
 	e.WriteGroup(func(e *Ex) {
-		e.WriteExpr(&c)
+		e.WriteExpr(c)
 	})
 	e.WriteString(" OR ")
 	e.WriteGroup(func(e *Ex) {
@@ -62,13 +62,13 @@ func (c Condition) Or(cond SqlCondition) *Condition {
 	return AsCond(e)
 }
 
-func (c Condition) Xor(cond SqlCondition) *Condition {
+func (c *Condition) Xor(cond SqlCondition) *Condition {
 	if c.IsNil() {
 		return AsCond(cond.Expr())
 	}
 	e := Expr("")
 	e.WriteGroup(func(e *Ex) {
-		e.WriteExpr(&c)
+		e.WriteExpr(c)
 	})
 	e.WriteString(" XOR ")
 	e.WriteGroup(func(e *Ex) {
@@ -78,7 +78,7 @@ func (c Condition) Xor(cond SqlCondition) *Condition {
 }
 
 func And(condList ...SqlCondition) *Condition {
-	c := AsCond(Expr(""))
+	c := (*Condition)(nil)
 	for _, cond := range condList {
 		if cond == nil || cond.IsNil() {
 			continue
@@ -89,7 +89,7 @@ func And(condList ...SqlCondition) *Condition {
 }
 
 func Or(condList ...SqlCondition) *Condition {
-	c := AsCond(Expr(""))
+	c := (*Condition)(nil)
 	for _, cond := range condList {
 		if cond == nil || cond.IsNil() {
 			continue
@@ -100,7 +100,7 @@ func Or(condList ...SqlCondition) *Condition {
 }
 
 func Xor(condList ...SqlCondition) *Condition {
-	c := AsCond(Expr(""))
+	c := (*Condition)(nil)
 	for _, cond := range condList {
 		if cond == nil || cond.IsNil() {
 			continue
