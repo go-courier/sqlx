@@ -16,28 +16,28 @@ func TestTimestamp(t *testing.T) {
 	tt := require.New(t)
 
 	t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
-	dt := MySQLTimestamp(t0)
+	dt := Timestamp(t0)
 	tt.Equal("2017-03-27T23:58:59+08:00", dt.String())
 	tt.Equal("2017-03-27T23:58:59+08:00", dt.Format(time.RFC3339))
 	tt.Equal(int64(1490630339), dt.Unix())
-	tt.Equal(MySQLTimestampUnixZero.Unix(), int64(0))
-	tt.Equal(MySQLTimestampUnixZero.IsZero(), true)
-	tt.Equal("1970-01-01T08:00:00+08:00", MySQLTimestampUnixZero.String())
+	tt.Equal(TimestampUnixZero.Unix(), int64(0))
+	tt.Equal(TimestampUnixZero.IsZero(), true)
+	tt.Equal("1970-01-01T08:00:00+08:00", TimestampUnixZero.String())
 
 	{
 		input := "1970-01-01"
-		r, err := ParseMySQLTimestampFromStringWithLayout(input, DATE_LAYOUT_S1)
+		r, err := ParseTimestampFromStringWithLayout(input, DATE_LAYOUT_S1)
 		tt.Nil(err)
 		input = "1970-01-01 08:00:00"
-		r, err = ParseMySQLTimestampFromStringWithLayout(input, TIME_LAYOUT_S1)
+		r, err = ParseTimestampFromStringWithLayout(input, TIME_LAYOUT_S1)
 		tt.Nil(err)
-		tt.Equal(MySQLTimestampZero.IsZero(), r.IsZero())
+		tt.Equal(TimestampZero.IsZero(), r.IsZero())
 
 		input = "1970-01-01 08:00:00"
-		_, err = ParseMySQLTimestampFromStringWithLayout(input, DATE_LAYOUT_S1)
+		_, err = ParseTimestampFromStringWithLayout(input, DATE_LAYOUT_S1)
 		tt.NotNil(err)
 		input = "1970-01-01"
-		_, err = ParseMySQLTimestampFromStringWithLayout(input, TIME_LAYOUT_S1)
+		_, err = ParseTimestampFromStringWithLayout(input, TIME_LAYOUT_S1)
 		tt.NotNil(err)
 	}
 
@@ -46,7 +46,7 @@ func TestTimestamp(t *testing.T) {
 		tt.NoError(err)
 		tt.Equal("2017-03-27T23:58:59+08:00", string(dateString))
 
-		dt2 := MySQLTimestampZero
+		dt2 := TimestampZero
 		tt.True(dt2.IsZero())
 		err = dt2.UnmarshalText(dateString)
 		tt.NoError(err)
@@ -58,7 +58,7 @@ func TestTimestamp(t *testing.T) {
 		tt.NoError(err)
 		tt.Equal(int64(1490630339), value.(int64))
 
-		dt2 := MySQLTimestampZero
+		dt2 := TimestampZero
 		tt.True(dt2.IsZero())
 		err = dt2.Scan(value)
 		tt.NoError(err)
@@ -66,7 +66,7 @@ func TestTimestamp(t *testing.T) {
 		tt.False(dt2.IsZero())
 	}
 	{
-		dt3 := MySQLTimestampZero
+		dt3 := TimestampZero
 		err := dt3.UnmarshalText([]byte(""))
 		tt.NoError(err)
 	}

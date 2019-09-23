@@ -190,11 +190,11 @@ func (m *User) ConditionByStruct(db github_com_go_courier_sqlx_v2.DBExecutor) *g
 func (m *User) Create(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 
 	if m.CreatedAt.IsZero() {
-		m.CreatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		m.CreatedAt = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	if m.UpdatedAt.IsZero() {
-		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(github_com_go_courier_sqlx_v2.InsertToDB(db, m, nil))
@@ -209,11 +209,11 @@ func (m *User) CreateOnDuplicateWithUpdateFields(db github_com_go_courier_sqlx_v
 	}
 
 	if m.CreatedAt.IsZero() {
-		m.CreatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		m.CreatedAt = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	if m.UpdatedAt.IsZero() {
-		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		m.UpdatedAt = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m, updateFields...)
@@ -309,7 +309,7 @@ func (m *User) FetchByID(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 func (m *User) UpdateByIDWithMap(db github_com_go_courier_sqlx_v2.DBExecutor, fieldValues github_com_go_courier_sqlx_v2_builder.FieldValues) error {
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	table := db.T(m)
@@ -390,11 +390,11 @@ func (m *User) SoftDeleteByID(db github_com_go_courier_sqlx_v2.DBExecutor) error
 
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValues{}
 	if _, ok := fieldValues["DeletedAt"]; !ok {
-		fieldValues["DeletedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["DeletedAt"] = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(
@@ -436,7 +436,7 @@ func (m *User) FetchByName(db github_com_go_courier_sqlx_v2.DBExecutor) error {
 func (m *User) UpdateByNameWithMap(db github_com_go_courier_sqlx_v2.DBExecutor, fieldValues github_com_go_courier_sqlx_v2_builder.FieldValues) error {
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	table := db.T(m)
@@ -517,11 +517,11 @@ func (m *User) SoftDeleteByName(db github_com_go_courier_sqlx_v2.DBExecutor) err
 
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValues{}
 	if _, ok := fieldValues["DeletedAt"]; !ok {
-		fieldValues["DeletedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["DeletedAt"] = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	if _, ok := fieldValues["UpdatedAt"]; !ok {
-		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.MySQLTimestamp(time.Now())
+		fieldValues["UpdatedAt"] = github_com_go_courier_sqlx_v2_datatypes.Timestamp(time.Now())
 	}
 
 	_, err := db.ExecExpr(

@@ -14,15 +14,15 @@ import (
 type User struct {
 	ID uint64 `db:"f_id,autoincrement"`
 	// 姓名
-	Name      string                   `db:"f_name,default=''"`
-	Username  string                   `db:"f_username,default=''"`
-	Nickname  string                   `db:"f_nickname,default=''"`
-	Gender    Gender                   `db:"f_gender,default='0'"`
-	Boolean   bool                     `db:"f_boolean,default=false"`
-	Geom      GeomString               `db:"f_geom"`
-	CreatedAt datatypes.MySQLTimestamp `db:"f_created_at,default='0'"`
-	UpdatedAt datatypes.MySQLTimestamp `db:"f_updated_at,default='0'"`
-	DeletedAt datatypes.MySQLTimestamp `db:"f_deleted_at,default='0'"`
+	Name      string              `db:"f_name,default=''"`
+	Username  string              `db:"f_username,default=''"`
+	Nickname  string              `db:"f_nickname,default=''"`
+	Gender    Gender              `db:"f_gender,default='0'"`
+	Boolean   bool                `db:"f_boolean,default=false"`
+	Geom      GeomString          `db:"f_geom"`
+	CreatedAt datatypes.Timestamp `db:"f_created_at,default='0'"`
+	UpdatedAt datatypes.Timestamp `db:"f_updated_at,default='0'"`
+	DeletedAt datatypes.Timestamp `db:"f_deleted_at,default='0'"`
 }
 
 type GeomString struct {

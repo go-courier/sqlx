@@ -11,7 +11,7 @@ func TestDatetime(t *testing.T) {
 	tt := require.New(t)
 
 	t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
-	dt := MySQLDatetime(t0)
+	dt := Datetime(t0)
 	tt.Equal("2017-03-27T23:58:59+08:00", dt.String())
 	tt.Equal("2017-03-27T23:58:59+08:00", dt.Format(time.RFC3339))
 	tt.Equal(int64(1490630339), dt.Unix())
@@ -21,7 +21,7 @@ func TestDatetime(t *testing.T) {
 		tt.NoError(err)
 		tt.Equal("2017-03-27T23:58:59+08:00", string(dateString))
 
-		dt2 := MySQLDatetimeZero
+		dt2 := DatetimeZero
 		tt.True(dt2.IsZero())
 		err = dt2.UnmarshalText(dateString)
 		tt.NoError(err)
@@ -34,7 +34,7 @@ func TestDatetime(t *testing.T) {
 		tt.NoError(err)
 		tt.Equal("2017-03-27T23:58:59+08:00", value.(time.Time).In(CST).Format(time.RFC3339))
 
-		dt2 := MySQLDatetimeZero
+		dt2 := DatetimeZero
 		tt.True(dt2.IsZero())
 		err = dt2.Scan(value)
 		tt.NoError(err)
@@ -43,7 +43,7 @@ func TestDatetime(t *testing.T) {
 	}
 
 	{
-		dt3 := MySQLTimestampZero
+		dt3 := TimestampZero
 		err := dt3.UnmarshalText([]byte(""))
 		tt.NoError(err)
 	}
