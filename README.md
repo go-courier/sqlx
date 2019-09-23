@@ -9,7 +9,6 @@
 Sql helpers just for mysql(5.7+)/postgres(10+) and mysql/postgres-compatibility db.
 
 
-
 ```go
 // @def primary ID
 // @def index I_nickname/BTREE Nickname
@@ -25,8 +24,8 @@ type User struct {
 	Gender    Gender                   `db:"F_gender,default='0'"`
 	Boolean   bool                     `db:"F_boolean,default=false"`
 	Geom      GeomString               `db:"F_geom"`
-	CreatedAt datatypes.MySQLTimestamp `db:"F_created_at,default='0'"`
-	UpdatedAt datatypes.MySQLTimestamp `db:"F_updated_at,default='0'"`
+	CreatedAt datatypes.Timestamp `db:"F_created_at,default='0'"`
+	UpdatedAt datatypes.Timestamp `db:"F_updated_at,default='0'"`
 	Enabled   datatypes.Bool           `db:"F_enabled,default='0'"`
 }
 
