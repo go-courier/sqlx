@@ -244,6 +244,14 @@ func (cols *Columns) Len() int {
 	return cols.l.Len()
 }
 
+func (cols *Columns) MustFields(fieldNames ...string) *Columns {
+	nextCols, err := cols.Fields(fieldNames...)
+	if err != nil {
+		panic(err)
+	}
+	return nextCols
+}
+
 func (cols *Columns) Fields(fieldNames ...string) (*Columns, error) {
 	if len(fieldNames) == 0 {
 		return cols.Clone(), nil
