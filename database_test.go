@@ -113,13 +113,13 @@ func (user *User) PrimaryKey() []string {
 
 func (user *User) Indexes() builder.Indexes {
 	return builder.Indexes{
-		"I_nickname": {"Nickname"},
+		"i_nickname": {"Nickname"},
 	}
 }
 
 func (user *User) UniqueIndexes() builder.Indexes {
 	return builder.Indexes{
-		"I_name": {"Name"},
+		"i_name": {"Name"},
 	}
 }
 
@@ -143,13 +143,13 @@ func (user *User2) PrimaryKey() []string {
 
 func (user *User2) Indexes() builder.Indexes {
 	return builder.Indexes{
-		"I_nickname": {"Nickname"},
+		"i_nickname": {"Nickname"},
 	}
 }
 
 func (user *User2) UniqueIndexes() builder.Indexes {
 	return builder.Indexes{
-		"I_name": {"RealName"},
+		"i_name": {"RealName"},
 	}
 }
 
@@ -163,7 +163,7 @@ func TestMigrate(t *testing.T) {
 
 	for _, connector := range []driver.Connector{
 		mysqlConnector,
-		//postgresConnector,
+		postgresConnector,
 	} {
 		for _, schema := range []string{"import", "public", "backup"} {
 			t.Run("create table", func(t *testing.T) {
@@ -180,6 +180,13 @@ func TestMigrate(t *testing.T) {
 				require.NoError(t, err)
 
 				t.Run("migrate to user2", func(t *testing.T) {
+					dbTest.Register(&User2{})
+					db := dbTest.OpenDB(connector).WithSchema(schema)
+					err := migration.Migrate(db, nil)
+					require.NoError(t, err)
+				})
+
+				t.Run("migrate to user2 again", func(t *testing.T) {
 					dbTest.Register(&User2{})
 					db := dbTest.OpenDB(connector).WithSchema(schema)
 					err := migration.Migrate(db, nil)

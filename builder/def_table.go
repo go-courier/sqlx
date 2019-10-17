@@ -161,7 +161,9 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 			return
 		}
 
-		exprList = append(exprList, dialect.AddColumn(col))
+		if col.DeprecatedActions == nil {
+			exprList = append(exprList, dialect.AddColumn(col))
+		}
 	})
 
 	// indexes
