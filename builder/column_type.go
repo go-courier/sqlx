@@ -27,6 +27,12 @@ func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType
 				ct.Null = true
 			case "autoincrement":
 				ct.AutoIncrement = true
+			case "deprecated":
+				rename := ""
+				if len(nameAndValue) > 1 {
+					rename = nameAndValue[1]
+				}
+				ct.DeprecatedActions = &DeprecatedActions{RenameTo: rename}
 			case "size":
 				if len(nameAndValue) == 1 {
 					panic(fmt.Errorf("missing size value"))
@@ -70,4 +76,10 @@ type ColumnType struct {
 	AutoIncrement bool
 
 	Comment string
+
+	DeprecatedActions *DeprecatedActions
+}
+
+type DeprecatedActions struct {
+	RenameTo string `name:"rename"`
 }

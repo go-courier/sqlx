@@ -26,6 +26,10 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 		erd.Tables[t.Name] = t
 
 		table.Columns.Range(func(col *builder.Column, idx int) {
+			if col.DeprecatedActions != nil {
+				return
+			}
+
 			c := &ERCol{
 				Name:     col.Name,
 				DataType: dialect.DataType(col.ColumnType).Expr().String(),

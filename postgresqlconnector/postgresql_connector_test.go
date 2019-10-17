@@ -14,7 +14,8 @@ func TestMysqlConnector(t *testing.T) {
 
 	table := builder.T("t",
 		builder.Col("F_id").Type(uint64(0), ",autoincrement"),
-		builder.Col("F_name").Type("", ",size=128,default=''"),
+		builder.Col("f_old_name").Type("", ",deprecated=f_name"),
+		builder.Col("f_name").Type("", ",size=128,default=''"),
 		builder.Col("F_geo").Type(&Point{}, ""),
 		builder.Col("F_created_at").Type(int64(0), ",default='0'"),
 		builder.Col("F_updated_at").Type(int64(0), ",default='0'"),

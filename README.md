@@ -16,17 +16,19 @@ Sql helpers just for mysql(5.7+)/postgres(10+) and mysql/postgres-compatibility 
 // @def index I_geom/SPATIAL Geom
 // @def unique_index I_name Name
 type User struct {
-	ID uint64 `db:"F_id,autoincrement"`
+	ID uint64 `db:"f_id,autoincrement"`
 	// 姓名
-	Name      string                   `db:"F_name,default=''"`
-	Username  string                   `db:"F_username,default=''"`
-	Nickname  string                   `db:"F_nickname,default=''"`
-	Gender    Gender                   `db:"F_gender,default='0'"`
-	Boolean   bool                     `db:"F_boolean,default=false"`
-	Geom      GeomString               `db:"F_geom"`
-	CreatedAt datatypes.Timestamp `db:"F_created_at,default='0'"`
-	UpdatedAt datatypes.Timestamp `db:"F_updated_at,default='0'"`
-	Enabled   datatypes.Bool           `db:"F_enabled,default='0'"`
+	NameNeedToDrop   string                   `db:"f_name_need_to_drop,deprecated"`
+	OldName   string                          `db:"f_old_name,deprecated=f_name"`
+	Name      string                          `db:"f_name,default=''"`
+	Username  string                          `db:"f_username,default=''"`
+	Nickname  string                          `db:"f_nickname,default=''"`
+	Gender    Gender                          `db:"f_gender,default='0'"`
+	Boolean   bool                            `db:"f_boolean,default=false"`
+	Geom      GeomString                      `db:"f_geom"`
+	CreatedAt datatypes.Timestamp             `db:"f_created_at,default='0'"`
+	UpdatedAt datatypes.Timestamp             `db:"f_updated_at,default='0'"`
+	Enabled   datatypes.Bool                  `db:"f_enabled,default='0'"`
 }
 
 type GeomString struct {

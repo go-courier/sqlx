@@ -79,7 +79,7 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 			continue
 		}
 
-		exprList := table.Diff(prevTable, dialect, opts.SkipDropColumn)
+		exprList := table.Diff(prevTable, dialect)
 
 		for _, expr := range exprList {
 			if !(expr == nil || expr.IsNil()) {
@@ -256,6 +256,10 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 		}
 
 		t.Columns.Range(func(col *builder.Column, idx int) {
+			if col.DeprecatedActions != nil {
+				return
+			}
+
 			if idx > 0 {
 				e.WriteByte(',')
 			}
@@ -319,6 +323,17 @@ func (c *PostgreSQLConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	return e
 }
 
+func (c *PostgreSQLConnector) RenameColumn(col *builder.Column, target *builder.Column) builder.SqlExpr{
+	e := builder.Expr("ALTER TABLE ")
+	e.WriteExpr(col.Table)
+	e.WriteString(" RENAME COLUMN ")
+	e.WriteExpr(col)
+	e.WriteString(" TO ")
+	e.WriteExpr(target)
+	e.WriteEnd()
+	return e
+}
+
 func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column) builder.SqlExpr {
 	if col.AutoIncrement {
 		return nil
@@ -362,7 +377,7 @@ func (c *PostgreSQLConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 	e.WriteString(" DROP COLUMN ")
-	e.WriteExpr(col)
+	e.WriteString(col.Name)
 	e.WriteEnd()
 	return e
 }

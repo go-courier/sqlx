@@ -82,6 +82,10 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 	)
 
 	m.Columns.Range(func(col *builder.Column, idx int) {
+		if col.DeprecatedActions != nil {
+			return
+		}
+
 		file.WriteBlock(
 			codegen.Func().
 				Named("FieldKey" + col.FieldName).

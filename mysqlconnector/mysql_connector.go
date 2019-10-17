@@ -63,7 +63,6 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 		table := d.Tables.Table(name)
 		prevTable := prevDB.Table(name)
 
-
 		if prevTable == nil {
 			for _, expr := range dialect.CreateTableIsNotExists(table) {
 				if _, err := db.ExecExpr(expr); err != nil {
@@ -73,7 +72,7 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 			continue
 		}
 
-		exprList := table.Diff(prevTable, dialect, opts.SkipDropColumn)
+		exprList := table.Diff(prevTable, dialect)
 
 		for _, expr := range exprList {
 			if !expr.IsNil() {
@@ -233,6 +232,10 @@ func (c *MysqlConnector) CreateTableIsNotExists(table *builder.Table) (exprs []b
 		}
 
 		table.Columns.Range(func(col *builder.Column, idx int) {
+			if col.DeprecatedActions != nil {
+				return
+			}
+
 			if idx > 0 {
 				e.WriteByte(',')
 			}
@@ -312,6 +315,19 @@ func (c *MysqlConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	return e
 }
 
+func (c *MysqlConnector) RenameColumn(col *builder.Column, target *builder.Column) builder.SqlExpr {
+	e := builder.Expr("ALTER TABLE ")
+	e.WriteExpr(col.Table)
+	e.WriteString(" CHANGE ")
+	e.WriteExpr(col)
+	e.WriteByte(' ')
+	e.WriteExpr(target)
+	e.WriteByte(' ')
+	e.WriteExpr(c.DataType(target.ColumnType))
+	e.WriteEnd()
+	return e
+}
+
 func (c *MysqlConnector) ModifyColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
@@ -327,7 +343,7 @@ func (c *MysqlConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 	e.WriteString(" DROP COLUMN ")
-	e.WriteExpr(col)
+	e.WriteString(col.Name)
 	e.WriteEnd()
 	return e
 }

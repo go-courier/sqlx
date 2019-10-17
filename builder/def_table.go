@@ -2,6 +2,7 @@ package builder
 
 import (
 	"container/list"
+	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -128,55 +129,67 @@ func (t *Table) AssignmentsByFieldValues(fieldValues FieldValues) (assignments A
 	return
 }
 
-func (t *Table) Diff(prevTable *Table, dialect Dialect, skipDropColumn bool) (exprList []SqlExpr) {
-	cols := map[string]bool{}
-
-	// add or modify columns
+func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
+	// diff columns
 	t.Columns.Range(func(col *Column, idx int) {
-		cols[col.Name] = true
-		if prevTable.Col(col.Name) == nil {
-			exprList = append(exprList, dialect.AddColumn(col))
+		if prevTable.Col(col.Name) != nil {
+			currentCol := t.Col(col.Name)
+			if currentCol != nil {
+				if currentCol.DeprecatedActions != nil {
+					renameTo := currentCol.DeprecatedActions.RenameTo
+					if renameTo != "" {
+						prevCol := prevTable.Col(renameTo)
+						if prevCol != nil {
+							exprList = append(exprList, dialect.DropColumn(prevCol))
+						}
+						targetCol := t.Col(renameTo)
+						if targetCol == nil {
+							panic(fmt.Errorf("col `%s` is not declared", renameTo))
+						}
+
+						exprList = append(exprList, dialect.RenameColumn(col, targetCol))
+						prevTable.AddCol(targetCol)
+						return
+					}
+					exprList = append(exprList, dialect.DropColumn(col))
+					return
+				}
+				exprList = append(exprList, dialect.ModifyColumn(col))
+				return
+			}
+			exprList = append(exprList, dialect.DropColumn(col))
+			return
+		}
+
+		exprList = append(exprList, dialect.AddColumn(col))
+	})
+
+	// indexes
+	indexes := map[string]bool{}
+
+	t.Keys.Range(func(key *Key, idx int) {
+		name := key.Name
+		if key.IsPrimary() {
+			name = dialect.PrimaryKeyName()
+		}
+		indexes[name] = true
+
+		prevKey := prevTable.Key(name)
+		if prevKey == nil {
+			exprList = append(exprList, dialect.AddIndex(key))
 		} else {
-			exprList = append(exprList, dialect.ModifyColumn(col))
+			if !key.IsPrimary() && key.Columns.Expr().Query() != prevTable.Columns.Expr().Query() {
+				exprList = append(exprList, dialect.DropIndex(key))
+				exprList = append(exprList, dialect.AddIndex(key))
+			}
 		}
 	})
 
-	{
-		indexes := map[string]bool{}
-
-		t.Keys.Range(func(key *Key, idx int) {
-			name := key.Name
-			if key.IsPrimary() {
-				name = dialect.PrimaryKeyName()
-			}
-			indexes[name] = true
-
-			prevKey := prevTable.Key(name)
-			if prevKey == nil {
-				exprList = append(exprList, dialect.AddIndex(key))
-			} else {
-				if !key.IsPrimary() && key.Columns.Expr().Query() != prevTable.Columns.Expr().Query() {
-					exprList = append(exprList, dialect.DropIndex(key))
-					exprList = append(exprList, dialect.AddIndex(key))
-				}
-			}
-		})
-
-		prevTable.Keys.Range(func(key *Key, idx int) {
-			if _, ok := indexes[strings.ToLower(key.Name)]; !ok {
-				exprList = append(exprList, dialect.DropIndex(key))
-			}
-		})
-	}
-
-	// drop columns
-	if !skipDropColumn {
-		prevTable.Columns.Range(func(col *Column, idx int) {
-			if _, ok := cols[strings.ToLower(col.Name)]; !ok {
-				exprList = append(exprList, dialect.DropColumn(col))
-			}
-		})
-	}
+	prevTable.Keys.Range(func(key *Key, idx int) {
+		if _, ok := indexes[strings.ToLower(key.Name)]; !ok {
+			exprList = append(exprList, dialect.DropIndex(key))
+		}
+	})
 
 	return
 }

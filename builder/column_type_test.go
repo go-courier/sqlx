@@ -10,6 +10,10 @@ import (
 
 func TestColumnTypeFromTypeAndTag(t *testing.T) {
 	cases := map[string]*ColumnType{
+		`,deprecated=f_target_env_id`: &ColumnType{
+			Type:              reflect.TypeOf(1),
+			DeprecatedActions: &DeprecatedActions{RenameTo: "f_target_env_id"},
+		},
 		`,autoincrement`: &ColumnType{
 			Type:          reflect.TypeOf(1),
 			AutoIncrement: true,

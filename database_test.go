@@ -124,48 +124,79 @@ func (user *User) UniqueIndexes() builder.Indexes {
 }
 
 type User2 struct {
-	User
-	Age int32 `db:"f_age,default='0'"`
+	ID       uint64 `db:"f_id,autoincrement"`
+	Nickname string `db:"f_nickname,size=255,default=''"`
+	Gender   Gender `db:"f_gender,default='0'"`
+	Name     string `db:"f_name,deprecated=f_real_name"`
+	RealName string `db:"f_real_name,size=255,default=''"`
+	Age      int32  `db:"f_age,default='0'"`
+	Username string `db:"f_username,deprecated"`
+}
+
+func (user *User2) TableName() string {
+	return "t_user"
+}
+
+func (user *User2) PrimaryKey() []string {
+	return []string{"ID"}
+}
+
+func (user *User2) Indexes() builder.Indexes {
+	return builder.Indexes{
+		"I_nickname": {"Nickname"},
+	}
+}
+
+func (user *User2) UniqueIndexes() builder.Indexes {
+	return builder.Indexes{
+		"I_name": {"RealName"},
+	}
 }
 
 func TestMigrate(t *testing.T) {
-	tt := require.New(t)
 	os.Setenv("PROJECT_FEATURE", "test")
 	defer func() {
 		os.Remove("PROJECT_FEATURE")
 	}()
+
 	dbTest := sqlx.NewFeatureDatabase("test_for_migrate")
 
 	for _, connector := range []driver.Connector{
 		mysqlConnector,
-		postgresConnector,
+		//postgresConnector,
 	} {
 		for _, schema := range []string{"import", "public", "backup"} {
-			db := dbTest.OpenDB(connector).WithSchema(schema)
-			{
+			t.Run("create table", func(t *testing.T) {
 				dbTest.Register(&User{})
+				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				tt.NoError(err)
-			}
-			{
-				dbTest.Register(&User{})
-				err := migration.Migrate(db, nil)
-				tt.NoError(err)
-			}
-			{
-				dbTest.Register(&User2{})
-				err := migration.Migrate(db, nil)
-				tt.NoError(err)
-			}
-			{
-				dbTest.Register(&User{})
-				err := migration.Migrate(db, nil)
-				tt.NoError(err)
-			}
+				require.NoError(t, err)
+			})
 
-			dbTest.Tables.Range(func(t *builder.Table, idx int) {
-				_, err := db.ExecExpr(db.Dialect().DropTable(t))
-				tt.NoError(err)
+			t.Run("no migrate", func(t *testing.T) {
+				dbTest.Register(&User{})
+				db := dbTest.OpenDB(connector).WithSchema(schema)
+				err := migration.Migrate(db, nil)
+				require.NoError(t, err)
+
+				t.Run("migrate to user2", func(t *testing.T) {
+					dbTest.Register(&User2{})
+					db := dbTest.OpenDB(connector).WithSchema(schema)
+					err := migration.Migrate(db, nil)
+					require.NoError(t, err)
+				})
+			})
+
+			t.Run("migrate to user", func(t *testing.T) {
+				db := dbTest.OpenDB(connector).WithSchema(schema)
+				err := migration.Migrate(db, nil)
+				require.NoError(t, err)
+			})
+
+			dbTest.Tables.Range(func(table *builder.Table, idx int) {
+				db := dbTest.OpenDB(connector).WithSchema(schema)
+				_, err := db.ExecExpr(db.Dialect().DropTable(table))
+				require.NoError(t, err)
 			})
 		}
 	}
