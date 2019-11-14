@@ -162,12 +162,18 @@ func (d *DB) Commit() error {
 	if !d.IsTx() {
 		return ErrNotTx
 	}
+	if d.Context().Err() == context.Canceled {
+		return context.Canceled
+	}
 	return d.SqlExecutor.(*sql.Tx).Commit()
 }
 
 func (d *DB) Rollback() error {
 	if !d.IsTx() {
 		return ErrNotTx
+	}
+	if d.Context().Err() == context.Canceled {
+		return context.Canceled
 	}
 	return d.SqlExecutor.(*sql.Tx).Rollback()
 }

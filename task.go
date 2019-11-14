@@ -2,8 +2,9 @@ package sqlx
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"runtime/debug"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Task func(db DBExecutor) error
@@ -58,7 +59,7 @@ func (tasks *Tasks) Do() (err error) {
 					// err will bubble up，just handle and rollback in outermost layer
 					logrus.Errorf("SQL FAILED: %s", runErr)
 					if rollBackErr := maybeTx.Rollback(); rollBackErr != nil {
-						logrus.Errorf("ROLLBACK FAILED: %s", rollBackErr)
+						logrus.Warnf("ROLLBACK FAILED: %s", rollBackErr)
 						err = rollBackErr
 						return
 					}
@@ -69,7 +70,7 @@ func (tasks *Tasks) Do() (err error) {
 
 		if inTxScope {
 			if commitErr := maybeTx.Commit(); commitErr != nil {
-				logrus.Errorf("TRANSACTION COMMIT FAILED: %s", commitErr.Error())
+				logrus.Warnf("TRANSACTION COMMIT FAILED: %s", commitErr.Error())
 				return commitErr
 			}
 		}

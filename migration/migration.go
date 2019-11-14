@@ -2,12 +2,13 @@ package migration
 
 import (
 	"context"
+
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/enummeta"
 )
 
 type MigrationOpts struct {
-	DryRun         bool
+	DryRun bool
 }
 
 var contextKeyMigrationOpts = "#####MigrationOpts#####"

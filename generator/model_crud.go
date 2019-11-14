@@ -375,7 +375,7 @@ _, err := db.ExecExpr(
 `+file.Use("github.com/go-courier/sqlx/v2/builder", "Delete")+`().
 	From(db.T(m),
 	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Where")+`(`+toExactlyConditionFrom(file, fieldNames...)+`),
-	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(`+string(file.Val(m.StructName + "." + methodForDelete).Bytes())+`),
+	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(`+string(file.Val(m.StructName+"."+methodForDelete).Bytes())+`),
 ))
 `,
 								file.Val(m.StructName+"."+methodForDelete),
@@ -409,7 +409,7 @@ _, err := db.ExecExpr(
 	`+file.Use("github.com/go-courier/sqlx/v2/builder", "Update")+`(db.T(m)).
 		Where(
 			`+toExactlyConditionFrom(file, fieldNames...)+`,
-			`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(`+string(file.Val(m.StructName + "." + methodForSoftDelete).Bytes())+`),
+			`+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(`+string(file.Val(m.StructName+"."+methodForSoftDelete).Bytes())+`),
 		).
 		Set(table.AssignmentsByFieldValues(fieldValues)...),
 )

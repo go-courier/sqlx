@@ -323,7 +323,7 @@ func (c *PostgreSQLConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	return e
 }
 
-func (c *PostgreSQLConnector) RenameColumn(col *builder.Column, target *builder.Column) builder.SqlExpr{
+func (c *PostgreSQLConnector) RenameColumn(col *builder.Column, target *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 	e.WriteString(" RENAME COLUMN ")

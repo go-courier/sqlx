@@ -3,12 +3,13 @@ package sqlx_test
 import (
 	"database/sql/driver"
 	"fmt"
+	"testing"
+
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestWithTasks(t *testing.T) {

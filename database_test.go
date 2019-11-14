@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-courier/metax"
 	"github.com/go-courier/sqlx/v2"
@@ -227,16 +228,41 @@ func TestCRUD(t *testing.T) {
 		err := migration.Migrate(db, nil)
 		tt.NoError(err)
 
-		{
+		t.Run("insert single", func(t *testing.T) {
 			user := User{
 				Name:   uuid.New().String(),
 				Gender: GenderMale,
 			}
 
+			t.Run("cancel", func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				db2 := db.WithContext(ctx)
+
+				go func() {
+					time.Sleep(5 * time.Millisecond)
+					cancel()
+				}()
+
+				err := sqlx.NewTasks(db2).
+					With(
+						func(db sqlx.DBExecutor) error {
+							_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
+							return err
+						},
+						func(db sqlx.DBExecutor) error {
+							time.Sleep(10 * time.Millisecond)
+							return nil
+						},
+					).
+					Do()
+
+				tt.Error(err)
+			})
+
 			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 			tt.NoError(err)
 
-			{
+			t.Run("update", func(t *testing.T) {
 				user.Gender = GenderFemale
 				_, err := db.ExecExpr(
 					builder.Update(dbTest.T(&user)).
@@ -246,9 +272,9 @@ func TestCRUD(t *testing.T) {
 						),
 				)
 				tt.Nil(err)
-			}
+			})
 
-			{
+			t.Run("select", func(t *testing.T) {
 				userForSelect := User{}
 				err := db.QueryExprAndScan(
 					builder.Select(nil).From(
@@ -262,14 +288,13 @@ func TestCRUD(t *testing.T) {
 
 				tt.Equal(userForSelect.Name, user.Name)
 				tt.Equal(userForSelect.Gender, user.Gender)
-			}
+			})
 
-			{
+			t.Run("conflict", func(t *testing.T) {
 				_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-				t.Log(err)
 				tt.True(sqlx.DBErr(err).IsConflict())
-			}
-		}
+			})
+		})
 
 		db.(*sqlx.DB).Tables.Range(func(t *builder.Table, idx int) {
 			_, err := db.ExecExpr(db.Dialect().DropTable(t))
@@ -287,12 +312,11 @@ func (UserSet) New() interface{} {
 func (u UserSet) Next(v interface{}) error {
 	user := v.(*User)
 	u[user.Name] = user
+	time.Sleep(500 * time.Microsecond)
 	return nil
 }
 
 func TestSelect(t *testing.T) {
-	tt := require.New(t)
-
 	dbTest := sqlx.NewDatabase("test_for_s")
 
 	for _, connector := range []driver.Connector{
@@ -308,58 +332,81 @@ func TestSelect(t *testing.T) {
 		})
 
 		err := migration.Migrate(db, nil)
-		tt.NoError(err)
-
-		for i := 0; i < 10; i++ {
-			user := User{
-				Name:   uuid.New().String(),
-				Gender: GenderMale,
-			}
-			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-			tt.NoError(err)
-		}
+		require.NoError(t, err)
 
 		{
+			columns := table.MustFields("Name", "Gender")
+			values := make([]interface{}, 0)
+
+			for i := 0; i < 1000; i++ {
+				values = append(values, uuid.New().String(), GenderMale)
+			}
+
+			_, err := db.ExecExpr(builder.Insert().Into(table).Values(columns, values...))
+			require.NoError(t, err)
+		}
+
+		t.Run("select to slice", func(t *testing.T) {
 			users := make([]User, 0)
 			err := db.QueryExprAndScan(
 				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
 				&users,
 			)
-			tt.NoError(err)
-			tt.Len(users, 10)
-		}
+			require.NoError(t, err)
+			require.Len(t, users, 1000)
+		})
 
-		{
+		t.Run("select to set", func(t *testing.T) {
 			userSet := UserSet{}
 			err := db.QueryExprAndScan(
 				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
 				userSet,
 			)
-			tt.NoError(err)
-			tt.Len(userSet, 10)
-		}
+			require.NoError(t, err)
+			require.Len(t, userSet, 1000)
+		})
 
-		{
+		t.Run("not found", func(t *testing.T) {
 			user := User{}
 			err := db.QueryExprAndScan(
 				builder.Select(nil).From(
 					table,
-					builder.Where(table.F("ID").Eq(11)),
+					builder.Where(table.F("ID").Eq(1001)),
 				),
 				&user,
 			)
-			tt.True(sqlx.DBErr(err).IsNotFound())
-		}
-		{
+			require.True(t, sqlx.DBErr(err).IsNotFound())
+		})
+
+		t.Run("count", func(t *testing.T) {
 			count := 0
 			err := db.QueryExprAndScan(
 				builder.Select(builder.Count()).From(table),
 				&count,
 			)
-			tt.NoError(err)
-			tt.Equal(10, count)
-		}
-		{
+			require.NoError(t, err)
+			require.Equal(t, 1000, count)
+		})
+
+		t.Run("canceled", func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			db2 := db.WithContext(ctx)
+
+			go func() {
+				time.Sleep(3 * time.Millisecond)
+				cancel()
+			}()
+
+			userSet := UserSet{}
+			err := db2.QueryExprAndScan(
+				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
+				userSet,
+			)
+
+			require.Error(t, err)
+		})
+
+		t.Run("unsupported scan error", func(t *testing.T) {
 			user := &User{}
 			err := db.QueryExprAndScan(
 				builder.Select(builder.Count()).From(
@@ -368,12 +415,12 @@ func TestSelect(t *testing.T) {
 				),
 				&user,
 			)
-			tt.Error(err)
-		}
+			require.Error(t, err)
+		})
 
-		db.Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(t))
-			tt.NoError(err)
+		db.Tables.Range(func(tab *builder.Table, idx int) {
+			_, err := db.ExecExpr(db.Dialect().DropTable(tab))
+			require.NoError(t, err)
 		})
 	}
 }
