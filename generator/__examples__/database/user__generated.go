@@ -54,6 +54,17 @@ func init() {
 	UserTable = DBTest.Register(&User{})
 }
 
+type UserIterator struct {
+}
+
+func (UserIterator) New() interface{} {
+	return &User{}
+}
+
+func (UserIterator) Resolve(v interface{}) *User {
+	return v.(*User)
+}
+
 func (User) TableName() string {
 	return "t_user"
 }

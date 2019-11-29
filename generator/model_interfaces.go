@@ -48,6 +48,27 @@ func (m *Model) WriteTableName(file *codegen.File) {
 	)
 
 	file.WriteBlock(
+		codegen.DeclType(
+			codegen.Var(codegen.Struct(), string(m.IteratorType().Bytes())),
+		),
+		codegen.Func().
+			Named("New").
+			MethodOf(codegen.Var(m.IteratorType())).
+			Return(codegen.Var(codegen.Interface())).
+			Do(
+				codegen.Return(codegen.Expr("&?{}", m.Type())),
+			),
+		codegen.Func(codegen.Var(codegen.Interface(), "v")).
+			Named("Resolve").
+			MethodOf(codegen.Var(m.IteratorType())).
+
+			Return(codegen.Var(m.PtrType())).
+			Do(
+				codegen.Return(codegen.Expr("v.(?)", m.PtrType())),
+			),
+	)
+
+	file.WriteBlock(
 		codegen.Func().
 			Named("TableName").
 			MethodOf(codegen.Var(m.Type())).

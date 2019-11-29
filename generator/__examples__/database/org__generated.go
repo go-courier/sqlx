@@ -25,6 +25,17 @@ func init() {
 	OrgTable = DBTest.Register(&Org{})
 }
 
+type OrgIterator struct {
+}
+
+func (OrgIterator) New() interface{} {
+	return &Org{}
+}
+
+func (OrgIterator) Resolve(v interface{}) *Org {
+	return v.(*Org)
+}
+
 func (Org) TableName() string {
 	return "t_org"
 }

@@ -117,6 +117,10 @@ func (m *Model) Type() codegen.SnippetType {
 	return codegen.Type(m.StructName)
 }
 
+func (m *Model) IteratorType() codegen.SnippetType {
+	return codegen.Type(m.StructName + "Iterator")
+}
+
 func (m *Model) PtrType() codegen.SnippetType {
 	return codegen.Star(m.Type())
 }
