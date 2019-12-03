@@ -2,6 +2,7 @@ package builder
 
 import (
 	"container/list"
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
@@ -39,8 +40,13 @@ type Table struct {
 	Schema    string
 	ModelName string
 	Model     Model
+
 	Columns
 	Keys
+}
+
+func (t *Table) TableName() string {
+	return t.Name
 }
 
 func (t *Table) IsNil() bool {
@@ -65,11 +71,11 @@ func (t Table) WithSchema(schema string) *Table {
 	return &t
 }
 
-func (t *Table) Expr() *Ex {
+func (t *Table) Ex(ctx context.Context) *Ex {
 	if t.Schema != "" {
-		return Expr(t.Schema + "." + t.Name)
+		return Expr(t.Schema + "." + t.Name).Ex(ctx)
 	}
-	return Expr(t.Name)
+	return Expr(t.Name).Ex(ctx)
 }
 
 func (t *Table) AddCol(d *Column) {
@@ -89,7 +95,7 @@ func (t *Table) AddKey(key *Key) {
 var fieldNamePlaceholder = regexp.MustCompile("#[A-Z][A-Za-z0-9_]+")
 
 // replace go struct field name with table column name
-func (t *Table) Ex(query string, args ...interface{}) *Ex {
+func (t *Table) Expr(query string, args ...interface{}) *Ex {
 	finalQuery := fieldNamePlaceholder.ReplaceAllStringFunc(query, func(i string) string {
 		fieldName := strings.TrimLeft(i, "#")
 		if col := t.F(fieldName); col != nil {
@@ -180,7 +186,7 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 		if prevKey == nil {
 			exprList = append(exprList, dialect.AddIndex(key))
 		} else {
-			if !key.IsPrimary() && key.Columns.Expr().Query() != prevTable.Columns.Expr().Query() {
+			if !key.IsPrimary() && ResolveExpr(key.Columns).Query() != ResolveExpr(prevTable.Columns).Query() {
 				exprList = append(exprList, dialect.DropIndex(key))
 				exprList = append(exprList, dialect.AddIndex(key))
 			}
@@ -249,11 +255,11 @@ func (tables *Tables) Model(structName string) *Table {
 	return nil
 }
 
-func (cols *Tables) Remove(name string) {
-	if cols.tables != nil {
-		if e, exists := cols.tables[name]; exists {
-			cols.l.Remove(e)
-			delete(cols.tables, name)
+func (tables *Tables) Remove(name string) {
+	if tables.tables != nil {
+		if e, exists := tables.tables[name]; exists {
+			tables.l.Remove(e)
+			delete(tables.tables, name)
 		}
 	}
 }

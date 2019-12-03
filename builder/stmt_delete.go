@@ -1,12 +1,20 @@
 package builder
 
+import (
+	"context"
+)
+
 func Delete() *StmtDelete {
 	return &StmtDelete{}
 }
 
 type StmtDelete struct {
 	table     *Table
-	additions Additions
+	additions []Addition
+}
+
+func (s *StmtDelete) IsNil() bool {
+	return s == nil || IsNilExpr(s.table)
 }
 
 func (s StmtDelete) From(table *Table, additions ...Addition) *StmtDelete {
@@ -15,21 +23,12 @@ func (s StmtDelete) From(table *Table, additions ...Addition) *StmtDelete {
 	return &s
 }
 
-func (s *StmtDelete) IsNil() bool {
-	return s == nil || s.table == nil
-}
+func (s *StmtDelete) Ex(ctx context.Context) *Ex {
+	e := Expr("DELETE FROM ")
 
-func (s *StmtDelete) Expr() *Ex {
-	if s.IsNil() {
-		return nil
-	}
+	e.WriteExpr(s.table)
 
-	expr := Expr("DELETE FROM ")
-	expr.WriteExpr(s.table)
+	WriteAdditions(e, s.additions...)
 
-	if !s.additions.IsNil() {
-		expr.WriteExpr(s.additions)
-	}
-
-	return expr
+	return e.Ex(ctx)
 }

@@ -1,51 +1,52 @@
-package builder
+package builder_test
 
 import (
 	"database/sql/driver"
 	"fmt"
 	"testing"
+
+	. "github.com/go-courier/sqlx/v2/builder"
+	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
+	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
-func TestEx(t *testing.T) {
-	cases := map[string]struct {
-		expr   SqlExpr
-		expect SqlExpr
-	}{
-		"empty": {
-			ExprFrom(nil),
-			nil,
-		},
-		"expr": {
-			ExprFrom(Expr("")),
-			Expr(""),
-		},
-		"alias": {
-			ExprFrom(Alias(Expr("f_id"), "id")),
-			Expr("(f_id) AS id"),
-		},
-		"flatten for slice": {
-			Expr(`#ID IN (?)`, []int{28, 29, 30}).Flatten(),
-			Expr("#ID IN (?,?,?)", 28, 29, 30),
-		},
-		"flatten skip for bytes": {
-			Expr(`#ID = (?)`, []byte("")).Flatten(),
-			Expr("#ID = (?)", []byte("")),
-		},
-		"flatten SqlExpr": {
-			Expr(`#ID = ?`, Expr("#ID + ?", 1)).Flatten(),
-			Expr("#ID = #ID + ?", 1),
-		},
-		"flatten ValuerExpr": {
-			Expr(`#Point = ?`, Point{1, 1}).Flatten(),
-			Expr("#Point = ST_GeomFromText(?)", Point{1, 1}),
-		},
-	}
+func TestResolveExpr(t *testing.T) {
+	t.Run("empty", testingx.It(func(t *testingx.T) {
+		t.Expect(ResolveExpr(nil)).To(gomega.BeNil())
+	}))
+}
 
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			queryArgsEqual(t, c.expect, c.expr)
-		})
-	}
+func TestEx(t *testing.T) {
+	t.Run("empty query", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			Expr(""),
+		).To(BeExpr(""))
+	}))
+
+	t.Run("flatten slice", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			Expr(`#ID IN (?)`, []int{28, 29, 30}),
+		).To(BeExpr("#ID IN (?,?,?)", 28, 29, 30))
+	}))
+
+	t.Run("flatten should skip for bytes", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			Expr(`#ID = (?)`, []byte("")),
+		).To(BeExpr("#ID = (?)", []byte("")))
+	}))
+
+	t.Run("flatten with sub expr ", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			Expr(`#ID = ?`, Expr("#ID + ?", 1)),
+		).To(BeExpr("#ID = #ID + ?", 1))
+	}))
+
+	t.Run("flatten with ValuerExpr", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			Expr(`#Point = ?`, Point{1, 1}),
+		).To(BeExpr("#Point = ST_GeomFromText(?)", Point{1, 1}))
+	}))
 }
 
 type Point struct {

@@ -1,5 +1,9 @@
 package builder
 
+import (
+	"context"
+)
+
 func Insert(modifiers ...string) *StmtInsert {
 	return &StmtInsert{
 		modifiers: modifiers,
@@ -10,7 +14,7 @@ func Insert(modifiers ...string) *StmtInsert {
 type StmtInsert struct {
 	table       *Table
 	modifiers   []string
-	assignments Assignments
+	assignments []*Assignment
 	additions   Additions
 }
 
@@ -26,14 +30,10 @@ func (s StmtInsert) Values(cols *Columns, values ...interface{}) *StmtInsert {
 }
 
 func (s *StmtInsert) IsNil() bool {
-	return s == nil || s.table == nil || s.assignments.IsNil()
+	return s == nil || s.table == nil || len(s.assignments) == 0
 }
 
-func (s *StmtInsert) Expr() *Ex {
-	if s.IsNil() {
-		return nil
-	}
-
+func (s *StmtInsert) Ex(ctx context.Context) *Ex {
 	e := Expr("INSERT")
 
 	if len(s.modifiers) > 0 {
@@ -46,23 +46,28 @@ func (s *StmtInsert) Expr() *Ex {
 	e.WriteString(" INTO ")
 	e.WriteExpr(s.table)
 	e.WriteByte(' ')
-	e.WriteExpr(s.assignments)
 
-	if len(s.additions) > 0 {
-		e.WriteExpr(s.additions)
-	}
+	WriteAssignments(e, s.assignments...)
+	WriteAdditions(e, s.additions...)
 
-	return e
+	return e.Ex(ctx)
 }
 
 func OnDuplicateKeyUpdate(assignments ...*Assignment) *OtherAddition {
-	assigns := Assignments(assignments)
-	if assigns.IsNil() {
+	assigns := assignments
+	if len(assignments) == 0 {
 		return nil
 	}
 
 	e := Expr("ON DUPLICATE KEY UPDATE ")
-	e.WriteExpr(assigns)
+
+	for i := range assigns {
+		if i > 0 {
+			e.WriteString(", ")
+		}
+		e.WriteExpr(assigns[i])
+	}
+
 	return AsAddition(e)
 }
 
@@ -73,6 +78,5 @@ func Returning(expr SqlExpr) *OtherAddition {
 	} else {
 		e.WriteExpr(expr)
 	}
-
 	return AsAddition(e)
 }

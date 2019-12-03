@@ -1,5 +1,9 @@
 package builder
 
+import (
+	"context"
+)
+
 func Count(sqlExprs ...SqlExpr) *Function {
 	if len(sqlExprs) == 0 {
 		return Func("COUNT", Expr("1"))
@@ -40,42 +44,35 @@ func Func(name string, sqlExprs ...SqlExpr) *Function {
 		return nil
 	}
 	return &Function{
-		Name:  name,
-		Exprs: sqlExprs,
+		name:  name,
+		exprs: sqlExprs,
 	}
 }
 
 type Function struct {
-	Name  string
-	Exprs []SqlExpr
+	name  string
+	exprs []SqlExpr
 }
 
 func (f *Function) IsNil() bool {
-	return f == nil || f.Name == ""
+	return f == nil || f.name == ""
 }
 
-func (f *Function) Expr() *Ex {
-	if f == nil {
-		return nil
-	}
+func (f *Function) Ex(ctx context.Context) *Ex {
+	e := Expr(f.name)
 
-	if f.Exprs != nil {
-		e := Expr(f.Name)
-		e.WriteGroup(func(e *Ex) {
-
-		})
-	}
-	e := Expr(f.Name)
 	e.WriteGroup(func(e *Ex) {
-		if len(f.Exprs) == 0 {
+		if len(f.exprs) == 0 {
 			e.WriteByte('*')
 		}
-		for i := range f.Exprs {
+
+		for i := range f.exprs {
 			if i > 0 {
 				e.WriteByte(',')
 			}
-			e.WriteExpr(f.Exprs[i])
+			e.WriteExpr(f.exprs[i])
 		}
 	})
-	return e
+
+	return e.Ex(ctx)
 }

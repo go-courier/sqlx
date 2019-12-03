@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/stretchr/testify/require"
+	"github.com/go-courier/sqlx/v2/builder/buidertestingutils"
+	"github.com/go-courier/testingx"
 )
 
 func TestMysqlConnector(t *testing.T) {
@@ -25,91 +26,85 @@ func TestMysqlConnector(t *testing.T) {
 		builder.Index("I_geo", builder.Cols("F_geo")).Using("SPATIAL"),
 	)
 
-	cases := map[string]struct {
-		expr   builder.SqlExpr
-		expect builder.SqlExpr
-	}{
-		"CreateDatabase": {
-			c.CreateDatabase("db"),
-			builder.Expr( /* language=MySQL */ `CREATE DATABASE db;`),
-		},
-		"DropDatabase": {
-			c.DropDatabase("db"),
-			builder.Expr( /* language=MySQL */ `DROP DATABASE db;`),
-		},
-		"AddIndex": {
-			c.AddIndex(table.Key("I_name")),
-			builder.Expr( /* language=MySQL */ "CREATE UNIQUE INDEX i_name ON t (f_name) USING BTREE;"),
-		},
-		"AddPrimaryKey": {
-			c.AddIndex(table.Key("PRIMARY")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t ADD PRIMARY KEY (f_id);"),
-		},
-		"AddSpatialIndex": {
+	t.Run("CreateDatabase", testingx.It(func(t *testingx.T) {
+		t.Expect(c.CreateDatabase("db")).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE DATABASE db;`))
+	}))
+
+	t.Run("DropDatabase", testingx.It(func(t *testingx.T) {
+		t.Expect(c.DropDatabase("db")).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ `DROP DATABASE db;`))
+	}))
+
+	t.Run("AddIndex", testingx.It(func(t *testingx.T) {
+		t.Expect(c.AddIndex(table.Key("I_name"))).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE UNIQUE INDEX i_name ON t (f_name) USING BTREE;`))
+	}))
+
+	t.Run("AddPrimaryKey", testingx.It(func(t *testingx.T) {
+		t.Expect(c.AddIndex(table.Key("PRIMARY"))).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t ADD PRIMARY KEY (f_id);"))
+	}))
+
+	t.Run("AddSpatialIndex", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.AddIndex(table.Key("I_geo")),
-			builder.Expr( /* language=MySQL */ "CREATE SPATIAL INDEX i_geo ON t (f_geo);"),
-		},
-		"DropIndex": {
+		).To(buidertestingutils.BeExpr( /* language=MySQL */ "CREATE SPATIAL INDEX i_geo ON t (f_geo);"))
+	}))
+
+	t.Run("DropIndex", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.DropIndex(table.Key("I_name")),
-			builder.Expr( /* language=MySQL */ "DROP INDEX i_name ON t;"),
-		},
-		"DropPrimaryKey": {
+		).To(buidertestingutils.BeExpr( /* language=MySQL */ "DROP INDEX i_name ON t;"))
+	}))
+	t.Run("DropPrimaryKey", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.DropIndex(table.Key("PRIMARY")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t DROP PRIMARY KEY;"),
-		},
-		"CreateTableIsNotExists": {
+		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t DROP PRIMARY KEY;"))
+	}))
+
+	t.Run("CreateTableIsNotExists", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.CreateTableIsNotExists(table)[0],
-			builder.Expr( /* language=MySQL */ `CREATE TABLE IF NOT EXISTS t (
+		).To(buidertestingutils.BeExpr( /* language=MySQL */
+			`CREATE TABLE IF NOT EXISTS t (
 	f_id bigint unsigned NOT NULL AUTO_INCREMENT,
 	f_name varchar(128) NOT NULL DEFAULT '',
 	f_geo POINT NOT NULL,
 	f_created_at bigint NOT NULL DEFAULT '0',
 	f_updated_at bigint NOT NULL DEFAULT '0',
 	PRIMARY KEY (f_id)
-) ENGINE=InnoDB CHARSET=utf8mb4;`),
-		},
-		"DropTable": {
-			c.DropTable(table),
-			builder.Expr( /* language=MySQL */ "DROP TABLE IF EXISTS t;"),
-		},
-		"TruncateTable": {
+) ENGINE=InnoDB CHARSET=utf8mb4;`))
+	}))
+
+	t.Run("DropTable", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			c.DropTable(table)).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ "DROP TABLE IF EXISTS t;"))
+	}))
+	t.Run("TruncateTable", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.TruncateTable(table),
-			builder.Expr( /* language=MySQL */ "TRUNCATE TABLE t;"),
-		},
-		"AddColumn": {
-			c.AddColumn(table.Col("F_name")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"),
-		},
-		"ModifyColumn": {
+		).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ "TRUNCATE TABLE t;"))
+	}))
+	t.Run("AddColumn", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			c.AddColumn(table.Col("F_name"))).
+			To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"))
+	}))
+
+	t.Run("ModifyColumn", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.ModifyColumn(table.Col("F_name")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t MODIFY COLUMN f_name varchar(128) NOT NULL DEFAULT '';"),
-		},
-		"DropColumn": {
+		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t MODIFY COLUMN f_name varchar(128) NOT NULL DEFAULT '';"))
+	}))
+
+	t.Run("DropColumn", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			c.DropColumn(table.Col("F_name")),
-			builder.Expr( /* language=MySQL */ "ALTER TABLE t DROP COLUMN f_name;"),
-		},
-	}
-
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			queryArgsEqual(t, c.expect, c.expr)
-		})
-	}
-}
-
-func queryArgsEqual(t *testing.T, expect builder.SqlExpr, actual builder.SqlExpr) {
-	e := builder.ExprFrom(expect)
-	a := builder.ExprFrom(actual)
-
-	if e == nil || a == nil {
-		require.Equal(t, e, a)
-	} else {
-		e = e.Flatten()
-		a = a.Flatten()
-
-		require.Equal(t, e.Query(), a.Query())
-		require.Equal(t, e.Args(), a.Args())
-	}
+		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t DROP COLUMN f_name;"))
+	}))
 }
 
 type Point struct {

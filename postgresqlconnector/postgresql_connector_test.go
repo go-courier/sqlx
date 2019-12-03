@@ -1,12 +1,14 @@
 package postgresqlconnector
 
 import (
+	"context"
 	"database/sql/driver"
 	"fmt"
 	"testing"
 
 	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/stretchr/testify/require"
+	"github.com/go-courier/sqlx/v2/builder/buidertestingutils"
+	"github.com/go-courier/testingx"
 )
 
 func TestMysqlConnector(t *testing.T) {
@@ -91,24 +93,9 @@ func TestMysqlConnector(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			queryArgsEqual(t, c.expect, c.expr)
-		})
-	}
-}
-
-func queryArgsEqual(t *testing.T, expect builder.SqlExpr, actual builder.SqlExpr) {
-	e := builder.ExprFrom(expect)
-	a := builder.ExprFrom(actual)
-
-	if e == nil || a == nil {
-		require.Equal(t, e, a)
-	} else {
-		e = e.Flatten()
-		a = a.Flatten()
-
-		require.Equal(t, e.Query(), a.Query())
-		require.Equal(t, e.Args(), a.Args())
+		t.Run(name, testingx.It(func(t *testingx.T) {
+			t.Expect(c.expr).To(buidertestingutils.BeExpr(c.expr.Ex(context.Background()).Query()))
+		}))
 	}
 }
 

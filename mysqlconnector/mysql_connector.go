@@ -77,7 +77,7 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 		for _, expr := range exprList {
 			if !expr.IsNil() {
 				if opts.DryRun {
-					log.Printf(builder.ExprFrom(expr).Flatten().Query())
+					log.Printf(builder.ResolveExpr(expr).Query())
 				} else {
 					if _, err := db.ExecExpr(expr); err != nil {
 						return err
@@ -100,7 +100,7 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 				return nil, err
 			}
 			if _, err := conn.(driver.ExecerContext).
-				ExecContext(context.Background(), c.CreateDatabase(c.DBName).Expr().Query(), nil); err != nil {
+				ExecContext(context.Background(), builder.ResolveExpr(c.CreateDatabase(c.DBName)).Query(), nil); err != nil {
 				return nil, err
 			}
 			if err := conn.Close(); err != nil {

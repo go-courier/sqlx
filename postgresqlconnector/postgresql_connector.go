@@ -84,7 +84,7 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 		for _, expr := range exprList {
 			if !(expr == nil || expr.IsNil()) {
 				if opts.DryRun {
-					log.Printf(builder.ExprFrom(expr).Flatten().Query())
+					log.Printf(builder.ResolveExpr(expr).Query())
 				} else {
 					if _, err := db.ExecExpr(expr); err != nil {
 						return err
@@ -107,7 +107,7 @@ func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) 
 				return nil, err
 			}
 			if _, err := connectForCreateDB.(driver.ExecerContext).
-				ExecContext(context.Background(), c.CreateDatabase(c.DBName).Expr().Query(), nil); err != nil {
+				ExecContext(context.Background(), builder.ResolveExpr(c.CreateDatabase(c.DBName)).Query(), nil); err != nil {
 				return nil, err
 			}
 			if err := connectForCreateDB.Close(); err != nil {

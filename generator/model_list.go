@@ -10,7 +10,7 @@ func (m *Model) WriteCount(file *codegen.File) {
 	file.WriteBlock(
 		codegen.Func(
 			codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db"),
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Condition"))), "condition"),
+			codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "SqlCondition")), "condition"),
 			codegen.Var(codegen.Ellipsis(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Addition"))), "additions"),
 		).
 			Named("Count").
@@ -68,7 +68,7 @@ func (m *Model) WriteList(file *codegen.File) {
 	file.WriteBlock(
 		codegen.Func(
 			codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2", "DBExecutor")), "db"),
-			codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Condition"))), "condition"),
+			codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "SqlCondition")), "condition"),
 			codegen.Var(codegen.Ellipsis(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Addition"))), "additions"),
 		).
 			Named("List").

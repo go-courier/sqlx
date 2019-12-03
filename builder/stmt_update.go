@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"errors"
 )
 
@@ -18,16 +19,20 @@ func Update(table *Table, modifiers ...string) *StmtUpdate {
 type StmtUpdate struct {
 	table       *Table
 	modifiers   []string
-	assignments Assignments
-	additions   Additions
+	assignments []*Assignment
+	additions   []Addition
+}
+
+func (s *StmtUpdate) IsNil() bool {
+	return s == nil || IsNilExpr(s.table) || len(s.assignments) == 0
 }
 
 func (s StmtUpdate) Set(assignments ...*Assignment) *StmtUpdate {
-	s.assignments = Assignments(assignments)
+	s.assignments = assignments
 	return &s
 }
 
-func (s StmtUpdate) Where(c *Condition, additions ...Addition) *StmtUpdate {
+func (s StmtUpdate) Where(c SqlCondition, additions ...Addition) *StmtUpdate {
 	s.additions = []Addition{Where(c)}
 	if len(additions) > 0 {
 		s.additions = append(s.additions, additions...)
@@ -35,15 +40,7 @@ func (s StmtUpdate) Where(c *Condition, additions ...Addition) *StmtUpdate {
 	return &s
 }
 
-func (s *StmtUpdate) IsNil() bool {
-	return s == nil || s.table == nil || s.assignments.IsNil()
-}
-
-func (s *StmtUpdate) Expr() *Ex {
-	if s.IsNil() {
-		return nil
-	}
-
+func (s *StmtUpdate) Ex(ctx context.Context) *Ex {
 	e := Expr("UPDATE")
 
 	if len(s.modifiers) > 0 {
@@ -56,11 +53,9 @@ func (s *StmtUpdate) Expr() *Ex {
 	e.WriteByte(' ')
 	e.WriteExpr(s.table)
 	e.WriteString(" SET ")
-	e.WriteExpr(s.assignments)
 
-	if !s.additions.IsNil() {
-		e.WriteExpr(s.additions)
-	}
+	WriteAssignments(e, s.assignments...)
+	WriteAdditions(e, s.additions...)
 
-	return e
+	return e.Ex(ctx)
 }

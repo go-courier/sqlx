@@ -1,48 +1,41 @@
-package builder
+package builder_test
 
 import (
 	"testing"
+
+	. "github.com/go-courier/sqlx/v2/builder"
+	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
+	"github.com/go-courier/testingx"
 )
 
 func TestStmtInsert(t *testing.T) {
-	table := T("t")
+	table := T("T")
 
-	cases := map[string]struct {
-		expr   SqlExpr
-		expect SqlExpr
-	}{
-		"Insert simple": {
-			Insert().
-				Into(table, Comment("Comment")).
-				Values(Cols("F_a", "F_b"), 1, 2),
-			Expr(
-				"INSERT INTO t (f_a,f_b) VALUES (?,?) /* Comment */",
-				1, 2,
-			),
-		},
-		"Insert with modifier": {
+	t.Run("insert with modifier", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			Insert("IGNORE").
 				Into(table).
 				Values(Cols("F_a", "F_b"), 1, 2),
-			Expr(
-				"INSERT IGNORE INTO t (f_a,f_b) VALUES (?,?)",
-				1, 2,
-			),
-		},
-		"Insert multiple": {
+		).To(BeExpr("INSERT IGNORE INTO T (f_a,f_b) VALUES (?,?)",
+			1, 2))
+	}))
+
+	t.Run("insert simple", testingx.It(func(t *testingx.T) {
+		t.Expect(
+			Insert().
+				Into(table, Comment("Comment")).
+				Values(Cols("f_a", "F_b"), 1, 2),
+		).To(BeExpr(`
+INSERT INTO T (f_a,f_b) VALUES (?,?)
+/* Comment */
+`, 1, 2))
+	}))
+
+	t.Run("multiple insert", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			Insert().
 				Into(table).
 				Values(Cols("F_a", "F_b"), 1, 2, 1, 2, 1, 2),
-			Expr(
-				"INSERT INTO t (f_a,f_b) VALUES (?,?),(?,?),(?,?)",
-				1, 2, 1, 2, 1, 2,
-			),
-		},
-	}
-
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			queryArgsEqual(t, c.expect, c.expr)
-		})
-	}
+		).To(BeExpr("INSERT INTO T (f_a,f_b) VALUES (?,?),(?,?),(?,?)", 1, 2, 1, 2, 1, 2))
+	}))
 }

@@ -8,10 +8,11 @@ import (
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/go-courier/sqlx/v2/mysqlconnector"
 	"github.com/go-courier/sqlx/v2/postgresqlconnector"
+	"github.com/go-courier/testingx"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -31,136 +32,134 @@ func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }
 
-func TestUserCRUD(t *testing.T) {
-	tt := require.New(t)
+func TestUser(t *testing.T) {
+	t.Run("CRUD", testingx.It(func(t *testingx.T) {
+		for _, connector := range []driver.Connector{
+			mysqlConnector,
+			postgresConnector,
+		} {
+			db := DBTest.OpenDB(connector)
 
-	for _, connector := range []driver.Connector{
-		mysqlConnector,
-		postgresConnector,
-	} {
-		db := DBTest.OpenDB(connector)
+			db.D().Tables.Range(func(table *builder.Table, idx int) {
+				_, err := db.ExecExpr(db.Dialect().DropTable(table))
+				t.Expect(err).To(gomega.BeNil())
+			})
 
-		db.D().Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(t))
-			tt.NoError(err)
-		})
+			err := migration.Migrate(db, nil)
+			t.Expect(err).To(gomega.BeNil())
 
-		err := migration.Migrate(db, nil)
-		tt.NoError(err)
-
-		t.Run("Create flow", func(t *testing.T) {
-			user := User{}
-			user.Name = uuid.New().String()
-			user.Geom = GeomString{
-				V: "Point(0 0)",
-			}
-
-			errForCreate := user.Create(db)
-			tt.NoError(errForCreate)
-			tt.Equal(uint64(0), user.ID)
-
-			user.Gender = GenderMale
-			{
-				err := user.CreateOnDuplicateWithUpdateFields(db, []string{"Gender"})
-				tt.NoError(err)
-			}
-			{
-				userForFetch := User{
-					Name: user.Name,
+			t.Run("Create flow", testingx.It(func(t *testingx.T) {
+				user := User{}
+				user.Name = uuid.New().String()
+				user.Geom = GeomString{
+					V: "Point(0 0)",
 				}
-				err := userForFetch.FetchByName(db)
 
-				tt.NoError(err)
-				tt.Equal(user.Gender, userForFetch.Gender)
+				errForCreate := user.Create(db)
+				t.Expect(errForCreate).To(gomega.BeNil())
+				t.Expect(user.ID, uint64(0))
+
+				user.Gender = GenderMale
+				{
+					err := user.CreateOnDuplicateWithUpdateFields(db, []string{"Gender"})
+					t.Expect(err).To(gomega.BeNil())
+				}
+				{
+					userForFetch := User{
+						Name: user.Name,
+					}
+					err := userForFetch.FetchByName(db)
+
+					t.Expect(err).To(gomega.BeNil())
+					t.Expect(userForFetch.Gender).To(gomega.Equal(user.Gender))
+				}
+			}))
+
+			t.Run("delete flow", testingx.It(func(t *testingx.T) {
+				user := User{}
+				user.Name = uuid.New().String()
+				user.Geom = GeomString{
+					V: "Point(0 0)",
+				}
+
+				errForCreate := user.Create(db)
+				t.Expect(errForCreate).To(gomega.BeNil())
+
+				{
+					userForDelete := User{
+						Name: user.Name,
+					}
+					err := userForDelete.SoftDeleteByName(db)
+					t.Expect(err).To(gomega.BeNil())
+
+					userForSelect := &User{
+						Name: user.Name,
+					}
+					errForSelect := userForSelect.FetchByName(db)
+					t.Expect(errForSelect).NotTo(gomega.BeNil())
+				}
+			}))
+
+			db.D().Tables.Range(func(table *builder.Table, idx int) {
+				_, err := db.ExecExpr(db.Dialect().DropTable(table))
+				t.Expect(err).To(gomega.BeNil())
+			})
+		}
+	}))
+
+	t.Run("List", testingx.It(func(t *testingx.T) {
+		for _, connector := range []driver.Connector{
+			mysqlConnector,
+			postgresConnector,
+		} {
+			db := DBTest.OpenDB(connector)
+
+			db.D().Tables.Range(func(table *builder.Table, idx int) {
+				_, err := db.ExecExpr(db.Dialect().DropTable(table))
+				t.Expect(err).To(gomega.BeNil())
+			})
+
+			err := migration.Migrate(db, nil)
+			t.Expect(err).To(gomega.BeNil())
+
+			createUser := func() {
+				user := User{}
+				user.Name = uuid.New().String()
+				user.Geom = GeomString{
+					V: "Point(0 0)",
+				}
+
+				err := user.Create(db)
+				t.Expect(err).To(gomega.BeNil())
 			}
-		})
 
-		t.Run("delete flow", func(t *testing.T) {
-			user := User{}
-			user.Name = uuid.New().String()
-			user.Geom = GeomString{
-				V: "Point(0 0)",
+			for i := 0; i < 10; i++ {
+				createUser()
 			}
 
-			errForCreate := user.Create(db)
-			tt.NoError(errForCreate)
+			list, err := (&User{}).List(db, nil)
+			t.Expect(err).To(gomega.BeNil())
+			t.Expect(list).To(gomega.HaveLen(10))
+
+			count, err := (&User{}).Count(db, nil)
+			t.Expect(err).To(gomega.BeNil())
+			t.Expect(count).To(gomega.Equal(10))
+
+			names := make([]string, 0)
+			for _, user := range list {
+				names = append(names, user.Name)
+			}
 
 			{
-				userForDelete := User{
-					Name: user.Name,
-				}
-				err := userForDelete.SoftDeleteByName(db)
-				tt.NoError(err)
-
-				userForSelect := &User{
-					Name: user.Name,
-				}
-				errForSelect := userForSelect.FetchByName(db)
-				tt.Error(errForSelect)
-			}
-		})
-
-		db.D().Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(t))
-			tt.NoError(err)
-		})
-	}
-}
-
-func TestUserList(t *testing.T) {
-	tt := require.New(t)
-
-	for _, connector := range []driver.Connector{
-		mysqlConnector,
-		postgresConnector,
-	} {
-		db := DBTest.OpenDB(connector)
-
-		db.D().Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(t))
-			tt.NoError(err)
-		})
-
-		err := migration.Migrate(db, nil)
-		tt.NoError(err)
-
-		createUser := func() {
-			user := User{}
-			user.Name = uuid.New().String()
-			user.Geom = GeomString{
-				V: "Point(0 0)",
+				list, err := (&User{}).BatchFetchByNameList(db, names)
+				t.Expect(err).To(gomega.BeNil())
+				t.Expect(list).To(gomega.HaveLen(10))
 			}
 
-			err := user.Create(db)
-			tt.NoError(err)
+			db.D().Tables.Range(func(table *builder.Table, idx int) {
+				_, err := db.ExecExpr(db.Dialect().DropTable(table))
+				t.Expect(err).To(gomega.BeNil())
+			})
 		}
-
-		for i := 0; i < 10; i++ {
-			createUser()
-		}
-
-		list, err := (&User{}).List(db, nil)
-		tt.NoError(err)
-		tt.Len(list, 10)
-
-		count, err := (&User{}).Count(db, nil)
-		tt.NoError(err)
-		tt.Equal(10, count)
-
-		names := make([]string, 0)
-		for _, user := range list {
-			names = append(names, user.Name)
-		}
-
-		{
-			list, err := (&User{}).BatchFetchByNameList(db, names)
-			tt.NoError(err)
-			tt.Len(list, 10)
-		}
-
-		db.D().Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(t))
-			tt.NoError(err)
-		})
-	}
+	}))
 }

@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"os"
-	"reflect"
 
 	"github.com/go-courier/sqlx/v2/builder"
 )
@@ -68,19 +67,8 @@ func (database *Database) AddTable(table *builder.Table) {
 }
 
 func (database *Database) Register(model builder.Model) *builder.Table {
-	tpe := reflect.TypeOf(model)
-	if tpe.Kind() != reflect.Ptr {
-		panic(fmt.Errorf("model %s must be a pointer", tpe.Name()))
-	}
-	tpe = tpe.Elem()
-	if tpe.Kind() != reflect.Struct {
-		panic(fmt.Errorf("model %s must be a struct", tpe.Name()))
-	}
-	table := builder.T(model.TableName())
+	table := builder.TableFromModel(model)
 	table.Schema = database.Schema
-	table.Model = model
-
-	builder.ScanDefToTable(reflect.Indirect(reflect.ValueOf(model)), table)
 	database.AddTable(table)
 	return table
 }
@@ -90,5 +78,13 @@ func (database *Database) Table(tableName string) *builder.Table {
 }
 
 func (database *Database) T(model builder.Model) *builder.Table {
+	if td, ok := model.(builder.TableDefinition); ok {
+		return td.T()
+	}
+
+	if t, ok := model.(*builder.Table); ok {
+		return t
+	}
+
 	return database.Table(model.TableName())
 }

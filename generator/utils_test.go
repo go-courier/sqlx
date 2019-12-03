@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/stretchr/testify/require"
+	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func init() {
@@ -13,49 +14,44 @@ func init() {
 }
 
 func TestParseIndexesFromDoc(t *testing.T) {
-	tt := require.New(t)
-
-	{
+	t.Run("parse primary", testingx.It(func(t *testingx.T) {
 		keys, other := parseKeysFromDoc(`
 @def primary ID
 summary
 desc
 `)
-
-		tt.Equal(&Keys{
+		t.Expect(keys).To(gomega.Equal(&Keys{
 			Primary: []string{"ID"},
-		}, keys)
+		}))
 
-		tt.Equal([]string{
+		t.Expect(other).To(gomega.Equal([]string{
 			"summary",
 			"desc",
-		}, other)
+		}))
+	}))
 
-	}
-	{
+	t.Run("parse index", testingx.It(func(t *testingx.T) {
 		keys, _ := parseKeysFromDoc(`
 @def index I_name   Name
 @def index I_nickname/HASH Nickname Name
-	`)
-
-		tt.Equal(&Keys{
+`)
+		t.Expect(keys).To(gomega.Equal(&Keys{
 			Indexes: builder.Indexes{
 				"I_name":          []string{"Name"},
 				"I_nickname/HASH": []string{"Nickname", "Name"},
 			},
-		}, keys)
-	}
+		}))
+	}))
 
-	{
+	t.Run("parse all", testingx.It(func(t *testingx.T) {
 		keys, _ := parseKeysFromDoc(`
 @def primary ID
 @def index I_nickname/BTREE Nickname
 @def index I_username Username
 @def index I_geom/SPATIAL Geom
 @def unique_index I_name Name
-	`)
-
-		tt.Equal(&Keys{
+`)
+		t.Expect(keys).To(gomega.Equal(&Keys{
 			Primary: []string{"ID"},
 			Indexes: builder.Indexes{
 				"I_nickname/BTREE": []string{"Nickname"},
@@ -65,21 +61,24 @@ desc
 			UniqueIndexes: builder.Indexes{
 				"I_name": []string{"Name"},
 			},
-		}, keys)
-	}
+		}))
+	}))
+
 }
 
 func TestParseColRel(t *testing.T) {
-	rel, others := parseColRelFromComment(`
+	t.Run("rel", testingx.It(func(t *testingx.T) {
+		rel, others := parseColRelFromComment(`
 @rel Account.AccountID
 
 summary
 
 desc
 `)
-	require.Equal(t, rel, "Account.AccountID")
-	require.Equal(t, []string{
-		"summary",
-		"desc",
-	}, others)
+		t.Expect(rel).To(gomega.Equal("Account.AccountID"))
+		t.Expect(others).To(gomega.Equal([]string{
+			"summary",
+			"desc",
+		}))
+	}))
 }

@@ -13,37 +13,41 @@ type SqlAssignmentMarker interface {
 	asCondition()
 }
 
-func AsAssignment(ex SqlExpr) *Assignment {
-	if ex.IsNil() {
+func WriteAssignments(e *Ex, assignments ...*Assignment) {
+	count := 0
+
+	for i := range assignments {
+		a := assignments[i]
+
+		if IsNilExpr(a) {
+			continue
+		}
+
+		if count > 0 {
+			e.WriteString(", ")
+		}
+
+		e.WriteExpr(a)
+		count++
+	}
+}
+
+func AsAssignment(expr SqlExpr) *Assignment {
+	if IsNilExpr(expr) {
 		return &Assignment{SqlExpr: Expr("")}
 	}
-	return &Assignment{SqlExpr: ex}
-}
-
-type Assignment struct {
-	SqlExpr
-	SqlAssignmentMarker
-}
-
-func (a *Assignment) IsNil() bool {
-	return a == nil || a.SqlExpr.IsNil()
+	return &Assignment{SqlExpr: expr}
 }
 
 type Assignments []*Assignment
 
-func (assigns Assignments) IsNil() bool {
-	return len(assigns) == 0
+type Assignment struct {
+	SqlAssignmentMarker
+	SqlExpr
 }
 
-func (assigns Assignments) Expr() *Ex {
-	e := Expr("")
-	for i, assignment := range assigns {
-		if i > 0 {
-			e.WriteString(", ")
-		}
-		e.WriteExpr(assignment)
-	}
-	return e
+func (a *Assignment) IsNil() bool {
+	return a == nil || IsNilExpr(a.SqlExpr)
 }
 
 func ColumnsAndValues(cols *Columns, values ...interface{}) *Assignment {

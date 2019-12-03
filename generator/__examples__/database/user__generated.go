@@ -171,7 +171,7 @@ func (m *User) IndexFieldNames() []string {
 	}
 }
 
-func (m *User) ConditionByStruct(db github_com_go_courier_sqlx_v2.DBExecutor) *github_com_go_courier_sqlx_v2_builder.Condition {
+func (m *User) ConditionByStruct(db github_com_go_courier_sqlx_v2.DBExecutor) github_com_go_courier_sqlx_v2_builder.SqlCondition {
 	table := db.T(m)
 	fieldValues := github_com_go_courier_sqlx_v2_builder.FieldValuesFromStructByNonZero(m)
 
@@ -551,7 +551,7 @@ func (m *User) SoftDeleteByName(db github_com_go_courier_sqlx_v2.DBExecutor) err
 
 }
 
-func (m *User) List(db github_com_go_courier_sqlx_v2.DBExecutor, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) ([]User, error) {
+func (m *User) List(db github_com_go_courier_sqlx_v2.DBExecutor, condition github_com_go_courier_sqlx_v2_builder.SqlCondition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) ([]User, error) {
 
 	list := make([]User, 0)
 
@@ -579,7 +579,7 @@ func (m *User) List(db github_com_go_courier_sqlx_v2.DBExecutor, condition *gith
 
 }
 
-func (m *User) Count(db github_com_go_courier_sqlx_v2.DBExecutor, condition *github_com_go_courier_sqlx_v2_builder.Condition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) (int, error) {
+func (m *User) Count(db github_com_go_courier_sqlx_v2.DBExecutor, condition github_com_go_courier_sqlx_v2_builder.SqlCondition, additions ...github_com_go_courier_sqlx_v2_builder.Addition) (int, error) {
 
 	count := -1
 

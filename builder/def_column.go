@@ -1,10 +1,13 @@
 package builder
 
 import (
-	"container/list"
+	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
+
+	"github.com/go-courier/reflectx"
 )
 
 func Col(name string) *Column {
@@ -20,7 +23,7 @@ type Column struct {
 	Name      string
 	FieldName string
 	Table     *Table
-	Exactly   bool
+	exactly   bool
 
 	Description []string
 	Relation    []string
@@ -28,12 +31,17 @@ type Column struct {
 	*ColumnType
 }
 
+func (c Column) Full() *Column {
+	c.exactly = true
+	return &c
+}
+
 func (c *Column) Of(table *Table) *Column {
 	col := &Column{
 		Name:       c.Name,
 		FieldName:  c.FieldName,
 		Table:      table,
-		Exactly:    true,
+		exactly:    true,
 		ColumnType: c.ColumnType,
 	}
 	return col
@@ -43,14 +51,19 @@ func (c *Column) IsNil() bool {
 	return c == nil
 }
 
-func (c *Column) Expr() *Ex {
-	if c.Table != nil && c.Exactly {
-		return Expr("?.?", c.Table, Expr(c.Name))
+func (c *Column) Ex(ctx context.Context) *Ex {
+	toggles := TogglesFromContext(ctx)
+
+	if c.Table != nil && (c.exactly || toggles.Is(ToggleMultiTable)) {
+		if toggles.Is(ToggleNeedAutoAlias) {
+			return Expr("(?.?) AS ?", c.Table, Expr(c.Name), Expr(c.Name)).Ex(ctx)
+		}
+		return Expr("?.?", c.Table, Expr(c.Name)).Ex(ctx)
 	}
-	return Expr(c.Name)
+	return Expr(c.Name).Ex(ctx)
 }
 
-func (c *Column) Ex(query string, args ...interface{}) *Ex {
+func (c *Column) Expr(query string, args ...interface{}) *Ex {
 	e := Expr("")
 
 	qc := 0
@@ -59,8 +72,7 @@ func (c *Column) Ex(query string, args ...interface{}) *Ex {
 	for _, key := range []byte(query) {
 		switch key {
 		case '#':
-			e.WriteByte('?')
-			e.AppendArgs(c.Expr())
+			e.WriteExpr(c)
 		case '?':
 			e.WriteByte(key)
 			if n > qc {
@@ -71,6 +83,7 @@ func (c *Column) Ex(query string, args ...interface{}) *Ex {
 			e.WriteByte(key)
 		}
 	}
+
 	return e
 }
 
@@ -94,268 +107,176 @@ func (c *Column) T() *Table {
 }
 
 func (c *Column) ValueBy(v interface{}) *Assignment {
-	return AsAssignment(c.Ex("# = ?", v))
+	return AsAssignment(c.Expr("# = ?", v))
 }
 
-func (c *Column) Incr(d int) *Ex {
-	return c.Ex("# + ?", d)
+func (c *Column) Incr(d int) SqlExpr {
+	return c.Expr("# + ?", d)
 }
 
-func (c *Column) Desc(d int) *Ex {
-	return c.Ex("# - ?", d)
+func (c *Column) Desc(d int) SqlExpr {
+	return c.Expr("# - ?", d)
 }
 
-func (c *Column) Like(v string) *Condition {
-	return AsCond(c.Ex("# LIKE ?", "%"+v+"%"))
+func (c *Column) Like(v string) SqlCondition {
+	return AsCond(c.Expr("# LIKE ?", "%"+v+"%"))
 }
 
-func (c *Column) LeftLike(v string) *Condition {
-	return AsCond(c.Ex("# LIKE ?", "%"+v))
+func (c *Column) LeftLike(v string) SqlCondition {
+	return AsCond(c.Expr("# LIKE ?", "%"+v))
 }
 
-func (c *Column) RightLike(v string) *Condition {
-	return AsCond(c.Ex("# LIKE ?", v+"%"))
+func (c *Column) RightLike(v string) SqlCondition {
+	return AsCond(c.Expr("# LIKE ?", v+"%"))
 }
 
-func (c *Column) NotLike(v string) *Condition {
-	return AsCond(c.Ex("# NOT LIKE ?", "%"+v+"%"))
+func (c *Column) NotLike(v string) SqlCondition {
+	return AsCond(c.Expr("# NOT LIKE ?", "%"+v+"%"))
 }
 
-func (c *Column) IsNull() *Condition {
-	return AsCond(c.Ex("# IS NULL"))
+func (c *Column) IsNull() SqlCondition {
+	return AsCond(c.Expr("# IS NULL"))
 }
 
-func (c *Column) IsNotNull() *Condition {
-	return AsCond(c.Ex("# IS NOT NULL"))
+func (c *Column) IsNotNull() SqlCondition {
+	return AsCond(c.Expr("# IS NOT NULL"))
 }
 
-func (c *Column) Between(leftValue interface{}, rightValue interface{}) *Condition {
-	return AsCond(c.Ex("# BETWEEN ? AND ?", leftValue, rightValue))
+func (c *Column) Between(leftValue interface{}, rightValue interface{}) SqlCondition {
+	return AsCond(c.Expr("# BETWEEN ? AND ?", leftValue, rightValue))
 }
 
-func (c *Column) NotBetween(leftValue interface{}, rightValue interface{}) *Condition {
-	return AsCond(c.Ex("# NOT BETWEEN ? AND ?", leftValue, rightValue))
+func (c *Column) NotBetween(leftValue interface{}, rightValue interface{}) SqlCondition {
+	return AsCond(c.Expr("# NOT BETWEEN ? AND ?", leftValue, rightValue))
 }
 
-func (c *Column) In(args ...interface{}) *Condition {
+func (c *Column) In(args ...interface{}) SqlCondition {
 	length := len(args)
 	if length == 0 {
 		return nil
 	}
-	e := c.Expr()
-	e.WriteString(" IN ")
+
+	e := Expr("# IN ")
 	e.WriteGroup(func(e *Ex) {
-		for i := range args {
+		for i := 0; i < length; i++ {
 			e.WriteHolder(i)
-			e.AppendArgs(args[i])
 		}
 	})
-	return AsCond(e)
+
+	return AsCond(c.Expr(e.String(), args...))
 }
 
-func (c *Column) NotIn(args ...interface{}) *Condition {
+func (c *Column) NotIn(args ...interface{}) SqlCondition {
 	length := len(args)
 	if length == 0 {
 		return nil
 	}
-	e := c.Expr()
-	e.WriteString(" NOT IN ")
+
+	e := Expr("# NOT IN ")
 	e.WriteGroup(func(e *Ex) {
-		for i := range args {
+		for i := 0; i < length; i++ {
 			e.WriteHolder(i)
-			e.AppendArgs(args[i])
 		}
 	})
-	return AsCond(e)
+
+	return AsCond(c.Expr(e.String(), args...))
 }
 
-func (c *Column) Eq(v interface{}) *Condition {
-	return AsCond(c.Ex("# = ?", v))
+func (c *Column) Eq(v interface{}) SqlCondition {
+	return AsCond(c.Expr("# = ?", v))
 }
 
-func (c *Column) Neq(v interface{}) *Condition {
-	return AsCond(c.Ex("# <> ?", v))
+func (c *Column) Neq(v interface{}) SqlCondition {
+	return AsCond(c.Expr("# <> ?", v))
 }
 
-func (c *Column) Gt(v interface{}) *Condition {
-	return AsCond(c.Ex("# > ?", v))
+func (c *Column) Gt(v interface{}) SqlCondition {
+	return AsCond(c.Expr("# > ?", v))
 }
 
-func (c *Column) Gte(v interface{}) *Condition {
-	return AsCond(c.Ex("# >= ?", v))
+func (c *Column) Gte(v interface{}) SqlCondition {
+	return AsCond(c.Expr("# >= ?", v))
 }
 
-func (c *Column) Lt(v interface{}) *Condition {
-	return AsCond(c.Ex("# < ?", v))
+func (c *Column) Lt(v interface{}) SqlCondition {
+	return AsCond(c.Expr("# < ?", v))
 }
 
-func (c *Column) Lte(v interface{}) *Condition {
-	return AsCond(c.Ex("# <= ?", v))
+func (c *Column) Lte(v interface{}) SqlCondition {
+	return AsCond(c.Expr("# <= ?", v))
 }
 
-func Cols(names ...string) *Columns {
-	cols := &Columns{}
-	for _, name := range names {
-		cols.Add(Col(name))
-	}
-	return cols
-}
+func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType {
+	ct := &ColumnType{}
+	ct.Type = reflectx.Deref(typ)
 
-type Columns struct {
-	l             *list.List
-	columns       map[string]*list.Element
-	fields        map[string]*list.Element
-	autoIncrement *Column
-}
+	v := reflect.New(ct.Type).Interface()
 
-func (cols *Columns) IsNil() bool {
-	return cols == nil || cols.Len() == 0
-}
-
-func (cols *Columns) Expr() *Ex {
-	expr := Expr("")
-
-	cols.Range(func(col *Column, idx int) {
-		if idx > 0 {
-			expr.WriteByte(',')
-		}
-		expr.WriteExpr(col)
-	})
-
-	return expr
-}
-
-func (cols *Columns) AutoIncrement() (col *Column) {
-	return cols.autoIncrement
-}
-
-func (cols *Columns) Clone() *Columns {
-	c := &Columns{}
-	cols.Range(func(col *Column, idx int) {
-		c.Add(col)
-	})
-	return c
-}
-
-func (cols *Columns) Len() int {
-	if cols == nil || cols.l == nil {
-		return 0
-	}
-	return cols.l.Len()
-}
-
-func (cols *Columns) MustFields(fieldNames ...string) *Columns {
-	nextCols, err := cols.Fields(fieldNames...)
-	if err != nil {
-		panic(err)
-	}
-	return nextCols
-}
-
-func (cols *Columns) Fields(fieldNames ...string) (*Columns, error) {
-	if len(fieldNames) == 0 {
-		return cols.Clone(), nil
-	}
-	newCols := &Columns{}
-	for _, fieldName := range fieldNames {
-		col := cols.F(fieldName)
-		if col == nil {
-			return nil, fmt.Errorf("unknown struct field %s", fieldName)
-		}
-		newCols.Add(col)
-	}
-	return newCols, nil
-}
-
-func (cols *Columns) FieldNames() []string {
-	fieldNames := make([]string, 0)
-	cols.Range(func(col *Column, idx int) {
-		fieldNames = append(fieldNames, col.FieldName)
-	})
-	return fieldNames
-}
-
-func (cols *Columns) F(fileName string) (col *Column) {
-	if cols.fields != nil {
-		if c, ok := cols.fields[fileName]; ok {
-			return c.Value.(*Column)
-		}
-	}
-	return nil
-}
-
-func (cols *Columns) List() (l []*Column) {
-	if cols != nil && cols.columns != nil {
-		cols.Range(func(col *Column, idx int) {
-			l = append(l, col)
-		})
-	}
-	return
-}
-
-func (cols *Columns) Cols(colNames ...string) (*Columns, error) {
-	if len(colNames) == 0 {
-		return cols.Clone(), nil
-	}
-	newCols := &Columns{}
-	for _, colName := range colNames {
-		col := cols.Col(colName)
-		if col == nil {
-			return nil, fmt.Errorf("unknown struct column %s", colName)
-		}
-		newCols.Add(col)
-	}
-	return newCols, nil
-}
-
-func (cols *Columns) Col(columnName string) (col *Column) {
-	columnName = strings.ToLower(columnName)
-	if cols.columns != nil {
-		if c, ok := cols.columns[columnName]; ok {
-			return c.Value.(*Column)
-		}
-	}
-	return nil
-}
-
-func (cols *Columns) Add(columns ...*Column) {
-	if cols.columns == nil {
-		cols.columns = map[string]*list.Element{}
-		cols.fields = map[string]*list.Element{}
-		cols.l = list.New()
+	if dataTypeDescriber, ok := v.(DataTypeDescriber); ok {
+		ct.GetDataType = dataTypeDescriber.DataType
 	}
 
-	for _, col := range columns {
-		if col != nil {
-			if col.ColumnType != nil && col.ColumnType.AutoIncrement {
-				if cols.autoIncrement != nil {
-					panic(fmt.Errorf("AutoIncrement field can only have one, now %s, but %s want to replace", cols.autoIncrement.Name, col.Name))
+	if strings.Index(nameAndFlags, ",") > -1 {
+		for _, flag := range strings.Split(nameAndFlags, ",")[1:] {
+			nameAndValue := strings.Split(flag, "=")
+			switch strings.ToLower(nameAndValue[0]) {
+			case "null":
+				ct.Null = true
+			case "autoincrement":
+				ct.AutoIncrement = true
+			case "deprecated":
+				rename := ""
+				if len(nameAndValue) > 1 {
+					rename = nameAndValue[1]
 				}
-				cols.autoIncrement = col
+				ct.DeprecatedActions = &DeprecatedActions{RenameTo: rename}
+			case "size":
+				if len(nameAndValue) == 1 {
+					panic(fmt.Errorf("missing size value"))
+				}
+				length, err := strconv.ParseUint(nameAndValue[1], 10, 64)
+				if err != nil {
+					panic(fmt.Errorf("invalid size value: %s", err))
+				}
+				ct.Length = length
+			case "decimal":
+				if len(nameAndValue) == 1 {
+					panic(fmt.Errorf("missing size value"))
+				}
+				decimal, err := strconv.ParseUint(nameAndValue[1], 10, 64)
+				if err != nil {
+					panic(fmt.Errorf("invalid decimal value: %s", err))
+				}
+				ct.Decimal = decimal
+			case "default":
+				if len(nameAndValue) == 1 {
+					panic(fmt.Errorf("missing default value"))
+				}
+				ct.Default = &nameAndValue[1]
 			}
-			e := cols.l.PushBack(col)
-			cols.columns[col.Name] = e
-			cols.fields[col.FieldName] = e
 		}
 	}
+
+	return ct
 }
 
-func (cols *Columns) Remove(name string) {
-	name = strings.ToLower(name)
-	if cols.columns != nil {
-		if e, exists := cols.columns[name]; exists {
-			cols.l.Remove(e)
-			delete(cols.columns, name)
-		}
-	}
+type ColumnType struct {
+	Type        reflect.Type
+	GetDataType func(engine string) string
+
+	Length  uint64
+	Decimal uint64
+
+	Default *string
+
+	Null          bool
+	AutoIncrement bool
+
+	Comment string
+
+	DeprecatedActions *DeprecatedActions
 }
 
-func (cols *Columns) Range(cb func(col *Column, idx int)) {
-	if cols.l != nil {
-		i := 0
-		for e := cols.l.Front(); e != nil; e = e.Next() {
-			cb(e.Value.(*Column), i)
-			i++
-		}
-	}
+type DeprecatedActions struct {
+	RenameTo string `name:"rename"`
 }

@@ -4,37 +4,32 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestBool(t *testing.T) {
-	tt := require.New(t)
-	{
+	t.Run("Marshal", testingx.It(func(t *testingx.T) {
 		bytes, _ := json.Marshal(BOOL_TRUE)
-		tt.Equal("true", string(bytes))
-	}
-	{
-		bytes, _ := json.Marshal(BOOL_FALSE)
-		tt.Equal("false", string(bytes))
-	}
-	{
-		bytes, _ := json.Marshal(BOOL_UNKNOWN)
-		tt.Equal("null", string(bytes))
-	}
+		t.Expect(string(bytes)).To(gomega.Equal("true"))
 
-	{
+		bytes, _ = json.Marshal(BOOL_FALSE)
+		t.Expect(string(bytes)).To(gomega.Equal("false"))
+
+		bytes, _ = json.Marshal(BOOL_UNKNOWN)
+		t.Expect(string(bytes)).To(gomega.Equal("null"))
+	}))
+
+	t.Run("Unmarshal", testingx.It(func(t *testingx.T) {
 		var b Bool
-		json.Unmarshal([]byte("true"), &b)
-		tt.Equal(BOOL_TRUE, b)
-	}
-	{
-		var b Bool
-		json.Unmarshal([]byte("false"), &b)
-		tt.Equal(BOOL_FALSE, b)
-	}
-	{
-		var b Bool
+
 		json.Unmarshal([]byte("null"), &b)
-		tt.Equal(BOOL_UNKNOWN, b)
-	}
+		t.Expect(b).To(gomega.Equal(BOOL_UNKNOWN))
+
+		json.Unmarshal([]byte("true"), &b)
+		t.Expect(b).To(gomega.Equal(BOOL_TRUE))
+
+		json.Unmarshal([]byte("false"), &b)
+		t.Expect(b).To(gomega.Equal(BOOL_FALSE))
+	}))
 }

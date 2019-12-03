@@ -61,7 +61,6 @@ func (m *Model) WriteTableName(file *codegen.File) {
 		codegen.Func(codegen.Var(codegen.Interface(), "v")).
 			Named("Resolve").
 			MethodOf(codegen.Var(m.IteratorType())).
-
 			Return(codegen.Var(m.PtrType())).
 			Do(
 				codegen.Return(codegen.Expr("v.(?)", m.PtrType())),
@@ -158,7 +157,7 @@ func (m *Model) WriteTableInterfaces(file *codegen.File) {
 		).
 			Named("ConditionByStruct").
 			MethodOf(codegen.Var(m.PtrType(), "m")).
-			Return(codegen.Var(codegen.Star(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "Condition"))))).
+			Return(codegen.Var(codegen.Type(file.Use("github.com/go-courier/sqlx/v2/builder", "SqlCondition")))).
 			Do(
 				codegen.Expr(`table := db.T(m)`),
 				codegen.Expr(`fieldValues := `+file.Use("github.com/go-courier/sqlx/v2/builder", "FieldValuesFromStructByNonZero")+`(m)

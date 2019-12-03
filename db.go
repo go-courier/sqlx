@@ -95,14 +95,14 @@ func (d *DB) D() *Database {
 }
 
 func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
-	e := builder.ExprFrom(expr)
-	if e.IsNil() {
+	e := builder.ResolveExprContext(d.Context(), expr)
+	if builder.IsNilExpr(e) {
 		return nil, nil
 	}
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.Flatten().ReplaceValueHolder(d.dialect.BindVar)
+	e = e.ReplaceValueHolder(d.dialect.BindVar)
 	result, err := d.ExecContext(d.Context(), e.Query(), e.Args()...)
 	if err != nil {
 		if d.dialect.IsErrorConflict(err) {
@@ -114,14 +114,14 @@ func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
 }
 
 func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
-	e := builder.ExprFrom(expr)
-	if e.IsNil() {
+	e := builder.ResolveExprContext(d.Context(), expr)
+	if builder.IsNilExpr(e) {
 		return nil, nil
 	}
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.Flatten().ReplaceValueHolder(d.dialect.BindVar)
+	e = e.ReplaceValueHolder(d.dialect.BindVar)
 	return d.QueryContext(d.Context(), e.Query(), e.Args()...)
 }
 

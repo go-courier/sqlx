@@ -14,10 +14,11 @@ import (
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/go-courier/sqlx/v2/mysqlconnector"
 	"github.com/go-courier/sqlx/v2/postgresqlconnector"
+	"github.com/go-courier/testingx"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
+	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -167,139 +168,138 @@ func TestMigrate(t *testing.T) {
 		postgresConnector,
 	} {
 		for _, schema := range []string{"import", "public", "backup"} {
-			t.Run("create table", func(t *testing.T) {
+			t.Run("create table", testingx.It(func(t *testingx.T) {
 				dbTest.Register(&User{})
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				require.NoError(t, err)
-			})
+				t.Expect(err).To(gomega.BeNil())
+			}))
 
-			t.Run("no migrate", func(t *testing.T) {
+			t.Run("no migrate", testingx.It(func(t *testingx.T) {
 				dbTest.Register(&User{})
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				require.NoError(t, err)
+				t.Expect(err).To(gomega.BeNil())
 
-				t.Run("migrate to user2", func(t *testing.T) {
+				t.Run("migrate to user2", testingx.It(func(t *testingx.T) {
 					dbTest.Register(&User2{})
 					db := dbTest.OpenDB(connector).WithSchema(schema)
 					err := migration.Migrate(db, nil)
-					require.NoError(t, err)
-				})
+					t.Expect(err).To(gomega.BeNil())
+				}))
 
-				t.Run("migrate to user2 again", func(t *testing.T) {
+				t.Run("migrate to user2 again", testingx.It(func(t *testingx.T) {
 					dbTest.Register(&User2{})
 					db := dbTest.OpenDB(connector).WithSchema(schema)
 					err := migration.Migrate(db, nil)
-					require.NoError(t, err)
-				})
-			})
+					t.Expect(err).To(gomega.BeNil())
+				}))
+			}))
 
-			t.Run("migrate to user", func(t *testing.T) {
+			t.Run("migrate to user", testingx.It(func(t *testingx.T) {
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				require.NoError(t, err)
-			})
+				t.Expect(err).To(gomega.BeNil())
+			}))
 
 			dbTest.Tables.Range(func(table *builder.Table, idx int) {
 				db := dbTest.OpenDB(connector).WithSchema(schema)
-				_, err := db.ExecExpr(db.Dialect().DropTable(table))
-				require.NoError(t, err)
+				db.ExecExpr(db.Dialect().DropTable(table))
 			})
 		}
 	}
 }
 
 func TestCRUD(t *testing.T) {
-	tt := require.New(t)
-
-	dbTest := sqlx.NewDatabase("test")
+	dbTest := sqlx.NewDatabase("test_crud")
 
 	for _, connector := range []driver.Connector{
 		mysqlConnector,
 		postgresConnector,
 	} {
-		d := dbTest.OpenDB(connector)
+		t.Run("", testingx.It(func(t *testingx.T) {
+			d := dbTest.OpenDB(connector)
 
-		db := d.WithContext(metax.ContextWithMeta(d.Context(), metax.ParseMeta("_id=11111")))
+			db := d.WithContext(metax.ContextWithMeta(d.Context(), metax.ParseMeta("_id=11111")))
 
-		userTable := dbTest.Register(&User{})
+			userTable := dbTest.Register(&User{})
 
-		err := migration.Migrate(db, nil)
-		tt.NoError(err)
+			err := migration.Migrate(db, nil)
+			t.Expect(err).To(gomega.BeNil())
 
-		t.Run("insert single", func(t *testing.T) {
-			user := User{
-				Name:   uuid.New().String(),
-				Gender: GenderMale,
-			}
+			t.Run("insert single", testingx.It(func(t *testingx.T) {
+				user := User{
+					Name:   uuid.New().String(),
+					Gender: GenderMale,
+				}
 
-			t.Run("cancel", func(t *testing.T) {
-				ctx, cancel := context.WithCancel(context.Background())
-				db2 := db.WithContext(ctx)
+				t.Run("cancel", testingx.It(func(t *testingx.T) {
+					ctx, cancel := context.WithCancel(context.Background())
+					db2 := db.WithContext(ctx)
 
-				go func() {
-					time.Sleep(5 * time.Millisecond)
-					cancel()
-				}()
+					go func() {
+						time.Sleep(5 * time.Millisecond)
+						cancel()
+					}()
 
-				err := sqlx.NewTasks(db2).
-					With(
-						func(db sqlx.DBExecutor) error {
-							_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-							return err
-						},
-						func(db sqlx.DBExecutor) error {
-							time.Sleep(10 * time.Millisecond)
-							return nil
-						},
-					).
-					Do()
+					err := sqlx.NewTasks(db2).
+						With(
+							func(db sqlx.DBExecutor) error {
+								_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
+								return err
+							},
+							func(db sqlx.DBExecutor) error {
+								time.Sleep(10 * time.Millisecond)
+								return nil
+							},
+						).
+						Do()
 
-				tt.Error(err)
-			})
+					t.Expect(err).NotTo(gomega.BeNil())
+				}))
 
-			_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-			tt.NoError(err)
-
-			t.Run("update", func(t *testing.T) {
-				user.Gender = GenderFemale
-				_, err := db.ExecExpr(
-					builder.Update(dbTest.T(&user)).
-						Set(sqlx.AsAssignments(db, &user)...).
-						Where(
-							userTable.F("Name").Eq(user.Name),
-						),
-				)
-				tt.Nil(err)
-			})
-
-			t.Run("select", func(t *testing.T) {
-				userForSelect := User{}
-				err := db.QueryExprAndScan(
-					builder.Select(nil).From(
-						userTable,
-						builder.Where(userTable.F("Name").Eq(user.Name)),
-						builder.Comment("FindUser"),
-					),
-					&userForSelect)
-
-				tt.NoError(err)
-
-				tt.Equal(userForSelect.Name, user.Name)
-				tt.Equal(userForSelect.Gender, user.Gender)
-			})
-
-			t.Run("conflict", func(t *testing.T) {
 				_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-				tt.True(sqlx.DBErr(err).IsConflict())
-			})
-		})
+				t.Expect(err).To(gomega.BeNil())
 
-		db.(*sqlx.DB).Tables.Range(func(t *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(t))
-			tt.NoError(err)
-		})
+				t.Run("update", testingx.It(func(t *testingx.T) {
+					user.Gender = GenderFemale
+					_, err := db.ExecExpr(
+						builder.Update(dbTest.T(&user)).
+							Set(sqlx.AsAssignments(db, &user)...).
+							Where(
+								userTable.F("Name").Eq(user.Name),
+							),
+					)
+					t.Expect(err).To(gomega.BeNil())
+				}))
+
+				t.Run("select", testingx.It(func(t *testingx.T) {
+					userForSelect := User{}
+					err := db.QueryExprAndScan(
+						builder.Select(nil).From(
+							userTable,
+							builder.Where(userTable.F("Name").Eq(user.Name)),
+							builder.Comment("FindUser"),
+						),
+						&userForSelect)
+
+					t.Expect(err).To(gomega.BeNil())
+
+					t.Expect(user.Name).To(gomega.Equal(userForSelect.Name))
+					t.Expect(user.Gender).To(gomega.Equal(userForSelect.Gender))
+				}))
+
+				t.Run("conflict", testingx.It(func(t *testingx.T) {
+					_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
+					t.Expect(sqlx.DBErr(err).IsConflict()).To(gomega.BeTrue())
+				}))
+			}))
+
+			db.(*sqlx.DB).Tables.Range(func(table *builder.Table, idx int) {
+				_, err := db.ExecExpr(db.Dialect().DropTable(table))
+				t.Expect(err).To(gomega.BeNil())
+			})
+		}))
 	}
 }
 
@@ -323,104 +323,103 @@ func TestSelect(t *testing.T) {
 		mysqlConnector,
 		postgresConnector,
 	} {
-		db := dbTest.OpenDB(connector)
+		t.Run("", testingx.It(func(t *testingx.T) {
+			db := dbTest.OpenDB(connector)
+			table := dbTest.Register(&User{})
 
-		table := dbTest.Register(&User{})
+			db.Tables.Range(func(t *builder.Table, idx int) {
+				db.ExecExpr(db.Dialect().DropTable(t))
+			})
 
-		db.Tables.Range(func(t *builder.Table, idx int) {
-			db.ExecExpr(db.Dialect().DropTable(t))
-		})
+			err := migration.Migrate(db, nil)
+			t.Expect(err).To(gomega.BeNil())
 
-		err := migration.Migrate(db, nil)
-		require.NoError(t, err)
+			{
+				columns := table.MustFields("Name", "Gender")
+				values := make([]interface{}, 0)
 
-		{
-			columns := table.MustFields("Name", "Gender")
-			values := make([]interface{}, 0)
+				for i := 0; i < 1000; i++ {
+					values = append(values, uuid.New().String(), GenderMale)
+				}
 
-			for i := 0; i < 1000; i++ {
-				values = append(values, uuid.New().String(), GenderMale)
+				_, err := db.ExecExpr(builder.Insert().Into(table).Values(columns, values...))
+				t.Expect(err).To(gomega.BeNil())
 			}
 
-			_, err := db.ExecExpr(builder.Insert().Into(table).Values(columns, values...))
-			require.NoError(t, err)
-		}
+			t.Run("select to slice", testingx.It(func(t *testingx.T) {
+				users := make([]User, 0)
+				err := db.QueryExprAndScan(
+					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
+					&users,
+				)
+				t.Expect(err).To(gomega.BeNil())
+				t.Expect(users).To(gomega.HaveLen(1000))
+			}))
 
-		t.Run("select to slice", func(t *testing.T) {
-			users := make([]User, 0)
-			err := db.QueryExprAndScan(
-				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
-				&users,
-			)
-			require.NoError(t, err)
-			require.Len(t, users, 1000)
-		})
+			t.Run("select to set", testingx.It(func(t *testingx.T) {
+				userSet := UserSet{}
+				err := db.QueryExprAndScan(
+					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
+					userSet,
+				)
+				t.Expect(err).To(gomega.BeNil())
+				t.Expect(userSet).To(gomega.HaveLen(1000))
+			}))
 
-		t.Run("select to set", func(t *testing.T) {
-			userSet := UserSet{}
-			err := db.QueryExprAndScan(
-				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
-				userSet,
-			)
-			require.NoError(t, err)
-			require.Len(t, userSet, 1000)
-		})
+			t.Run("not found", testingx.It(func(t *testingx.T) {
+				user := User{}
+				err := db.QueryExprAndScan(
+					builder.Select(nil).From(
+						table,
+						builder.Where(table.F("ID").Eq(1001)),
+					),
+					&user,
+				)
+				t.Expect(sqlx.DBErr(err).IsNotFound()).To(gomega.BeTrue())
+			}))
 
-		t.Run("not found", func(t *testing.T) {
-			user := User{}
-			err := db.QueryExprAndScan(
-				builder.Select(nil).From(
-					table,
-					builder.Where(table.F("ID").Eq(1001)),
-				),
-				&user,
-			)
-			require.True(t, sqlx.DBErr(err).IsNotFound())
-		})
+			t.Run("count", testingx.It(func(t *testingx.T) {
+				count := 0
+				err := db.QueryExprAndScan(
+					builder.Select(builder.Count()).From(table),
+					&count,
+				)
+				t.Expect(err).To(gomega.BeNil())
+				t.Expect(count).To(gomega.Equal(1000))
+			}))
 
-		t.Run("count", func(t *testing.T) {
-			count := 0
-			err := db.QueryExprAndScan(
-				builder.Select(builder.Count()).From(table),
-				&count,
-			)
-			require.NoError(t, err)
-			require.Equal(t, 1000, count)
-		})
+			t.Run("canceled", testingx.It(func(t *testingx.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				db2 := db.WithContext(ctx)
 
-		t.Run("canceled", func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			db2 := db.WithContext(ctx)
+				go func() {
+					time.Sleep(3 * time.Millisecond)
+					cancel()
+				}()
 
-			go func() {
-				time.Sleep(3 * time.Millisecond)
-				cancel()
-			}()
+				userSet := UserSet{}
+				err := db2.QueryExprAndScan(
+					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
+					userSet,
+				)
+				t.Expect(err).NotTo(gomega.BeNil())
+			}))
 
-			userSet := UserSet{}
-			err := db2.QueryExprAndScan(
-				builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
-				userSet,
-			)
+			t.Run("unsupported scan error", testingx.It(func(t *testingx.T) {
+				user := &User{}
+				err := db.QueryExprAndScan(
+					builder.Select(builder.Count()).From(
+						table,
+						builder.Where(table.F("Gender").Eq(GenderMale)),
+					),
+					&user,
+				)
+				t.Expect(err).NotTo(gomega.BeNil())
+			}))
 
-			require.Error(t, err)
-		})
-
-		t.Run("unsupported scan error", func(t *testing.T) {
-			user := &User{}
-			err := db.QueryExprAndScan(
-				builder.Select(builder.Count()).From(
-					table,
-					builder.Where(table.F("Gender").Eq(GenderMale)),
-				),
-				&user,
-			)
-			require.Error(t, err)
-		})
-
-		db.Tables.Range(func(tab *builder.Table, idx int) {
-			_, err := db.ExecExpr(db.Dialect().DropTable(tab))
-			require.NoError(t, err)
-		})
+			db.Tables.Range(func(tab *builder.Table, idx int) {
+				db.ExecExpr(db.Dialect().DropTable(tab))
+			})
+		}))
 	}
 }

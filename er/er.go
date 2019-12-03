@@ -32,7 +32,7 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 
 			c := &ERCol{
 				Name:     col.Name,
-				DataType: dialect.DataType(col.ColumnType).Expr().String(),
+				DataType: builder.ResolveExpr(dialect.DataType(col.ColumnType)).String(),
 			}
 
 			if len(col.Description) > 0 {

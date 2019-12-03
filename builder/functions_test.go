@@ -1,55 +1,23 @@
-package builder
+package builder_test
 
 import (
 	"testing"
+
+	. "github.com/go-courier/sqlx/v2/builder"
+	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
+	"github.com/go-courier/testingx"
 )
 
 func TestFunc(t *testing.T) {
-	cases := map[string]struct {
-		expr   SqlExpr
-		expect SqlExpr
-	}{
-		"Nil": {
-			Func(""),
-			nil,
-		},
-		"COUNT": {
-			Count(),
-			Expr("COUNT(1)"),
-		},
-		"AVG": {
-			Avg(),
-			Expr("AVG(*)"),
-		},
-		"DISTINCT": {
-			Distinct(),
-			Expr("DISTINCT(*)"),
-		},
-		"MIN": {
-			Min(),
-			Expr("MIN(*)"),
-		},
-		"Max": {
-			Max(),
-			Expr("MAX(*)"),
-		},
-		"First": {
-			First(),
-			Expr("FIRST(*)"),
-		},
-		"Last": {
-			Last(),
-			Expr("LAST(*)"),
-		},
-		"Sum": {
-			Sum(),
-			Expr("SUM(*)"),
-		},
-	}
+	t.Run("invalid", testingx.It(func(t *testingx.T) {
+		t.Expect(Func("")).To(BeExpr(""))
+	}))
 
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			queryArgsEqual(t, c.expect, c.expr)
-		})
-	}
+	t.Run("count", testingx.It(func(t *testingx.T) {
+		t.Expect(Count()).To(BeExpr("COUNT(1)"))
+	}))
+
+	t.Run("AVG", testingx.It(func(t *testingx.T) {
+		t.Expect(Avg()).To(BeExpr("AVG(*)"))
+	}))
 }

@@ -1,56 +1,26 @@
-package builder
+package builder_test
 
 import (
 	"testing"
+
+	. "github.com/go-courier/sqlx/v2/builder"
+	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
+	"github.com/go-courier/testingx"
 )
 
 func TestStmtDelete(t *testing.T) {
-	table := T("t")
+	table := T("T")
 
-	cases := map[string]struct {
-		expr   SqlExpr
-		expect SqlExpr
-	}{
-		"Delete simple": {
+	t.Run("delete", testingx.It(func(t *testingx.T) {
+		t.Expect(
 			Delete().From(table,
 				Where(Col("F_a").Eq(1)),
 				Comment("Comment"),
 			),
-			Expr(
-				"DELETE FROM t WHERE f_a = ? /* Comment */",
-				1,
-			),
-		},
-		"Delete with limit": {
-			Delete().From(
-				table,
-				Where(Col("F_a").Eq(1)),
-				Limit(1),
-			),
-			Expr(
-				"DELETE FROM t WHERE f_a = ? LIMIT 1",
-				1,
-			),
-		},
-		"Delete with order": {
-			Delete().From(
-				table,
-				Where(Col("F_a").Eq(1)),
-				OrderBy(
-					AscOrder(Col("F_a")),
-					DescOrder(Col("F_b")),
-				),
-			),
-			Expr(
-				"DELETE FROM t WHERE f_a = ? ORDER BY (f_a) ASC,(f_b) DESC",
-				1,
-			),
-		},
-	}
-
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			queryArgsEqual(t, c.expect, c.expr)
-		})
-	}
+		).To(BeExpr(`
+DELETE FROM T
+WHERE f_a = ?
+/* Comment */
+`, 1))
+	}))
 }

@@ -72,6 +72,24 @@ func FieldValuesFromStructByNonZero(structValue interface{}, excludes ...string)
 	return
 }
 
+func TableFromModel(model Model) *Table {
+	tpe := reflect.TypeOf(model)
+	if tpe.Kind() != reflect.Ptr {
+		panic(fmt.Errorf("model %s must be a pointer", tpe.Name()))
+	}
+	tpe = tpe.Elem()
+	if tpe.Kind() != reflect.Struct {
+		panic(fmt.Errorf("model %s must be a struct", tpe.Name()))
+	}
+
+	table := T(model.TableName())
+	table.Model = model
+
+	ScanDefToTable(reflect.Indirect(reflect.ValueOf(model)), table)
+
+	return table
+}
+
 func ScanDefToTable(rv reflect.Value, table *Table) {
 	table.ModelName = rv.Type().Name()
 

@@ -4,47 +4,55 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestDatetime(t *testing.T) {
-	tt := require.New(t)
+	t.Run("Parse", testingx.It(func(t *testingx.T) {
+		t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
+		dt := Datetime(t0)
 
-	t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
-	dt := Datetime(t0)
-	tt.Equal("2017-03-27T23:58:59+08:00", dt.String())
-	tt.Equal("2017-03-27T23:58:59+08:00", dt.Format(time.RFC3339))
-	tt.Equal(int64(1490630339), dt.Unix())
+		t.Expect(dt.String()).To(gomega.Equal("2017-03-27T23:58:59+08:00"))
+		t.Expect(dt.Format(time.RFC3339)).To(gomega.Equal("2017-03-27T23:58:59+08:00"))
+		t.Expect(dt.Unix()).To(gomega.Equal(int64(1490630339)))
+	}))
 
-	{
+	t.Run("Marshal & Unmarshal", testingx.It(func(t *testingx.T) {
+		t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
+		dt := Datetime(t0)
+
 		dateString, err := dt.MarshalText()
-		tt.NoError(err)
-		tt.Equal("2017-03-27T23:58:59+08:00", string(dateString))
+		t.Expect(err).To(gomega.BeNil())
+		t.Expect(string(dateString)).To(gomega.Equal("2017-03-27T23:58:59+08:00"))
 
 		dt2 := DatetimeZero
-		tt.True(dt2.IsZero())
+		t.Expect(dt2.IsZero()).To(gomega.BeTrue())
+
 		err = dt2.UnmarshalText(dateString)
-		tt.NoError(err)
-		tt.Equal(dt, dt2)
-		tt.False(dt2.IsZero())
-	}
+		t.Expect(err).To(gomega.BeNil())
+		t.Expect(dt2).To(gomega.Equal(dt))
+		t.Expect(dt2.IsZero()).To(gomega.BeFalse())
 
-	{
+		dt3 := TimestampZero
+		err = dt3.UnmarshalText([]byte(""))
+		t.Expect(err).To(gomega.BeNil())
+	}))
+
+	t.Run("Scan & Value", testingx.It(func(t *testingx.T) {
+		t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
+		dt := Datetime(t0)
+
 		value, err := dt.Value()
-		tt.NoError(err)
-		tt.Equal("2017-03-27T23:58:59+08:00", value.(time.Time).In(CST).Format(time.RFC3339))
+		t.Expect(err).To(gomega.BeNil())
+		t.Expect(value.(time.Time).In(CST).Format(time.RFC3339)).To(gomega.Equal("2017-03-27T23:58:59+08:00"))
 
 		dt2 := DatetimeZero
-		tt.True(dt2.IsZero())
-		err = dt2.Scan(value)
-		tt.NoError(err)
-		tt.Equal(dt.In(CST), dt2.In(CST))
-		tt.False(dt2.IsZero())
-	}
+		t.Expect(dt2.IsZero()).To(gomega.BeTrue())
 
-	{
-		dt3 := TimestampZero
-		err := dt3.UnmarshalText([]byte(""))
-		tt.NoError(err)
-	}
+		err = dt2.Scan(value)
+		t.Expect(err).To(gomega.BeNil())
+		t.Expect(dt2.In(CST)).To(gomega.Equal(dt.In(CST)))
+		t.Expect(dt2.IsZero()).To(gomega.BeFalse())
+	}))
 }

@@ -2,7 +2,9 @@ package builder
 
 import (
 	"bytes"
+	"context"
 	"database/sql/driver"
+	"fmt"
 	"reflect"
 
 	"github.com/go-courier/reflectx"
@@ -10,62 +12,90 @@ import (
 
 type SqlExpr interface {
 	IsNil() bool
-	Expr() *Ex
+	Ex(ctx context.Context) *Ex
 }
 
-func ExprFrom(v interface{}) *Ex {
-	if v == nil {
-		return nil
-	}
-	switch e := v.(type) {
-	case *Ex:
-		return e
-	case SqlExpr:
-		if e.IsNil() {
-			return nil
-		}
-		return e.Expr()
-	}
-	return nil
+func IsNilExpr(e SqlExpr) bool {
+	return e == nil || e.IsNil()
 }
 
-func MultiExpr(exprs ...SqlExpr) SqlExpr {
-	e := Expr("")
+func RangeNotNilExpr(exprs []SqlExpr, each func(e SqlExpr, i int)) {
+	count := 0
+
 	for i := range exprs {
-		if i != 0 {
-			e.WriteString(", ")
+		e := exprs[i]
+		if IsNilExpr(e) {
+			continue
 		}
-		e.WriteExpr(exprs[i])
+		each(e, count)
+		count++
 	}
-	return e
 }
 
 func Expr(query string, args ...interface{}) *Ex {
 	return &Ex{Buffer: bytes.NewBufferString(query), args: args}
 }
 
-func Alias(expr SqlExpr, name string) *AliasEx {
-	return &AliasEx{
-		Name:    name,
-		SqlExpr: expr,
+func ResolveExpr(v interface{}) *Ex {
+	return ResolveExprContext(context.Background(), v)
+}
+
+func ResolveExprContext(ctx context.Context, v interface{}) *Ex {
+	switch e := v.(type) {
+	case nil:
+		return nil
+	case SqlExpr:
+		if IsNilExpr(e) {
+			return nil
+		}
+		return e.Ex(ctx)
 	}
+	return nil
 }
 
-type AliasEx struct {
-	Name string
-	SqlExpr
+func Multi(exprs ...SqlExpr) SqlExpr {
+	return MultiWith(" ", exprs...)
 }
 
-func (expr *AliasEx) Expr() *Ex {
-	e := Expr("(?) AS ?")
-	e.AppendArgs(expr.SqlExpr, Expr(expr.Name))
-	return e
+func UnionAll(exprs ...SqlExpr) SqlExpr {
+	return MultiWith("\nUNION ALL\n", exprs...)
+}
+
+func MultiWith(connector string, exprs ...SqlExpr) SqlExpr {
+	return ExprBy(func(ctx context.Context) *Ex {
+		e := Expr("")
+		for i := range exprs {
+			if i != 0 {
+				e.WriteString(connector)
+			}
+			e.WriteExpr(exprs[i])
+		}
+		return e.Ex(ctx)
+	})
+}
+
+func ExprBy(build func(ctx context.Context) *Ex) SqlExpr {
+	return &exBy{build: build}
+}
+
+type exBy struct {
+	build func(ctx context.Context) *Ex
+}
+
+func (c *exBy) IsNil() bool {
+	return c == nil || c.build == nil
+}
+
+func (c *exBy) Ex(ctx context.Context) *Ex {
+	return c.build(ctx)
 }
 
 type Ex struct {
 	*bytes.Buffer
-	args []interface{}
-	err  error
+	args     []interface{}
+	err      error
+	rendered bool
+	ident    int
 }
 
 func (e *Ex) IsNil() bool {
@@ -73,6 +103,9 @@ func (e *Ex) IsNil() bool {
 }
 
 func (e *Ex) Query() string {
+	if e == nil {
+		return ""
+	}
 	return e.String()
 }
 
@@ -92,72 +125,59 @@ func (e *Ex) ArgsLen() int {
 	return len(e.args)
 }
 
-func (e *Ex) Expr() *Ex {
+func (e Ex) Ex(ctx context.Context) *Ex {
+	if e.rendered {
+		return &e
+	}
+
 	if e.IsNil() {
 		return nil
 	}
-	return e
-}
 
-func (e *Ex) WriteGroup(fn func(e *Ex)) {
-	e.WriteByte('(')
-	fn(e)
-	e.WriteByte(')')
-}
-
-func (e *Ex) WhiteComments(comments string) {
-	e.WriteString("/* ")
-	e.WriteString(comments)
-	e.WriteString(" */")
-}
-
-func (e *Ex) WriteExpr(expr SqlExpr) {
-	ex := ExprFrom(expr)
-	if ex == nil {
-		return
+	if e.ArgsLen() == 0 {
+		e.rendered = true
+		return &e
 	}
-	e.Write(ex.Bytes())
-	e.AppendArgs(ex.Args()...)
-}
 
-func (e *Ex) WriteEnd() {
-	e.WriteByte(';')
-}
-
-func (e *Ex) WriteHolder(idx int) {
-	if idx > 0 {
-		e.WriteByte(',')
-	}
-	e.WriteByte('?')
-}
-
-func (e *Ex) Flatten() *Ex {
 	index := 0
 	expr := Expr("")
-	data := e.Bytes()
+	expr.rendered = true
 
-	for i := range data {
-		c := data[i]
+	query := e.Bytes()
+	n := len(e.args)
+
+	for i := range query {
+		c := query[i]
 		switch c {
 		case '?':
+			if index >= n {
+				panic(fmt.Errorf("missing arg %d of %s", index, query))
+			}
+
 			arg := e.args[index]
+
 			switch a := arg.(type) {
 			case ValuerExpr:
 				expr.WriteString(a.ValueEx())
 				expr.AppendArgs(arg)
 			case SqlExpr:
-				e := ExprFrom(a)
-				if !e.IsNil() {
-					expr.WriteExpr(e.Flatten())
+				if !IsNilExpr(a) {
+					subEx := a.Ex(ctx)
+
+					expr.Write(subEx.Bytes())
+					expr.AppendArgs(subEx.Args()...)
 				}
+
 			case driver.Valuer:
 				expr.WriteHolder(0)
 				expr.AppendArgs(arg)
 			default:
 				typ := reflect.TypeOf(arg)
+
 				if !reflectx.IsBytes(typ) && typ.Kind() == reflect.Slice {
 					sliceRv := reflect.ValueOf(arg)
 					length := sliceRv.Len()
+
 					for i := 0; i < length; i++ {
 						expr.WriteHolder(i)
 						expr.AppendArgs(sliceRv.Index(i).Interface())
@@ -176,22 +196,56 @@ func (e *Ex) Flatten() *Ex {
 	return expr
 }
 
-func (e *Ex) ReplaceValueHolder(bindVar func(idx int) string) *Ex {
+func (e *Ex) WriteGroup(fn func(e *Ex)) {
+	e.WriteByte('(')
+	fn(e)
+	e.WriteByte(')')
+}
+
+func (e *Ex) WhiteComments(comments []byte) {
+	e.WriteString("/* ")
+	e.Write(comments)
+	e.WriteString(" */")
+}
+
+func (e *Ex) WriteExpr(expr SqlExpr) {
+	if IsNilExpr(expr) {
+		return
+	}
+
+	e.WriteHolder(0)
+	e.AppendArgs(expr)
+}
+
+func (e *Ex) WriteEnd() {
+	e.WriteByte(';')
+}
+
+func (e *Ex) WriteHolder(idx int) {
+	if idx > 0 {
+		e.WriteByte(',')
+	}
+	e.WriteByte('?')
+}
+
+func (e Ex) ReplaceValueHolder(bindVar func(idx int) string) *Ex {
 	index := 0
-	expr := Expr("")
 	data := e.Bytes()
+
+	expr := Expr("")
 
 	for i := range data {
 		c := data[i]
 		switch c {
 		case '?':
 			expr.WriteString(bindVar(index))
-			expr.AppendArgs(e.args[index])
 			index++
 		default:
 			expr.WriteByte(c)
 		}
 	}
+
+	expr.AppendArgs(e.args...)
 
 	return expr
 }
