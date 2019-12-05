@@ -163,9 +163,10 @@ func (e Ex) Ex(ctx context.Context) *Ex {
 			case SqlExpr:
 				if !IsNilExpr(a) {
 					subEx := a.Ex(ctx)
-
-					expr.Write(subEx.Bytes())
-					expr.AppendArgs(subEx.Args()...)
+					if !IsNilExpr(subEx) {
+						expr.Write(subEx.Bytes())
+						expr.AppendArgs(subEx.Args()...)
+					}
 				}
 
 			case driver.Valuer:

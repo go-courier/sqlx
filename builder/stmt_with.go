@@ -5,39 +5,35 @@ import (
 	"strings"
 )
 
-func WithRecursive(t *Table) *WithStmt {
-	return With(t, "RECURSIVE")
+type BuildSubQuery func(table *Table) SqlExpr
+
+func WithRecursive(t *Table, build BuildSubQuery) *WithStmt {
+	return With(t, build, "RECURSIVE")
 }
 
-func With(t *Table, modifiers ...string) *WithStmt {
-	return &WithStmt{
-		t:         t,
-		modifiers: modifiers,
-	}
+func With(t *Table, build BuildSubQuery, modifiers ...string) *WithStmt {
+	return (&WithStmt{modifiers: modifiers}).With(t, build)
 }
 
 type WithStmt struct {
-	t         *Table
 	modifiers []string
-	as        func(t *Table) SqlExpr
-	do        func(t *Table) SqlExpr
+	tables    []*Table
+	asList    []BuildSubQuery
+	statement func(tables ...*Table) SqlExpr
 }
 
 func (w *WithStmt) IsNil() bool {
-	return w == nil || w.as == nil || w.do == nil
+	return w == nil || len(w.tables) == 0 || len(w.asList) == 0 || w.statement == nil
 }
 
-func (w *WithStmt) T() *Table {
-	return w.t
-}
-
-func (w WithStmt) As(as func(t *Table) SqlExpr) *WithStmt {
-	w.as = as
+func (w WithStmt) With(t *Table, build BuildSubQuery) *WithStmt {
+	w.tables = append(w.tables, t)
+	w.asList = append(w.asList, build)
 	return &w
 }
 
-func (w WithStmt) Do(do func(t *Table) SqlExpr) *WithStmt {
-	w.do = do
+func (w WithStmt) Exec(statement func(tables ...*Table) SqlExpr) *WithStmt {
+	w.statement = statement
 	return &w
 }
 
@@ -49,23 +45,31 @@ func (w *WithStmt) Ex(ctx context.Context) *Ex {
 		e.WriteString(" ")
 	}
 
-	t := w.T()
+	for i := range w.tables {
+		if i > 0 {
+			e.WriteString(", ")
+		}
 
-	e.WriteExpr(w.T())
-	e.WriteGroup(func(e *Ex) {
-		e.WriteExpr(&t.Columns)
-	})
+		table := w.tables[i]
 
-	e.WriteString(" AS ")
+		e.WriteExpr(table)
+		e.WriteGroup(func(e *Ex) {
+			e.WriteExpr(&table.Columns)
+		})
 
-	e.WriteGroup(func(e *Ex) {
-		e.WriteByte('\n')
-		e.WriteExpr(w.as(t))
-		e.WriteByte('\n')
-	})
+		e.WriteString(" AS ")
+
+		build := w.asList[i]
+
+		e.WriteGroup(func(e *Ex) {
+			e.WriteByte('\n')
+			e.WriteExpr(build(table))
+			e.WriteByte('\n')
+		})
+	}
 
 	e.WriteByte('\n')
-	e.WriteExpr(w.do(t))
+	e.WriteExpr(w.statement(w.tables...))
 
 	return e.Ex(ctx)
 }

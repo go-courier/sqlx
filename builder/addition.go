@@ -17,6 +17,7 @@ const (
 	joinStmt additionWeight = iota
 	whereStmt
 	groupByStmt
+	combinationStmt
 	orderByStmt
 	limitStmt
 	onConflictStmt

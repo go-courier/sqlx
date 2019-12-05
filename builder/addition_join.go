@@ -83,12 +83,16 @@ func (j *join) Ex(ctx context.Context) *Ex {
 	if len(j.joinColumnList) > 0 {
 		e.WriteExpr(ExprBy(func(ctx context.Context) *Ex {
 			ex := Expr(" USING ")
-			for i := range j.joinColumnList {
-				if i != 0 {
-					ex.WriteString(", ")
+
+			ex.WriteGroup(func(e *Ex) {
+				for i := range j.joinColumnList {
+					if i != 0 {
+						ex.WriteString(", ")
+					}
+					ex.WriteExpr(j.joinColumnList[i])
 				}
-				ex.WriteExpr(j.joinColumnList[i])
-			}
+			})
+
 			return ex.Ex(ContextWithToggles(ctx, Toggles{
 				ToggleMultiTable: false,
 			}))

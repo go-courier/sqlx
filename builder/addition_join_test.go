@@ -50,7 +50,7 @@ JOIN t_org ON t_user.f_org_id = t_org.f_org_id
 		).To(BeExpr(
 			`
 SELECT * FROM t_user
-JOIN t_org USING f_org_id
+JOIN t_org USING (f_org_id)
 `,
 		))
 	}))
