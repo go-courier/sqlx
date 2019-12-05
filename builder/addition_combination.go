@@ -35,20 +35,20 @@ type combination struct {
 	CombinationAddition
 	operator   string // UNION | INTERSECT | EXCEPT
 	method     string // ALL | DISTINCT
-	stmtSelect *StmtSelect
+	stmtSelect SelectStatement
 }
 
 func (c *combination) IsNil() bool {
 	return c == nil || IsNilExpr(c.stmtSelect)
 }
 
-func (c combination) All(stmtSelect *StmtSelect) *combination {
+func (c combination) All(stmtSelect SelectStatement) *combination {
 	c.method = "ALL"
 	c.stmtSelect = stmtSelect
 	return &c
 }
 
-func (c combination) Distinct(stmtSelect *StmtSelect) *combination {
+func (c combination) Distinct(stmtSelect SelectStatement) *combination {
 	c.method = "DISTINCT"
 	c.stmtSelect = stmtSelect
 	return &c

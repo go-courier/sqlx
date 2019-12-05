@@ -4,6 +4,11 @@ import (
 	"context"
 )
 
+type SelectStatement interface {
+	SqlExpr
+	selectStatement()
+}
+
 func Select(sqlExpr SqlExpr, modifiers ...string) *StmtSelect {
 	return &StmtSelect{
 		sqlExpr:   sqlExpr,
@@ -12,6 +17,7 @@ func Select(sqlExpr SqlExpr, modifiers ...string) *StmtSelect {
 }
 
 type StmtSelect struct {
+	SelectStatement
 	sqlExpr   SqlExpr
 	table     *Table
 	modifiers []string
