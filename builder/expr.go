@@ -57,10 +57,6 @@ func Multi(exprs ...SqlExpr) SqlExpr {
 	return MultiWith(" ", exprs...)
 }
 
-func UnionAll(exprs ...SqlExpr) SqlExpr {
-	return MultiWith("\nUNION ALL\n", exprs...)
-}
-
 func MultiWith(connector string, exprs ...SqlExpr) SqlExpr {
 	return ExprBy(func(ctx context.Context) *Ex {
 		e := Expr("")
