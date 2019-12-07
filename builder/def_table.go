@@ -1,12 +1,13 @@
 package builder
 
 import (
+	"bytes"
 	"container/list"
 	"context"
 	"fmt"
-	"regexp"
 	"sort"
 	"strings"
+	"text/scanner"
 )
 
 type TableDefinition interface {
@@ -92,18 +93,73 @@ func (t *Table) AddKey(key *Key) {
 	t.Keys.Add(key.On(t))
 }
 
-var fieldNamePlaceholder = regexp.MustCompile("#[A-Z][A-Za-z0-9_]+")
-
-// replace go struct field name with table column name
 func (t *Table) Expr(query string, args ...interface{}) *Ex {
-	finalQuery := fieldNamePlaceholder.ReplaceAllStringFunc(query, func(i string) string {
-		fieldName := strings.TrimLeft(i, "#")
-		if col := t.F(fieldName); col != nil {
-			return col.Name
+	if query == "" {
+		return nil
+	}
+
+	e := Expr("")
+
+	s := &scanner.Scanner{}
+	s.Init(bytes.NewBuffer([]byte(query)))
+
+	fieldNameBuf := bytes.NewBuffer(nil)
+
+	n := len(args)
+	queryCount := 0
+
+	for tok := s.Next(); tok != scanner.EOF; tok = s.Next() {
+		switch tok {
+		case '#':
+			fieldNameBuf = bytes.NewBuffer(nil)
+
+			e.WriteHolder(0)
+
+			for {
+				tok = s.Next()
+
+				if tok == scanner.EOF {
+					break
+				}
+
+				if (tok >= 'A' && tok <= 'Z') ||
+					(tok >= 'a' && tok <= 'z') ||
+					(tok >= '0' && tok <= '9') ||
+					tok == '_' {
+
+					fieldNameBuf.WriteRune(tok)
+					continue
+				}
+
+				e.WriteRune(tok)
+
+				break
+			}
+
+			//spew.Dump(fieldNameBuf.String())
+
+			if fieldNameBuf.Len() == 0 {
+				e.AppendArgs(t)
+			} else {
+				fieldName := fieldNameBuf.String()
+				col := t.F(fieldNameBuf.String())
+				if col == nil {
+					panic(fmt.Errorf("missing field fieldName %s of table %s", fieldName, t.Name))
+				}
+				e.AppendArgs(col)
+			}
+		case '?':
+			e.WriteRune(tok)
+			if queryCount < n {
+				e.AppendArgs(args[queryCount])
+				queryCount++
+			}
+		default:
+			e.WriteRune(tok)
 		}
-		return i
-	})
-	return Expr(finalQuery, args...)
+	}
+
+	return e
 }
 
 func (t *Table) ColumnsAndValuesByFieldValues(fieldValues FieldValues) (columns *Columns, args []interface{}) {
