@@ -238,7 +238,7 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	}
 	e := builder.Expr("DROP ")
 
-	e.WriteString("INDEX ")
+	e.WriteString("INDEX IF EXISTS ")
 	e.WriteExpr(key.Table)
 	e.WriteByte('_')
 	e.WriteString(key.Name)

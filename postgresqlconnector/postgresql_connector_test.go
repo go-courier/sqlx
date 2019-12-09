@@ -11,7 +11,7 @@ import (
 	"github.com/go-courier/testingx"
 )
 
-func TestMysqlConnector(t *testing.T) {
+func TestPostgreSQLConnector(t *testing.T) {
 	c := &PostgreSQLConnector{}
 
 	table := builder.T("t",
@@ -53,7 +53,7 @@ func TestMysqlConnector(t *testing.T) {
 		},
 		"DropIndex": {
 			c.DropIndex(table.Key("I_name")),
-			builder.Expr( /* language=PostgreSQL */ "DROP INDEX t_i_name"),
+			builder.Expr( /* language=PostgreSQL */ "DROP INDEX IF EXISTS t_i_name"),
 		},
 		"DropPrimaryKey": {
 			c.DropIndex(table.Key("PRIMARY")),
