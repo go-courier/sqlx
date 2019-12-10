@@ -107,7 +107,7 @@ func (c *Column) T() *Table {
 }
 
 func (c *Column) ValueBy(v interface{}) *Assignment {
-	return AsAssignment(c.Expr("# = ?", v))
+	return ColumnsAndValues(c, v)
 }
 
 func (c *Column) Incr(d int) SqlExpr {

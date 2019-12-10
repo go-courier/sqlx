@@ -47,7 +47,18 @@ func (s *StmtInsert) Ex(ctx context.Context) *Ex {
 	e.WriteExpr(s.table)
 	e.WriteByte(' ')
 
-	WriteAssignments(e, s.assignments...)
+	e.WriteExpr(ExprBy(func(ctx context.Context) *Ex {
+		e := Expr("")
+
+		ctx = ContextWithToggles(ctx, Toggles{
+			ToggleUseValues: true,
+		})
+
+		WriteAssignments(e, s.assignments...)
+
+		return e.Ex(ctx)
+	}))
+
 	WriteAdditions(e, s.additions...)
 
 	return e.Ex(ctx)

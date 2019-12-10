@@ -11,6 +11,7 @@ var (
 var (
 	ToggleMultiTable    = "MultiTable"
 	ToggleNeedAutoAlias = "NeedAlias"
+	ToggleUseValues     = "UseValues"
 )
 
 type Toggles map[string]bool

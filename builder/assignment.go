@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"math"
 )
 
@@ -32,53 +33,72 @@ func WriteAssignments(e *Ex, assignments ...*Assignment) {
 	}
 }
 
-func AsAssignment(expr SqlExpr) *Assignment {
-	if IsNilExpr(expr) {
-		return &Assignment{SqlExpr: Expr("")}
+func ColumnsAndValues(columnOrColumns SqlExpr, values ...interface{}) *Assignment {
+	lenOfColumn := 1
+	if canLen, ok := columnOrColumns.(interface{ Len() int }); ok {
+		lenOfColumn = canLen.Len()
 	}
-	return &Assignment{SqlExpr: expr}
+	return &Assignment{columnOrColumns: columnOrColumns, lenOfColumn: lenOfColumn, values: values}
 }
 
 type Assignments []*Assignment
 
 type Assignment struct {
 	SqlAssignmentMarker
-	SqlExpr
+
+	columnOrColumns SqlExpr
+	lenOfColumn     int
+
+	values []interface{}
 }
 
 func (a *Assignment) IsNil() bool {
-	return a == nil || IsNilExpr(a.SqlExpr)
+	return a == nil || IsNilExpr(a.columnOrColumns) || len(a.values) == 0
 }
 
-func ColumnsAndValues(cols *Columns, values ...interface{}) *Assignment {
-	if cols.IsNil() {
-		return nil
-	}
+func (a *Assignment) Ex(ctx context.Context) *Ex {
+	e := Expr("")
 
-	n := cols.Len()
+	useValues := TogglesFromContext(ctx).Is(ToggleUseValues)
 
-	groupCount := int(math.Round(float64(len(values)) / float64(n)))
-
-	expr := Expr("")
-
-	expr.WriteGroup(func(e *Ex) {
-		expr.WriteExpr(cols)
-	})
-
-	expr.WriteString(" VALUES ")
-
-	for i := 0; i < groupCount; i++ {
-		if i > 0 {
-			expr.WriteByte(',')
-		}
-		expr.WriteGroup(func(e *Ex) {
-			for j := 0; j < n; j++ {
-				e.WriteHolder(j)
-			}
+	if useValues {
+		e.WriteGroup(func(e *Ex) {
+			e.WriteExpr(ExprBy(func(ctx context.Context) *Ex {
+				return a.columnOrColumns.Ex(ContextWithToggles(ctx, Toggles{
+					ToggleMultiTable: false,
+				}))
+			}))
 		})
+
+		e.WriteString(" VALUES ")
+
+		groupCount := int(math.Round(float64(len(a.values)) / float64(a.lenOfColumn)))
+
+		for i := 0; i < groupCount; i++ {
+			if i > 0 {
+				e.WriteByte(',')
+			}
+
+			e.WriteGroup(func(e *Ex) {
+				for j := 0; j < a.lenOfColumn; j++ {
+					e.WriteHolder(j)
+				}
+			})
+		}
+
+		e.AppendArgs(a.values...)
+
+		return e.Ex(ctx)
 	}
 
-	expr.AppendArgs(values...)
+	e.WriteExpr(ExprBy(func(ctx context.Context) *Ex {
+		return a.columnOrColumns.Ex(ContextWithToggles(ctx, Toggles{
+			ToggleMultiTable: false,
+		}))
+	}))
 
-	return AsAssignment(expr)
+	e.WriteString(" = ?")
+	e.AppendArgs(a.values[0])
+
+	return e.Ex(ctx)
 }
