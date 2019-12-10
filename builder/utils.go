@@ -16,6 +16,11 @@ func ForEachStructFieldValue(rv reflect.Value, fn func(structFieldValue reflect.
 	structType := rv.Type()
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
+
+		if field.Type.Kind() == reflect.Interface {
+			continue
+		}
+
 		if ast.IsExported(field.Name) {
 			fieldValue := rv.Field(i)
 
