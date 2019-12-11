@@ -7,46 +7,41 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
 	"github.com/onsi/gomega"
 )
 
 func TestResolveExpr(t *testing.T) {
-	t.Run("empty", testingx.It(func(t *testingx.T) {
-		t.Expect(ResolveExpr(nil)).To(gomega.BeNil())
-	}))
+	t.Run("empty", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(ResolveExpr(nil)).To(gomega.BeNil())
+	})
 }
 
 func TestEx(t *testing.T) {
-	t.Run("empty query", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("empty query", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Expr(""),
 		).To(BeExpr(""))
-	}))
-
-	t.Run("flatten slice", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("flatten slice", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Expr(`#ID IN (?)`, []int{28, 29, 30}),
 		).To(BeExpr("#ID IN (?,?,?)", 28, 29, 30))
-	}))
-
-	t.Run("flatten should skip for bytes", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("flatten should skip for bytes", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Expr(`#ID = (?)`, []byte("")),
 		).To(BeExpr("#ID = (?)", []byte("")))
-	}))
-
-	t.Run("flatten with sub expr ", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("flatten with sub expr ", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Expr(`#ID = ?`, Expr("#ID + ?", 1)),
 		).To(BeExpr("#ID = #ID + ?", 1))
-	}))
-
-	t.Run("flatten with ValuerExpr", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("flatten with ValuerExpr", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Expr(`#Point = ?`, Point{1, 1}),
 		).To(BeExpr("#Point = ST_GeomFromText(?)", Point{1, 1}))
-	}))
+	})
 }
 
 type Point struct {

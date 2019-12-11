@@ -5,14 +5,14 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestOrderBy(t *testing.T) {
 	table := T("T")
 
-	t.Run("select order", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("select order", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Select(nil).
 				From(
 					table,
@@ -30,5 +30,5 @@ ORDER BY (f_a) ASC,(f_b) DESC
 `,
 			1,
 		))
-	}))
+	})
 }

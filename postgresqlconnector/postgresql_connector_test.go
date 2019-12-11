@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestPostgreSQLConnector(t *testing.T) {
@@ -93,10 +93,10 @@ func TestPostgreSQLConnector(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		t.Run(name, testingx.It(func(t *testingx.T) {
-			t.Expect(c.expr).To(buidertestingutils.BeExpr(c.expr.Ex(context.Background()).Query()))
-		}))
-	}
+		t.Run(name, func(t *testing.T) {
+			gomega.NewWithT(t).Expect(c.expr).To(buidertestingutils.BeExpr(c.expr.Ex(context.Background()).Query()))
+		})
+}
 }
 
 type Point struct {

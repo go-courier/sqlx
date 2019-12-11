@@ -3,7 +3,6 @@ package builder
 import (
 	"testing"
 
-	"github.com/go-courier/testingx"
 	"github.com/onsi/gomega"
 )
 
@@ -18,28 +17,26 @@ func TestValueMap(t *testing.T) {
 		ID: 123123213,
 	}
 
-	t.Run("#FieldValuesFromStructBy", testingx.It(func(t *testingx.T) {
-		t.Expect(FieldValuesFromStructBy(user, []string{})).To(gomega.HaveLen(0))
+	t.Run("#FieldValuesFromStructBy", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(FieldValuesFromStructBy(user, []string{})).To(gomega.HaveLen(0))
 
 		values := FieldValuesFromStructBy(user, []string{"ID"})
 
-		t.Expect(values).To(gomega.Equal(FieldValues{
+		gomega.NewWithT(t).Expect(values).To(gomega.Equal(FieldValues{
 			"ID": user.ID,
 		}))
+	})
 
-	}))
-
-	t.Run("#FieldValuesFromStructBy", testingx.It(func(t *testingx.T) {
-		t.Expect(FieldValuesFromStructByNonZero(user)).
+	t.Run("#FieldValuesFromStructBy", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(FieldValuesFromStructByNonZero(user)).
 			To(gomega.Equal(FieldValues{
 				"ID": user.ID,
 			}))
 
-		t.Expect(FieldValuesFromStructByNonZero(user, "Username")).
+		gomega.NewWithT(t).Expect(FieldValuesFromStructByNonZero(user, "Username")).
 			To(gomega.Equal(FieldValues{
 				"ID":       user.ID,
 				"Username": user.Username,
 			}))
-
-	}))
+	})
 }

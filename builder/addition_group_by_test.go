@@ -5,14 +5,14 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestGroupBy(t *testing.T) {
 	table := T("T")
 
-	t.Run("select group by", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("select group by", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Select(nil).
 				From(
 					table,
@@ -28,10 +28,10 @@ GROUP BY f_a HAVING f_a = ?
 `,
 			1, 1,
 		))
-	}))
+	})
 
-	t.Run("select desc group by", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("select desc group by", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Select(nil).
 				From(
 					table,
@@ -45,10 +45,9 @@ GROUP BY (f_a) ASC,(f_b) DESC
 `,
 			1,
 		))
-	}))
-
-	t.Run("select multi group by", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("select multi group by", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Select(nil).
 				From(
 					table,
@@ -63,5 +62,5 @@ GROUP BY (f_a) ASC,(f_b) DESC
 `,
 			1,
 		))
-	}))
+	})
 }

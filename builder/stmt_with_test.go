@@ -5,15 +5,15 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestWithStmt(t *testing.T) {
 	gr := &GroupRelation{}
 	g := &Group{}
 
-	t.Run("simple with", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("simple with", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			With((&GroupWithParent{}).T(), func(tmpTableGroupWithParent *Table) SqlExpr {
 				s := Select(MultiMayAutoAlias(
 					g.T().Col("f_group_id"),
@@ -24,15 +24,15 @@ func TestWithStmt(t *testing.T) {
 					)
 				return s
 			}).With((&GroupWithParent{}).T(), func(tmpTableGroupWithParent *Table) SqlExpr {
-					s := Select(MultiMayAutoAlias(
-						g.T().Col("f_group_id"),
-						gr.T().Col("f_group_id"),
-					)).
-						From(gr.T(),
-							RightJoin(g.T()).On(g.T().Col("f_group_id").Eq(gr.T().Col("f_group_id"))),
-						)
-					return s
-				}).
+				s := Select(MultiMayAutoAlias(
+					g.T().Col("f_group_id"),
+					gr.T().Col("f_group_id"),
+				)).
+					From(gr.T(),
+						RightJoin(g.T()).On(g.T().Col("f_group_id").Eq(gr.T().Col("f_group_id"))),
+					)
+				return s
+			}).
 				Exec(func(tables ...*Table) SqlExpr {
 					return Select(nil).From(tables[0])
 				}),
@@ -46,10 +46,9 @@ RIGHT JOIN t_group ON t_group.f_group_id = t_group_relation.f_group_id
 )
 SELECT * FROM t_group_with_parent
 `))
-	}))
-
-	t.Run("WithRecursive", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("WithRecursive", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			WithRecursive((&GroupWithParentAndChildren{}).T(), func(tmpTableGroupWithParentAndChildren *Table) SqlExpr {
 				return With((&GroupWithParent{}).T(), func(tmpTableGroupWithParent *Table) SqlExpr {
 					s := Select(MultiMayAutoAlias(
@@ -103,7 +102,7 @@ WHERE (t_group_with_parent.f_group_id <> t_group_with_parent_and_children.f_grou
 )
 SELECT * FROM t_group_with_parent_and_children
 `, 1201375536060956676))
-	}))
+	})
 }
 
 var tableGroup = TableFromModel(&Group{})

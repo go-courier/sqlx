@@ -14,10 +14,9 @@ import (
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/go-courier/sqlx/v2/mysqlconnector"
 	"github.com/go-courier/sqlx/v2/postgresqlconnector"
-	"github.com/go-courier/testingx"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 )
 
@@ -168,40 +167,36 @@ func TestMigrate(t *testing.T) {
 		postgresConnector,
 	} {
 		for _, schema := range []string{"import", "public", "backup"} {
-			t.Run("create table", testingx.It(func(t *testingx.T) {
+			t.Run("create table", func(t *testing.T) {
 				dbTest.Register(&User{})
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				t.Expect(err).To(gomega.BeNil())
-			}))
-
-			t.Run("no migrate", testingx.It(func(t *testingx.T) {
+				NewWithT(t).Expect(err).To(BeNil())
+			})
+			t.Run("no migrate", func(t *testing.T) {
 				dbTest.Register(&User{})
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				t.Expect(err).To(gomega.BeNil())
+				NewWithT(t).Expect(err).To(BeNil())
 
-				t.Run("migrate to user2", testingx.It(func(t *testingx.T) {
+				t.Run("migrate to user2", func(t *testing.T) {
 					dbTest.Register(&User2{})
 					db := dbTest.OpenDB(connector).WithSchema(schema)
 					err := migration.Migrate(db, nil)
-					t.Expect(err).To(gomega.BeNil())
-				}))
-
-				t.Run("migrate to user2 again", testingx.It(func(t *testingx.T) {
+					NewWithT(t).Expect(err).To(BeNil())
+				})
+				t.Run("migrate to user2 again", func(t *testing.T) {
 					dbTest.Register(&User2{})
 					db := dbTest.OpenDB(connector).WithSchema(schema)
 					err := migration.Migrate(db, nil)
-					t.Expect(err).To(gomega.BeNil())
-				}))
-			}))
-
-			t.Run("migrate to user", testingx.It(func(t *testingx.T) {
+					NewWithT(t).Expect(err).To(BeNil())
+				})
+			})
+			t.Run("migrate to user", func(t *testing.T) {
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				err := migration.Migrate(db, nil)
-				t.Expect(err).To(gomega.BeNil())
-			}))
-
+				NewWithT(t).Expect(err).To(BeNil())
+			})
 			dbTest.Tables.Range(func(table *builder.Table, idx int) {
 				db := dbTest.OpenDB(connector).WithSchema(schema)
 				db.ExecExpr(db.Dialect().DropTable(table))
@@ -217,7 +212,7 @@ func TestCRUD(t *testing.T) {
 		mysqlConnector,
 		postgresConnector,
 	} {
-		t.Run("", testingx.It(func(t *testingx.T) {
+		t.Run("", func(t *testing.T) {
 			d := dbTest.OpenDB(connector)
 
 			db := d.WithContext(metax.ContextWithMeta(d.Context(), metax.ParseMeta("_id=11111")))
@@ -225,15 +220,16 @@ func TestCRUD(t *testing.T) {
 			userTable := dbTest.Register(&User{})
 
 			err := migration.Migrate(db, nil)
-			t.Expect(err).To(gomega.BeNil())
 
-			t.Run("insert single", testingx.It(func(t *testingx.T) {
+			NewWithT(t).Expect(err).To(BeNil())
+
+			t.Run("insert single", func(t *testing.T) {
 				user := User{
 					Name:   uuid.New().String(),
 					Gender: GenderMale,
 				}
 
-				t.Run("cancel", testingx.It(func(t *testingx.T) {
+				t.Run("cancel", func(t *testing.T) {
 					ctx, cancel := context.WithCancel(context.Background())
 					db2 := db.WithContext(ctx)
 
@@ -255,13 +251,12 @@ func TestCRUD(t *testing.T) {
 						).
 						Do()
 
-					t.Expect(err).NotTo(gomega.BeNil())
-				}))
-
+					NewWithT(t).Expect(err).NotTo(BeNil())
+				})
 				_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-				t.Expect(err).To(gomega.BeNil())
+				NewWithT(t).Expect(err).To(BeNil())
 
-				t.Run("update", testingx.It(func(t *testingx.T) {
+				t.Run("update", func(t *testing.T) {
 					user.Gender = GenderFemale
 					_, err := db.ExecExpr(
 						builder.Update(dbTest.T(&user)).
@@ -270,10 +265,9 @@ func TestCRUD(t *testing.T) {
 								userTable.F("Name").Eq(user.Name),
 							),
 					)
-					t.Expect(err).To(gomega.BeNil())
-				}))
-
-				t.Run("select", testingx.It(func(t *testingx.T) {
+					NewWithT(t).Expect(err).To(BeNil())
+				})
+				t.Run("select", func(t *testing.T) {
 					userForSelect := User{}
 					err := db.QueryExprAndScan(
 						builder.Select(nil).From(
@@ -283,23 +277,21 @@ func TestCRUD(t *testing.T) {
 						),
 						&userForSelect)
 
-					t.Expect(err).To(gomega.BeNil())
+					NewWithT(t).Expect(err).To(BeNil())
 
-					t.Expect(user.Name).To(gomega.Equal(userForSelect.Name))
-					t.Expect(user.Gender).To(gomega.Equal(userForSelect.Gender))
-				}))
-
-				t.Run("conflict", testingx.It(func(t *testingx.T) {
+					NewWithT(t).Expect(user.Name).To(Equal(userForSelect.Name))
+					NewWithT(t).Expect(user.Gender).To(Equal(userForSelect.Gender))
+				})
+				t.Run("conflict", func(t *testing.T) {
 					_, err := db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
-					t.Expect(sqlx.DBErr(err).IsConflict()).To(gomega.BeTrue())
-				}))
-			}))
-
+					NewWithT(t).Expect(sqlx.DBErr(err).IsConflict()).To(BeTrue())
+				})
+			})
 			db.(*sqlx.DB).Tables.Range(func(table *builder.Table, idx int) {
 				_, err := db.ExecExpr(db.Dialect().DropTable(table))
-				t.Expect(err).To(gomega.BeNil())
+				NewWithT(t).Expect(err).To(BeNil())
 			})
-		}))
+		})
 	}
 }
 
@@ -323,7 +315,7 @@ func TestSelect(t *testing.T) {
 		mysqlConnector,
 		postgresConnector,
 	} {
-		t.Run("", testingx.It(func(t *testingx.T) {
+		t.Run("", func(t *testing.T) {
 			db := dbTest.OpenDB(connector)
 			table := dbTest.Register(&User{})
 
@@ -332,7 +324,7 @@ func TestSelect(t *testing.T) {
 			})
 
 			err := migration.Migrate(db, nil)
-			t.Expect(err).To(gomega.BeNil())
+			NewWithT(t).Expect(err).To(BeNil())
 
 			{
 				columns := table.MustFields("Name", "Gender")
@@ -343,30 +335,30 @@ func TestSelect(t *testing.T) {
 				}
 
 				_, err := db.ExecExpr(builder.Insert().Into(table).Values(columns, values...))
-				t.Expect(err).To(gomega.BeNil())
+				NewWithT(t).Expect(err).To(BeNil())
 			}
 
-			t.Run("select to slice", testingx.It(func(t *testingx.T) {
+			t.Run("select to slice", func(t *testing.T) {
 				users := make([]User, 0)
 				err := db.QueryExprAndScan(
 					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
 					&users,
 				)
-				t.Expect(err).To(gomega.BeNil())
-				t.Expect(users).To(gomega.HaveLen(1000))
-			}))
+				NewWithT(t).Expect(err).To(BeNil())
+				NewWithT(t).Expect(users).To(HaveLen(1000))
+			})
 
-			t.Run("select to set", testingx.It(func(t *testingx.T) {
+			t.Run("select to set", func(t *testing.T) {
 				userSet := UserSet{}
 				err := db.QueryExprAndScan(
 					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
 					userSet,
 				)
-				t.Expect(err).To(gomega.BeNil())
-				t.Expect(userSet).To(gomega.HaveLen(1000))
-			}))
+				NewWithT(t).Expect(err).To(BeNil())
+				NewWithT(t).Expect(userSet).To(HaveLen(1000))
+			})
 
-			t.Run("not found", testingx.It(func(t *testingx.T) {
+			t.Run("not found", func(t *testing.T) {
 				user := User{}
 				err := db.QueryExprAndScan(
 					builder.Select(nil).From(
@@ -375,20 +367,20 @@ func TestSelect(t *testing.T) {
 					),
 					&user,
 				)
-				t.Expect(sqlx.DBErr(err).IsNotFound()).To(gomega.BeTrue())
-			}))
+				NewWithT(t).Expect(sqlx.DBErr(err).IsNotFound()).To(BeTrue())
+			})
 
-			t.Run("count", testingx.It(func(t *testingx.T) {
+			t.Run("count", func(t *testing.T) {
 				count := 0
 				err := db.QueryExprAndScan(
 					builder.Select(builder.Count()).From(table),
 					&count,
 				)
-				t.Expect(err).To(gomega.BeNil())
-				t.Expect(count).To(gomega.Equal(1000))
-			}))
+				NewWithT(t).Expect(err).To(BeNil())
+				NewWithT(t).Expect(count).To(Equal(1000))
+			})
 
-			t.Run("canceled", testingx.It(func(t *testingx.T) {
+			t.Run("canceled", func(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				db2 := db.WithContext(ctx)
 
@@ -402,10 +394,10 @@ func TestSelect(t *testing.T) {
 					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
 					userSet,
 				)
-				t.Expect(err).NotTo(gomega.BeNil())
-			}))
+				NewWithT(t).Expect(err).NotTo(BeNil())
+			})
 
-			t.Run("unsupported scan error", testingx.It(func(t *testingx.T) {
+			t.Run("unsupported scan error", func(t *testing.T) {
 				user := &User{}
 				err := db.QueryExprAndScan(
 					builder.Select(builder.Count()).From(
@@ -414,12 +406,13 @@ func TestSelect(t *testing.T) {
 					),
 					&user,
 				)
-				t.Expect(err).NotTo(gomega.BeNil())
-			}))
+
+				NewWithT(t).Expect(err).NotTo(BeNil())
+			})
 
 			db.Tables.Range(func(tab *builder.Table, idx int) {
 				db.ExecExpr(db.Dialect().DropTable(tab))
 			})
-		}))
+		})
 	}
 }

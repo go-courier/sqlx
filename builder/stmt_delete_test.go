@@ -5,14 +5,14 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestStmtDelete(t *testing.T) {
 	table := T("T")
 
-	t.Run("delete", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("delete", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Delete().From(table,
 				Where(Col("F_a").Eq(1)),
 				Comment("Comment"),
@@ -22,5 +22,5 @@ DELETE FROM T
 WHERE f_a = ?
 /* Comment */
 `, 1))
-	}))
+	})
 }

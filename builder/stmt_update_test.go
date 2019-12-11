@@ -5,14 +5,14 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestStmtUpdate(t *testing.T) {
 	table := T("T")
 
-	t.Run("update", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("update", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Update(table).
 				Set(
 					Col("F_a").ValueBy(1),
@@ -26,5 +26,5 @@ func TestStmtUpdate(t *testing.T) {
 UPDATE T SET f_a = ?, f_b = ?
 WHERE f_a = ?
 /* Comment */`, 1, 2, 1))
-	}))
+	})
 }

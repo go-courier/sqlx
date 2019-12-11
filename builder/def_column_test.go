@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-courier/ptr"
 	. "github.com/go-courier/sqlx/v2/builder"
-	"github.com/go-courier/testingx"
 	"github.com/onsi/gomega"
 )
 
@@ -39,8 +38,8 @@ func TestColumnTypeFromTypeAndTag(t *testing.T) {
 	}
 
 	for tagValue, ct := range cases {
-		t.Run(tagValue, testingx.It(func(t *testingx.T) {
-			t.Expect(ColumnTypeFromTypeAndTag(ct.Type, tagValue)).To(gomega.Equal(ct))
-		}))
+		t.Run(tagValue, func(t *testing.T) {
+			gomega.NewWithT(t).Expect(ColumnTypeFromTypeAndTag(ct.Type, tagValue)).To(gomega.Equal(ct))
+		})
 	}
 }

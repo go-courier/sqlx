@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/go-courier/testingx"
 	"github.com/onsi/gomega"
 )
 
@@ -14,36 +13,34 @@ func init() {
 }
 
 func TestParseIndexesFromDoc(t *testing.T) {
-	t.Run("parse primary", testingx.It(func(t *testingx.T) {
+	t.Run("parse primary", func(t *testing.T) {
 		keys, other := parseKeysFromDoc(`
 @def primary ID
 summary
 desc
 `)
-		t.Expect(keys).To(gomega.Equal(&Keys{
+		gomega.NewWithT(t).Expect(keys).To(gomega.Equal(&Keys{
 			Primary: []string{"ID"},
 		}))
 
-		t.Expect(other).To(gomega.Equal([]string{
+		gomega.NewWithT(t).Expect(other).To(gomega.Equal([]string{
 			"summary",
 			"desc",
 		}))
-	}))
-
-	t.Run("parse index", testingx.It(func(t *testingx.T) {
+	})
+	t.Run("parse index", func(t *testing.T) {
 		keys, _ := parseKeysFromDoc(`
 @def index I_name   Name
 @def index I_nickname/HASH Nickname Name
 `)
-		t.Expect(keys).To(gomega.Equal(&Keys{
+		gomega.NewWithT(t).Expect(keys).To(gomega.Equal(&Keys{
 			Indexes: builder.Indexes{
 				"I_name":          []string{"Name"},
 				"I_nickname/HASH": []string{"Nickname", "Name"},
 			},
 		}))
-	}))
-
-	t.Run("parse all", testingx.It(func(t *testingx.T) {
+	})
+	t.Run("parse all", func(t *testing.T) {
 		keys, _ := parseKeysFromDoc(`
 @def primary ID
 @def index I_nickname/BTREE Nickname
@@ -51,7 +48,7 @@ desc
 @def index I_geom/SPATIAL Geom
 @def unique_index I_name Name
 `)
-		t.Expect(keys).To(gomega.Equal(&Keys{
+		gomega.NewWithT(t).Expect(keys).To(gomega.Equal(&Keys{
 			Primary: []string{"ID"},
 			Indexes: builder.Indexes{
 				"I_nickname/BTREE": []string{"Nickname"},
@@ -62,12 +59,11 @@ desc
 				"I_name": []string{"Name"},
 			},
 		}))
-	}))
-
+	})
 }
 
 func TestParseColRel(t *testing.T) {
-	t.Run("rel", testingx.It(func(t *testingx.T) {
+	t.Run("rel", func(t *testing.T) {
 		rel, others := parseColRelFromComment(`
 @rel Account.AccountID
 
@@ -75,10 +71,10 @@ summary
 
 desc
 `)
-		t.Expect(rel).To(gomega.Equal("Account.AccountID"))
-		t.Expect(others).To(gomega.Equal([]string{
+		gomega.NewWithT(t).Expect(rel).To(gomega.Equal("Account.AccountID"))
+		gomega.NewWithT(t).Expect(others).To(gomega.Equal([]string{
 			"summary",
 			"desc",
 		}))
-	}))
+	})
 }

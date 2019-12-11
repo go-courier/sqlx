@@ -8,7 +8,6 @@ import (
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/migration"
-	"github.com/go-courier/testingx"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 )
@@ -16,7 +15,7 @@ import (
 func TestWithTasks(t *testing.T) {
 	dbTest := sqlx.NewDatabase("test_for_user")
 
-	t.Run("", testingx.It(func(t *testingx.T) {
+	t.Run("", func(t *testing.T) {
 		for _, connector := range []driver.Connector{
 			mysqlConnector,
 			postgresConnector,
@@ -26,9 +25,9 @@ func TestWithTasks(t *testing.T) {
 
 			dbTest.Register(&User{})
 			err := migration.Migrate(db, nil)
-			t.Expect(err).To(gomega.BeNil())
+			gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
 
-			t.Run("rollback on task err", testingx.It(func(t *testingx.T) {
+			t.Run("rollback on task err", func(t *testing.T) {
 				taskList := sqlx.NewTasks(db)
 
 				taskList = taskList.With(func(db sqlx.DBExecutor) error {
@@ -61,11 +60,10 @@ func TestWithTasks(t *testing.T) {
 				})
 
 				err := taskList.Do()
-				t.Expect(err).NotTo(gomega.BeNil())
-			}))
-
+				gomega.NewWithT(t).Expect(err).NotTo(gomega.BeNil())
+			})
 			if driverName == "mysql" {
-				t.Run("skip rollback", testingx.It(func(t *testingx.T) {
+				t.Run("skip rollback", func(t *testing.T) {
 					taskList := sqlx.NewTasks(db)
 
 					user := User{
@@ -92,10 +90,10 @@ func TestWithTasks(t *testing.T) {
 					})
 
 					err := taskList.Do()
-					t.Expect(err).To(gomega.BeNil())
-				}))
+					gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
+				})
 			} else {
-				t.Run("skip rollback in postgres", testingx.It(func(t *testingx.T) {
+				t.Run("skip rollback in postgres", func(t *testing.T) {
 					taskList := sqlx.NewTasks(db)
 
 					user := User{
@@ -122,11 +120,11 @@ func TestWithTasks(t *testing.T) {
 					})
 
 					err := taskList.Do()
-					t.Expect(err).To(gomega.BeNil())
-				}))
+					gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
+				})
 			}
 
-			t.Run("transaction chain", testingx.It(func(t *testingx.T) {
+			t.Run("transaction chain", func(t *testing.T) {
 				taskList := sqlx.NewTasks(db)
 
 				taskList = taskList.With(func(db sqlx.DBExecutor) error {
@@ -165,13 +163,12 @@ func TestWithTasks(t *testing.T) {
 				})
 
 				err := taskList.Do()
-				t.Expect(err).To(gomega.BeNil())
-			}))
-
+				gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
+			})
 			db.Tables.Range(func(table *builder.Table, idx int) {
 				_, err := db.ExecExpr(db.Dialect().DropTable(table))
-				t.Expect(err).To(gomega.BeNil())
+				gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
 			})
 		}
-	}))
+	})
 }

@@ -5,7 +5,7 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	. "github.com/go-courier/sqlx/v2/builder/buidertestingutils"
-	"github.com/go-courier/testingx"
+	"github.com/onsi/gomega"
 )
 
 func TestJoin(t *testing.T) {
@@ -20,8 +20,8 @@ func TestJoin(t *testing.T) {
 		Col("f_org_name").Type("", ",size=128,default=''"),
 	)
 
-	t.Run("JOIN ON", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	t.Run("JOIN ON", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Select(MultiWith(", ",
 				Alias(tUser.Col("f_id"), "f_id"),
 				Alias(tUser.Col("f_name"), "f_name"),
@@ -38,10 +38,9 @@ SELECT (t_user.f_id) AS f_id, (t_user.f_name) AS f_name, (t_user.f_org_id) AS f_
 JOIN t_org ON t_user.f_org_id = t_org.f_org_id
 `,
 			))
-	}))
-
-	t.Run("JOIN USING", testingx.It(func(t *testingx.T) {
-		t.Expect(
+	})
+	t.Run("JOIN USING", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
 			Select(nil).
 				From(
 					tUser,
@@ -53,5 +52,5 @@ SELECT * FROM t_user
 JOIN t_org USING (f_org_id)
 `,
 		))
-	}))
+	})
 }
