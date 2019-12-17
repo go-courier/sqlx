@@ -70,6 +70,14 @@ func (a *Assignment) Ex(ctx context.Context) *Ex {
 			}))
 		})
 
+		if len(a.values) == 1 {
+			if s, ok := a.values[0].(SelectStatement); ok {
+				e.WriteByte(' ')
+				e.WriteExpr(s)
+				return e.Ex(ctx)
+			}
+		}
+
 		e.WriteString(" VALUES ")
 
 		groupCount := int(math.Round(float64(len(a.values)) / float64(a.lenOfColumn)))
