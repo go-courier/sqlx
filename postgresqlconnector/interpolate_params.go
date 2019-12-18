@@ -33,6 +33,10 @@ func InterpolateParams(query string, args []driver.NamedValue, loc *time.Locatio
 		return "", driver.ErrSkip
 	}
 
+	if len(args) >= 65535 {
+		return "", fmt.Errorf("too many args: %d", len(args))
+	}
+
 	buf := make([]byte, 0)
 	buf = buf[:0]
 
@@ -128,8 +132,8 @@ func InterpolateParams(query string, args []driver.NamedValue, loc *time.Locatio
 		default:
 			buf = append(buf, q)
 		}
-
 	}
+
 	if argPos != len(args) {
 		return "", driver.ErrSkip
 	}
