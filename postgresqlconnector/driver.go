@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,7 +128,7 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 		}
 	}()
 
-	rows, err = c.Conn.(driver.QueryerContext).QueryContext(ctx, query, args)
+	rows, err = c.Conn.(driver.QueryerContext).QueryContext(ctx, replaceValueHolder(query), args)
 	return
 }
 
@@ -152,8 +153,29 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 		logger.WithField("cost", cost().String()).Debugf("%s", q)
 	}()
 
-	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, query, args)
+	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, replaceValueHolder(query), args)
 	return
+}
+
+func replaceValueHolder(query string) string {
+	index := 0
+	data := []byte(query)
+
+	e := bytes.NewBufferString("")
+
+	for i := range data {
+		c := data[i]
+		switch c {
+		case '?':
+			e.WriteByte('$')
+			e.WriteString(strconv.FormatInt(int64(index+1), 10))
+			index++
+		default:
+			e.WriteByte(c)
+		}
+	}
+
+	return e.String()
 }
 
 func startTimer() func() time.Duration {

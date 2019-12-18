@@ -30,34 +30,34 @@ func TestMysqlConnector(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.CreateDatabase("db")).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE DATABASE db;`))
 	})
-t.Run("DropDatabase", func(t *testing.T) {
+	t.Run("DropDatabase", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.DropDatabase("db")).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ `DROP DATABASE db;`))
 	})
-t.Run("AddIndex", func(t *testing.T) {
+	t.Run("AddIndex", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.AddIndex(table.Key("I_name"))).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE UNIQUE INDEX i_name ON t (f_name) USING BTREE;`))
 	})
-t.Run("AddPrimaryKey", func(t *testing.T) {
+	t.Run("AddPrimaryKey", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.AddIndex(table.Key("PRIMARY"))).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t ADD PRIMARY KEY (f_id);"))
 	})
-t.Run("AddSpatialIndex", func(t *testing.T) {
+	t.Run("AddSpatialIndex", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.AddIndex(table.Key("I_geo")),
 		).To(buidertestingutils.BeExpr( /* language=MySQL */ "CREATE SPATIAL INDEX i_geo ON t (f_geo);"))
 	})
-t.Run("DropIndex", func(t *testing.T) {
+	t.Run("DropIndex", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.DropIndex(table.Key("I_name")),
 		).To(buidertestingutils.BeExpr( /* language=MySQL */ "DROP INDEX i_name ON t;"))
 	})
-t.Run("DropPrimaryKey", func(t *testing.T) {
+	t.Run("DropPrimaryKey", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.DropIndex(table.Key("PRIMARY")),
 		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t DROP PRIMARY KEY;"))
 	})
-t.Run("CreateTableIsNotExists", func(t *testing.T) {
+	t.Run("CreateTableIsNotExists", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.CreateTableIsNotExists(table)[0],
 		).To(buidertestingutils.BeExpr( /* language=MySQL */
@@ -70,28 +70,28 @@ t.Run("CreateTableIsNotExists", func(t *testing.T) {
 	PRIMARY KEY (f_id)
 ) ENGINE=InnoDB CHARSET=utf8mb4;`))
 	})
-t.Run("DropTable", func(t *testing.T) {
+	t.Run("DropTable", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.DropTable(table)).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ "DROP TABLE IF EXISTS t;"))
 	})
-t.Run("TruncateTable", func(t *testing.T) {
+	t.Run("TruncateTable", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.TruncateTable(table),
 		).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ "TRUNCATE TABLE t;"))
 	})
-t.Run("AddColumn", func(t *testing.T) {
+	t.Run("AddColumn", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.AddColumn(table.Col("F_name"))).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"))
 	})
-t.Run("ModifyColumn", func(t *testing.T) {
+	t.Run("ModifyColumn", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.ModifyColumn(table.Col("F_name")),
 		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t MODIFY COLUMN f_name varchar(128) NOT NULL DEFAULT '';"))
 	})
-t.Run("DropColumn", func(t *testing.T) {
+	t.Run("DropColumn", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.DropColumn(table.Col("F_name")),
 		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t DROP COLUMN f_name;"))

@@ -102,7 +102,6 @@ func (d *DB) ExecExpr(expr builder.SqlExpr) (sql.Result, error) {
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.ReplaceValueHolder(d.dialect.BindVar)
 	result, err := d.ExecContext(d.Context(), e.Query(), e.Args()...)
 	if err != nil {
 		if d.dialect.IsErrorConflict(err) {
@@ -121,7 +120,6 @@ func (d *DB) QueryExpr(expr builder.SqlExpr) (*sql.Rows, error) {
 	if err := e.Err(); err != nil {
 		return nil, err
 	}
-	e = e.ReplaceValueHolder(d.dialect.BindVar)
 	return d.QueryContext(d.Context(), e.Query(), e.Args()...)
 }
 

@@ -224,25 +224,3 @@ func (e *Ex) WriteHolder(idx int) {
 	}
 	e.WriteByte('?')
 }
-
-func (e Ex) ReplaceValueHolder(bindVar func(idx int) string) *Ex {
-	index := 0
-	data := e.Bytes()
-
-	expr := Expr("")
-
-	for i := range data {
-		c := data[i]
-		switch c {
-		case '?':
-			expr.WriteString(bindVar(index))
-			index++
-		default:
-			expr.WriteByte(c)
-		}
-	}
-
-	expr.AppendArgs(e.args...)
-
-	return expr
-}

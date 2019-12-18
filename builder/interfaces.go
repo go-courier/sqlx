@@ -49,7 +49,6 @@ type WithColDescriptions interface {
 
 type Dialect interface {
 	DriverName() string
-	BindVar(i int) string
 	PrimaryKeyName() string
 	IsErrorUnknownDatabase(err error) bool
 	IsErrorConflict(err error) bool

@@ -29,93 +29,96 @@ func interpolateParams(query string, args []driver.Value, loc *time.Location, ma
 	buf = buf[:0]
 	argPos := 0
 
-	for i := 0; i < len(query); i++ {
-		q := strings.IndexByte(query[i:], '?')
-		if q == -1 {
-			buf = append(buf, query[i:]...)
-			break
-		}
-		buf = append(buf, query[i:i+q]...)
-		i += q
+	data := []byte(query)
 
-		arg := args[argPos]
-		argPos++
+	for i := range data {
+		q := query[i]
+		switch q {
+		case '?':
+			arg := args[argPos]
+			argPos++
 
-		if arg == nil {
-			buf = append(buf, "NULL"...)
-			continue
-		}
-
-		switch v := arg.(type) {
-		case int64:
-			buf = strconv.AppendInt(buf, v, 10)
-		case float64:
-			buf = strconv.AppendFloat(buf, v, 'g', -1, 64)
-		case bool:
-			if v {
-				buf = append(buf, '1')
-			} else {
-				buf = append(buf, '0')
-			}
-		case time.Time:
-			if v.IsZero() {
-				buf = append(buf, "'0000-00-00'"...)
-			} else {
-				v := v.In(loc)
-				v = v.Add(time.Nanosecond * 500) // Write round under microsecond
-				year := v.Year()
-				year100 := year / 100
-				year1 := year % 100
-				month := v.Month()
-				day := v.Day()
-				hour := v.Hour()
-				minute := v.Minute()
-				second := v.Second()
-				micro := v.Nanosecond() / 1000
-
-				buf = append(buf, []byte{
-					'\'',
-					digits10[year100], digits01[year100],
-					digits10[year1], digits01[year1],
-					'-',
-					digits10[month], digits01[month],
-					'-',
-					digits10[day], digits01[day],
-					' ',
-					digits10[hour], digits01[hour],
-					':',
-					digits10[minute], digits01[minute],
-					':',
-					digits10[second], digits01[second],
-				}...)
-
-				if micro != 0 {
-					micro10000 := micro / 10000
-					micro100 := micro / 100 % 100
-					micro1 := micro % 100
-					buf = append(buf, []byte{
-						'.',
-						digits10[micro10000], digits01[micro10000],
-						digits10[micro100], digits01[micro100],
-						digits10[micro1], digits01[micro1],
-					}...)
-				}
-				buf = append(buf, '\'')
-			}
-		case []byte:
-			if v == nil {
+			if arg == nil {
 				buf = append(buf, "NULL"...)
-			} else {
-				buf = append(buf, "_binary'"...)
-				buf = escapeBytesBackslash(buf, v)
-				buf = append(buf, '\'')
+				continue
 			}
-		case string:
-			buf = append(buf, '\'')
-			buf = escapeBytesBackslash(buf, []byte(v))
-			buf = append(buf, '\'')
+
+			switch v := arg.(type) {
+			case int64:
+				buf = strconv.AppendInt(buf, v, 10)
+			case float64:
+				buf = strconv.AppendFloat(buf, v, 'g', -1, 64)
+			case bool:
+				if v {
+					buf = append(buf, '1')
+				} else {
+					buf = append(buf, '0')
+				}
+			case time.Time:
+				if v.IsZero() {
+					buf = append(buf, "'0000-00-00'"...)
+				} else {
+					v := v.In(loc)
+					v = v.Add(time.Nanosecond * 500) // Write round under microsecond
+					year := v.Year()
+					year100 := year / 100
+					year1 := year % 100
+					month := v.Month()
+					day := v.Day()
+					hour := v.Hour()
+					minute := v.Minute()
+					second := v.Second()
+					micro := v.Nanosecond() / 1000
+
+					buf = append(buf, []byte{
+						'\'',
+						digits10[year100], digits01[year100],
+						digits10[year1], digits01[year1],
+						'-',
+						digits10[month], digits01[month],
+						'-',
+						digits10[day], digits01[day],
+						' ',
+						digits10[hour], digits01[hour],
+						':',
+						digits10[minute], digits01[minute],
+						':',
+						digits10[second], digits01[second],
+					}...)
+
+					if micro != 0 {
+						micro10000 := micro / 10000
+						micro100 := micro / 100 % 100
+						micro1 := micro % 100
+						buf = append(buf, []byte{
+							'.',
+							digits10[micro10000], digits01[micro10000],
+							digits10[micro100], digits01[micro100],
+							digits10[micro1], digits01[micro1],
+						}...)
+					}
+					buf = append(buf, '\'')
+				}
+			case []byte:
+				if v == nil {
+					buf = append(buf, "NULL"...)
+				} else {
+					buf = append(buf, "_binary'"...)
+					buf = escapeBytesBackslash(buf, v)
+					buf = append(buf, '\'')
+				}
+			case string:
+				buf = append(buf, '\'')
+				buf = escapeBytesBackslash(buf, []byte(v))
+				buf = append(buf, '\'')
+			default:
+				return "", driver.ErrSkip
+			}
+
+		case '\n':
+			buf = append(buf, ' ')
 		default:
-			return "", driver.ErrSkip
+			buf = append(buf, q)
 		}
 
 		if len(buf)+4 > maxAllowedPacket {

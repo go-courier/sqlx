@@ -130,10 +130,6 @@ func (PostgreSQLConnector) Driver() driver.Driver {
 	return &PostgreSQLLoggingDriver{Driver: &pq.Driver{}, Logger: logrus.StandardLogger()}
 }
 
-func (PostgreSQLConnector) BindVar(i int) string {
-	return "$" + strconv.FormatInt(int64(i+1), 10)
-}
-
 func (PostgreSQLConnector) DriverName() string {
 	return "postgres"
 }

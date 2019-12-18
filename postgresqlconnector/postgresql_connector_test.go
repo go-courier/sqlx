@@ -96,7 +96,7 @@ func TestPostgreSQLConnector(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			gomega.NewWithT(t).Expect(c.expr).To(buidertestingutils.BeExpr(c.expr.Ex(context.Background()).Query()))
 		})
-}
+	}
 }
 
 type Point struct {

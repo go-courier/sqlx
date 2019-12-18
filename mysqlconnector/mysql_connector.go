@@ -117,10 +117,6 @@ func (MysqlConnector) Driver() driver.Driver {
 	return &MySqlLoggingDriver{Driver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()}
 }
 
-func (MysqlConnector) BindVar(i int) string {
-	return "?"
-}
-
 func (MysqlConnector) DriverName() string {
 	return "mysql"
 }
