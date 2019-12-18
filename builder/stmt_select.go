@@ -25,7 +25,7 @@ type StmtSelect struct {
 }
 
 func (s *StmtSelect) IsNil() bool {
-	return s == nil || IsNilExpr(s.table)
+	return s == nil
 }
 
 func (s StmtSelect) From(table *Table, additions ...Addition) *StmtSelect {
@@ -72,8 +72,10 @@ func (s *StmtSelect) Ex(ctx context.Context) *Ex {
 	e.WriteByte(' ')
 	e.WriteExpr(sqlExpr)
 
-	e.WriteString(" FROM ")
-	e.WriteExpr(s.table)
+	if !IsNilExpr(s.table) {
+		e.WriteString(" FROM ")
+		e.WriteExpr(s.table)
+	}
 
 	WriteAdditions(e, s.additions...)
 
