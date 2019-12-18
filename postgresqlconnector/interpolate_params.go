@@ -137,7 +137,8 @@ func InterpolateParams(query string, args []driver.NamedValue, loc *time.Locatio
 	if argPos != len(args) {
 		return "", driver.ErrSkip
 	}
-	return "", nil
+
+	return string(buf), nil
 }
 
 const digits01 = "0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"
