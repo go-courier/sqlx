@@ -12,8 +12,17 @@ func (OrderByAddition) weight() additionWeight {
 }
 
 func OrderBy(orders ...*Order) *orderBy {
+	finalOrders := make([]*Order, 0)
+
+	for i := range orders {
+		if IsNilExpr(orders[i]) {
+			continue
+		}
+		finalOrders = append(finalOrders, orders[i])
+	}
+
 	return &orderBy{
-		orders: orders,
+		orders: finalOrders,
 	}
 }
 
