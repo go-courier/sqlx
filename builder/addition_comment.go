@@ -7,8 +7,8 @@ import (
 type CommentAddition struct {
 }
 
-func (CommentAddition) weight() additionWeight {
-	return commentStmt
+func (CommentAddition) AdditionType() AdditionType {
+	return AdditionComment
 }
 
 func Comment(c string) *comment {

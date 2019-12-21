@@ -8,21 +8,21 @@ type Additions []Addition
 
 type Addition interface {
 	SqlExpr
-	weight() additionWeight
+	AdditionType() AdditionType
 }
 
-type additionWeight int
+type AdditionType int
 
 const (
-	joinStmt additionWeight = iota
-	whereStmt
-	groupByStmt
-	combinationStmt
-	orderByStmt
-	limitStmt
-	onConflictStmt
-	otherStmt
-	commentStmt
+	AdditionJoin AdditionType = iota
+	AdditionWhere
+	AdditionGroupBy
+	AdditionCombination
+	AdditionOrderBy
+	AdditionLimit
+	AdditionOnConflict
+	AdditionOther
+	AdditionComment
 )
 
 func WriteAdditions(e *Ex, additions ...Addition) {
@@ -51,7 +51,7 @@ func (additions Additions) Len() int {
 }
 
 func (additions Additions) Less(i, j int) bool {
-	return additions[i].weight() < additions[j].weight()
+	return additions[i].AdditionType() < additions[j].AdditionType()
 }
 
 func (additions Additions) Swap(i, j int) {
@@ -68,8 +68,8 @@ type OtherAddition struct {
 	SqlExpr
 }
 
-func (OtherAddition) weight() additionWeight {
-	return otherStmt
+func (OtherAddition) AdditionType() AdditionType {
+	return AdditionOther
 }
 
 func (a *OtherAddition) IsNil() bool {

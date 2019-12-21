@@ -6,8 +6,8 @@ import (
 
 type WhereAddition struct{}
 
-func (WhereAddition) weight() additionWeight {
-	return whereStmt
+func (WhereAddition) AdditionType() AdditionType {
+	return AdditionWhere
 }
 
 func Where(c SqlCondition) *where {

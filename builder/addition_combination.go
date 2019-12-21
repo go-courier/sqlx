@@ -7,8 +7,8 @@ import (
 type CombinationAddition struct {
 }
 
-func (CombinationAddition) weight() additionWeight {
-	return combinationStmt
+func (CombinationAddition) AdditionType() AdditionType {
+	return AdditionCombination
 }
 
 func Union() *combination {

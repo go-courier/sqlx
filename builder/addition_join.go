@@ -7,8 +7,8 @@ import (
 
 type JoinAddition struct{}
 
-func (JoinAddition) weight() additionWeight {
-	return joinStmt
+func (JoinAddition) AdditionType() AdditionType {
+	return AdditionJoin
 }
 
 func Join(table *Table, prefixes ...string) *join {

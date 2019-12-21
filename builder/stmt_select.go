@@ -43,7 +43,7 @@ func (s *StmtSelect) Ex(ctx context.Context) *Ex {
 			continue
 		}
 
-		if addition.weight() == joinStmt {
+		if addition.AdditionType() == AdditionJoin {
 			multiTable = true
 		}
 	}

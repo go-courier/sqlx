@@ -8,8 +8,8 @@ import (
 type LimitAddition struct {
 }
 
-func (LimitAddition) weight() additionWeight {
-	return limitStmt
+func (LimitAddition) AdditionType() AdditionType {
+	return AdditionLimit
 }
 
 func Limit(rowCount int64) *limit {

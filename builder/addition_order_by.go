@@ -7,8 +7,8 @@ import (
 type OrderByAddition struct {
 }
 
-func (OrderByAddition) weight() additionWeight {
-	return orderByStmt
+func (OrderByAddition) AdditionType() AdditionType {
+	return AdditionOrderBy
 }
 
 func OrderBy(orders ...*Order) *orderBy {

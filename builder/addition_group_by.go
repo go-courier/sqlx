@@ -7,8 +7,8 @@ import (
 type GroupByAddition struct {
 }
 
-func (GroupByAddition) weight() additionWeight {
-	return groupByStmt
+func (GroupByAddition) AdditionType() AdditionType {
+	return AdditionGroupBy
 }
 
 func GroupBy(groups ...SqlExpr) *groupBy {

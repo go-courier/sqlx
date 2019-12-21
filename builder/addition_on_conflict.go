@@ -7,8 +7,8 @@ import (
 type OnConflictAddition struct {
 }
 
-func (OnConflictAddition) weight() additionWeight {
-	return onConflictStmt
+func (OnConflictAddition) AdditionType() AdditionType {
+	return AdditionOnConflict
 }
 
 func OnConflict(columns *Columns) *onConflict {
