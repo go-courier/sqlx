@@ -11,7 +11,7 @@ import (
 func TestOrderBy(t *testing.T) {
 	table := T("T")
 
-	t.Run("select order", func(t *testing.T) {
+	t.Run("select Order", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			Select(nil).
 				From(

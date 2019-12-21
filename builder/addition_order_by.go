@@ -11,7 +11,7 @@ func (OrderByAddition) weight() additionWeight {
 	return orderByStmt
 }
 
-func OrderBy(orders ...*order) *orderBy {
+func OrderBy(orders ...*Order) *orderBy {
 	return &orderBy{
 		orders: orders,
 	}
@@ -21,7 +21,7 @@ var _ Addition = (*orderBy)(nil)
 
 type orderBy struct {
 	OrderByAddition
-	orders []*order
+	orders []*Order
 }
 
 func (o *orderBy) IsNil() bool {
@@ -39,26 +39,26 @@ func (o *orderBy) Ex(ctx context.Context) *Ex {
 	return e.Ex(ctx)
 }
 
-func AscOrder(target SqlExpr) *order {
-	return &order{target: target, typ: "ASC"}
+func AscOrder(target SqlExpr) *Order {
+	return &Order{target: target, typ: "ASC"}
 }
 
-func DescOrder(target SqlExpr) *order {
-	return &order{target: target, typ: "DESC"}
+func DescOrder(target SqlExpr) *Order {
+	return &Order{target: target, typ: "DESC"}
 }
 
-var _ SqlExpr = (*order)(nil)
+var _ SqlExpr = (*Order)(nil)
 
-type order struct {
+type Order struct {
 	target SqlExpr
 	typ    string
 }
 
-func (o *order) IsNil() bool {
+func (o *Order) IsNil() bool {
 	return o == nil || IsNilExpr(o.target)
 }
 
-func (o *order) Ex(ctx context.Context) *Ex {
+func (o *Order) Ex(ctx context.Context) *Ex {
 	e := Expr("")
 
 	e.WriteGroup(func(e *Ex) {
