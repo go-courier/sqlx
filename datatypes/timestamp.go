@@ -76,6 +76,9 @@ func (dt Timestamp) Value() (driver.Value, error) {
 }
 
 func (dt Timestamp) String() string {
+	if dt.IsZero() {
+		return ""
+	}
 	return time.Time(dt).In(CST).Format(time.RFC3339)
 }
 
@@ -89,17 +92,13 @@ var _ interface {
 } = (*Timestamp)(nil)
 
 func (dt Timestamp) MarshalText() ([]byte, error) {
-	if dt.IsZero() {
-		return []byte(""), nil
-	}
-	str := dt.String()
-	return []byte(str), nil
+	return []byte( dt.String()), nil
 }
 
 func (dt *Timestamp) UnmarshalText(data []byte) (err error) {
 	str := string(data)
-	if len(str) == 0 {
-		str = TimestampZero.String()
+	if len(str) == 0 || str == "0" {
+		return nil
 	}
 	*dt, err = ParseTimestampFromString(str)
 	return

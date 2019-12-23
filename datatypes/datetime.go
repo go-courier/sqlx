@@ -57,6 +57,9 @@ func (dt Datetime) Value() (driver.Value, error) {
 }
 
 func (dt Datetime) String() string {
+	if dt.IsZero() {
+		return ""
+	}
 	return time.Time(dt).In(CST).Format(time.RFC3339)
 }
 
@@ -70,17 +73,13 @@ var _ interface {
 } = (*Datetime)(nil)
 
 func (dt Datetime) MarshalText() ([]byte, error) {
-	if dt.IsZero() {
-		return []byte(""), nil
-	}
-	str := dt.String()
-	return []byte(str), nil
+	return []byte(dt.String()), nil
 }
 
 func (dt *Datetime) UnmarshalText(data []byte) (err error) {
 	str := string(data)
 	if len(str) == 0 || str == "0" {
-		str = DatetimeZero.String()
+		return nil
 	}
 	*dt, err = ParseDatetimeFromString(str)
 	return

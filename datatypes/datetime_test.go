@@ -36,6 +36,7 @@ func TestDatetime(t *testing.T) {
 		err = dt3.UnmarshalText([]byte(""))
 		gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
 	})
+
 	t.Run("Scan & Value", func(t *testing.T) {
 		t0, _ := time.Parse(time.RFC3339, "2017-03-27T23:58:59+08:00")
 		dt := Datetime(t0)
