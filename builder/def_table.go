@@ -216,7 +216,9 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 					exprList = append(exprList, dialect.DropColumn(col))
 					return
 				}
-				exprList = append(exprList, dialect.ModifyColumn(col))
+				if ResolveExpr(col).Query() != ResolveExpr(currentCol).Query() {
+					exprList = append(exprList, dialect.ModifyColumn(col))
+				}
 				return
 			}
 			exprList = append(exprList, dialect.DropColumn(col))
@@ -242,7 +244,7 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 		if prevKey == nil {
 			exprList = append(exprList, dialect.AddIndex(key))
 		} else {
-			if !key.IsPrimary() && ResolveExpr(key.Columns).Query() != ResolveExpr(prevTable.Columns).Query() {
+			if !key.IsPrimary() && ResolveExpr(key.Columns).Query() != ResolveExpr(prevKey.Columns).Query() {
 				exprList = append(exprList, dialect.DropIndex(key))
 				exprList = append(exprList, dialect.AddIndex(key))
 			}
