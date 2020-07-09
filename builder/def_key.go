@@ -50,7 +50,7 @@ func (key *Key) T() *Table {
 }
 
 func (key *Key) IsPrimary() bool {
-	return key.IsUnique && (strings.ToLower(key.Name) == "primary" || strings.HasSuffix(strings.ToLower(key.Name), "pkey"))
+	return key.IsUnique && strings.ToLower(key.Name) == "primary"
 }
 
 type Keys struct {
