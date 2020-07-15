@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"reflect"
@@ -11,8 +12,64 @@ import (
 
 type FieldValues map[string]interface{}
 
-func ForEachStructFieldValue(rv reflect.Value, fn func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string)) {
+type StructField struct {
+	Value      reflect.Value
+	Field      reflect.StructField
+	TableName  string
+	ColumnName string
+	TagValue   string
+}
+
+type contextKeyTableName int
+
+func WithTableName(tableName string) func(ctx context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, contextKeyTableName(1), tableName)
+	}
+}
+
+func TableNameFromContext(ctx context.Context) string {
+	if tableName, ok := ctx.Value(contextKeyTableName(1)).(string); ok {
+		return tableName
+	}
+	return ""
+}
+
+func ColumnsByStruct(v interface{}) *Ex {
+	e := Expr("")
+
+	i := 0
+
+	ForEachStructFieldValue(context.Background(), reflect.ValueOf(v), func(field *StructField) {
+		if i > 0 {
+			e.WriteString(", ")
+		}
+
+		if field.TableName != "" {
+			_, _ = e.WriteString(field.TableName)
+			_ = e.WriteByte('.')
+			_, _ = e.WriteString(field.ColumnName)
+			_, _ = e.WriteString(" AS ")
+			_, _ = e.WriteString(field.TableName)
+			_, _ = e.WriteString("__")
+			_, _ = e.WriteString(field.ColumnName)
+		} else {
+			_, _ = e.WriteString(field.ColumnName)
+		}
+
+		i++
+	})
+
+	return e
+}
+
+func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*StructField)) {
 	rv = reflect.Indirect(rv)
+
+	if t, ok := rv.Interface().(interface{ TableName() string }); ok {
+		ctx = WithTableName(t.TableName())(ctx)
+	}
+
 	structType := rv.Type()
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
@@ -27,10 +84,17 @@ func ForEachStructFieldValue(rv reflect.Value, fn func(structFieldValue reflect.
 			tagValue, exists := field.Tag.Lookup("db")
 			if exists {
 				if tagValue != "-" {
-					fn(fieldValue, field, GetColumnName(field.Name, tagValue), tagValue)
+					sf := &StructField{}
+					sf.Value = fieldValue
+					sf.Field = field
+					sf.TableName = TableNameFromContext(ctx)
+					sf.ColumnName = GetColumnName(field.Name, tagValue)
+					sf.TagValue = tagValue
+
+					fn(sf)
 				}
 			} else if field.Anonymous {
-				ForEachStructFieldValue(fieldValue, fn)
+				ForEachStructFieldValue(ctx, fieldValue, fn)
 				continue
 			}
 		}
@@ -57,9 +121,9 @@ func FieldValuesFromStructBy(structValue interface{}, fieldNames []string) (fiel
 	fieldValues = FieldValues{}
 	rv := reflect.Indirect(reflect.ValueOf(structValue))
 	fieldMap := ToMap(fieldNames)
-	ForEachStructFieldValue(rv, func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string) {
-		if fieldMap != nil && fieldMap[structField.Name] {
-			fieldValues[structField.Name] = structFieldValue.Interface()
+	ForEachStructFieldValue(context.Background(), rv, func(sf *StructField) {
+		if fieldMap != nil && fieldMap[sf.Field.Name] {
+			fieldValues[sf.Field.Name] = sf.Value.Interface()
 		}
 	})
 	return fieldValues
@@ -69,9 +133,9 @@ func FieldValuesFromStructByNonZero(structValue interface{}, excludes ...string)
 	fieldValues = FieldValues{}
 	rv := reflect.Indirect(reflect.ValueOf(structValue))
 	fieldMap := ToMap(excludes)
-	ForEachStructFieldValue(rv, func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string) {
-		if !reflectx.IsEmptyValue(structFieldValue) || (fieldMap != nil && fieldMap[structField.Name]) {
-			fieldValues[structField.Name] = structFieldValue.Interface()
+	ForEachStructFieldValue(context.Background(), rv, func(sf *StructField) {
+		if !reflectx.IsEmptyValue(sf.Value) || (fieldMap != nil && fieldMap[sf.Field.Name]) {
+			fieldValues[sf.Field.Name] = sf.Value.Interface()
 		}
 	})
 	return
@@ -98,8 +162,8 @@ func TableFromModel(model Model) *Table {
 func ScanDefToTable(rv reflect.Value, table *Table) {
 	table.ModelName = rv.Type().Name()
 
-	ForEachStructFieldValue(reflect.Indirect(rv), func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string) {
-		table.AddCol(Col(columnName).Field(structField.Name).Type(structFieldValue.Interface(), tagValue))
+	ForEachStructFieldValue(context.Background(), reflect.Indirect(rv), func(sf *StructField) {
+		table.AddCol(Col(sf.ColumnName).Field(sf.Field.Name).Type(sf.Value.Interface(), sf.TagValue))
 	})
 
 	if rv.CanAddr() {

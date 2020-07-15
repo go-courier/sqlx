@@ -1,6 +1,7 @@
 package sqlx
 
 import (
+	"context"
 	"database/sql"
 	"reflect"
 	"strings"
@@ -152,9 +153,15 @@ func scanStruct(rows *sql.Rows, rv reflect.Value) error {
 		dest[i] = p
 	}
 
-	builder.ForEachStructFieldValue(rv, func(structFieldValue reflect.Value, structField reflect.StructField, columnName string, tagValue string) {
-		if i, ok := columnIndexes[columnName]; ok && i > -1 {
-			dest[i] = nullable.NewNullIgnoreScanner(structFieldValue.Addr().Interface())
+	builder.ForEachStructFieldValue(context.Background(), rv, func(sf *builder.StructField) {
+		if sf.TableName != "" {
+			if i, ok := columnIndexes[sf.TableName+"__"+sf.ColumnName]; ok && i > -1 {
+				dest[i] = nullable.NewNullIgnoreScanner(sf.Value.Addr().Interface())
+			}
+		}
+		
+		if i, ok := columnIndexes[sf.ColumnName]; ok && i > -1 {
+			dest[i] = nullable.NewNullIgnoreScanner(sf.Value.Addr().Interface())
 		}
 	})
 
