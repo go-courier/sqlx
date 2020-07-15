@@ -7,15 +7,15 @@ import (
 )
 
 func JSONScan(dbValue interface{}, value interface{}) error {
-	switch dbValue.(type) {
+	switch v := dbValue.(type) {
 	case []byte:
-		bytes := dbValue.([]byte)
+		bytes := v
 		if len(bytes) > 0 {
 			return json.Unmarshal(bytes, value)
 		}
 		return nil
 	case string:
-		str := dbValue.(string)
+		str := v
 		if str == "" {
 			return nil
 		}

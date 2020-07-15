@@ -86,7 +86,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
 			key := &builder.Key{}
 			key.Name = indexSchema.INDEX_NAME[len(table.Name)+1:]
 			key.Method = strings.ToUpper(regexp.MustCompile(`USING ([^ ]+)`).FindString(indexSchema.INDEX_DEF)[6:])
-			key.IsUnique = strings.Index(indexSchema.INDEX_DEF, "UNIQUE") > -1
+			key.IsUnique = strings.Contains(indexSchema.INDEX_DEF, "UNIQUE")
 
 			fields := regexp.MustCompile(`\([^\)]+\)`).FindString(indexSchema.INDEX_DEF)
 			if len(fields) > 0 {

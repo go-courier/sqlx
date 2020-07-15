@@ -10,7 +10,7 @@ func TestNullIgnoreScanner(t *testing.T) {
 	t.Run("scan value", func(t *testing.T) {
 		v := 0
 		s := NewNullIgnoreScanner(&v)
-		s.Scan(2)
+		_ = s.Scan(2)
 
 		gomega.NewWithT(t).Expect(v).To(gomega.Equal(2))
 	})
@@ -18,7 +18,7 @@ func TestNullIgnoreScanner(t *testing.T) {
 	t.Run("scan nil", func(t *testing.T) {
 		v := 0
 		s := NewNullIgnoreScanner(&v)
-		s.Scan(nil)
+		_ = s.Scan(nil)
 
 		gomega.NewWithT(t).Expect(v).To(gomega.Equal(0))
 	})

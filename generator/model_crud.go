@@ -35,24 +35,6 @@ if m.`+m.FieldKeyCreatedAt+`.IsZero() {
 	return nil
 }
 
-func (m *Model) snippetSetLastInsertIdIfNeed(file *codegen.File) codegen.Snippet {
-	if m.HasAutoIncrement {
-		return codegen.Expr(`
-if err == nil {
-	lastInsertID, _ := result.LastInsertId()
-	m.? = ?(lastInsertID)
-}
-`,
-			codegen.Id(m.FieldKeyAutoIncrement),
-			m.FieldType(file, m.FieldKeyAutoIncrement),
-		)
-	}
-
-	return codegen.Expr(`
-_ = result
-`)
-}
-
 func (m *Model) snippetSetUpdatedAtIfNeed(file *codegen.File) codegen.Snippet {
 	if m.HasUpdatedAt {
 		return codegen.Expr(`
@@ -454,7 +436,7 @@ func createMethod(method string, fieldNames ...string) string {
 func (m *Model) FieldType(file *codegen.File, fieldName string) codegen.SnippetType {
 	if field, ok := m.Fields[fieldName]; ok {
 		typ := field.Type().String()
-		if strings.Index(typ, ".") > -1 {
+		if strings.Contains(typ, ".") {
 			importPath, name := packagesx.GetPkgImportPathAndExpose(typ)
 			if importPath != m.TypeName.Pkg().Path() {
 				return codegen.Type(file.Use(importPath, name))

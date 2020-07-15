@@ -21,13 +21,13 @@ func TestBool(t *testing.T) {
 	t.Run("Unmarshal", func(t *testing.T) {
 		var b Bool
 
-		json.Unmarshal([]byte("null"), &b)
+		_ = json.Unmarshal([]byte("null"), &b)
 		gomega.NewWithT(t).Expect(b).To(gomega.Equal(BOOL_UNKNOWN))
 
-		json.Unmarshal([]byte("true"), &b)
+		_ = json.Unmarshal([]byte("true"), &b)
 		gomega.NewWithT(t).Expect(b).To(gomega.Equal(BOOL_TRUE))
 
-		json.Unmarshal([]byte("false"), &b)
+		_ = json.Unmarshal([]byte("false"), &b)
 		gomega.NewWithT(t).Expect(b).To(gomega.Equal(BOOL_FALSE))
 	})
 }

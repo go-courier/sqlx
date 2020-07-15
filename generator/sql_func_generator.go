@@ -77,5 +77,5 @@ func (g *SqlFuncGenerator) Output(cwd string) {
 
 	file := codegen.NewFile(g.pkg.Name, filename)
 	g.model.WriteTo(file)
-	file.WriteFile()
+	_, _ = file.WriteFile()
 }

@@ -77,7 +77,7 @@ func TestWithTasks(t *testing.T) {
 					})
 
 					taskList = taskList.With(func(db sqlx.DBExecutor) error {
-						db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
+						_, _ = db.ExecExpr(sqlx.InsertToDB(db, &user, nil))
 						return nil
 					})
 

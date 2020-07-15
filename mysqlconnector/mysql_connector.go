@@ -77,7 +77,7 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 		for _, expr := range exprList {
 			if !expr.IsNil() {
 				if opts.DryRun {
-					log.Printf(builder.ResolveExpr(expr).Query())
+					log.Print(builder.ResolveExpr(expr).Query())
 				} else {
 					if _, err := db.ExecExpr(expr); err != nil {
 						return err

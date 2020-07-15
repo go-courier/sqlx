@@ -216,7 +216,7 @@ func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType
 		ct.GetDataType = dataTypeDescriber.DataType
 	}
 
-	if strings.Index(nameAndFlags, ",") > -1 {
+	if strings.Contains(nameAndFlags, ",") {
 		for _, flag := range strings.Split(nameAndFlags, ",")[1:] {
 			nameAndValue := strings.Split(flag, "=")
 			switch strings.ToLower(nameAndValue[0]) {

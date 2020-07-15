@@ -11,10 +11,10 @@ type MigrationOpts struct {
 	DryRun bool
 }
 
-var contextKeyMigrationOpts = "#####MigrationOpts#####"
+type contextKeyMigrationOpts int
 
 func MigrationOptsFromContext(ctx context.Context) *MigrationOpts {
-	if opts, ok := ctx.Value(contextKeyMigrationOpts).(*MigrationOpts); ok {
+	if opts, ok := ctx.Value(contextKeyMigrationOpts(1)).(*MigrationOpts); ok {
 		if opts != nil {
 			return opts
 		}
@@ -29,7 +29,7 @@ func MustMigrate(db sqlx.DBExecutor, opts *MigrationOpts) {
 }
 
 func Migrate(db sqlx.DBExecutor, opts *MigrationOpts) error {
-	ctx := context.WithValue(db.Context(), contextKeyMigrationOpts, opts)
+	ctx := context.WithValue(db.Context(), contextKeyMigrationOpts(1), opts)
 
 	if err := db.(sqlx.Migrator).Migrate(ctx, db); err != nil {
 		return err

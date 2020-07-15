@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	mysql.SetLogger(&logger{})
+	_ = mysql.SetLogger(&logger{})
 }
 
 type logger struct{}
@@ -157,7 +157,7 @@ var DuplicateEntryErrNumber uint16 = 1062
 func startTimer() func() time.Duration {
 	startTime := time.Now()
 	return func() time.Duration {
-		return time.Now().Sub(startTime)
+		return time.Since(startTime)
 	}
 }
 

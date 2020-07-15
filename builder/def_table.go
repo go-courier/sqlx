@@ -103,15 +103,13 @@ func (t *Table) Expr(query string, args ...interface{}) *Ex {
 	s := &scanner.Scanner{}
 	s.Init(bytes.NewBuffer([]byte(query)))
 
-	fieldNameBuf := bytes.NewBuffer(nil)
-
 	n := len(args)
 	queryCount := 0
 
 	for tok := s.Next(); tok != scanner.EOF; tok = s.Next() {
 		switch tok {
 		case '#':
-			fieldNameBuf = bytes.NewBuffer(nil)
+			fieldNameBuf := bytes.NewBuffer(nil)
 
 			e.WriteHolder(0)
 

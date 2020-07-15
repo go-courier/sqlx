@@ -181,7 +181,7 @@ func replaceValueHolder(query string) string {
 func startTimer() func() time.Duration {
 	startTime := time.Now()
 	return func() time.Duration {
-		return time.Now().Sub(startTime)
+		return time.Since(startTime)
 	}
 }
 

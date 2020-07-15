@@ -5,10 +5,6 @@ import (
 )
 
 var (
-	keyForToggles = "$$builder.toggles"
-)
-
-var (
 	ToggleMultiTable    = "MultiTable"
 	ToggleNeedAutoAlias = "NeedAlias"
 	ToggleUseValues     = "UseValues"
@@ -43,15 +39,17 @@ func (toggles Toggles) Is(key string) bool {
 	return false
 }
 
+type contextKeyForToggles int
+
 func ContextWithToggles(ctx context.Context, toggles Toggles) context.Context {
-	return context.WithValue(ctx, keyForToggles, TogglesFromContext(ctx).Merge(toggles))
+	return context.WithValue(ctx, contextKeyForToggles(1), TogglesFromContext(ctx).Merge(toggles))
 }
 
 func TogglesFromContext(ctx context.Context) Toggles {
 	if ctx == nil {
 		return Toggles{}
 	}
-	if toggles, ok := ctx.Value(keyForToggles).(Toggles); ok {
+	if toggles, ok := ctx.Value(contextKeyForToggles(1)).(Toggles); ok {
 		return toggles
 	}
 	return Toggles{}

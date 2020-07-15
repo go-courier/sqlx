@@ -46,7 +46,7 @@ func (key Key) Using(method string) *Key {
 }
 
 func (key *Key) T() *Table {
-	return key.T()
+	return key.Table
 }
 
 func (key *Key) IsPrimary() bool {

@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	os.Chdir("./test")
+	_ = os.Chdir("./test")
 }
 
 func TestParseIndexesFromDoc(t *testing.T) {

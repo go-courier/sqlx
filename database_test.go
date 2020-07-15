@@ -199,7 +199,7 @@ func TestMigrate(t *testing.T) {
 			})
 			dbTest.Tables.Range(func(table *builder.Table, idx int) {
 				db := dbTest.OpenDB(connector).WithSchema(schema)
-				db.ExecExpr(db.Dialect().DropTable(table))
+				_, _ = db.ExecExpr(db.Dialect().DropTable(table))
 			})
 		}
 	}
@@ -320,7 +320,7 @@ func TestSelect(t *testing.T) {
 			table := dbTest.Register(&User{})
 
 			db.Tables.Range(func(t *builder.Table, idx int) {
-				db.ExecExpr(db.Dialect().DropTable(t))
+				_, _ = db.ExecExpr(db.Dialect().DropTable(t))
 			})
 
 			err := migration.Migrate(db, nil)
@@ -411,7 +411,7 @@ func TestSelect(t *testing.T) {
 			})
 
 			db.Tables.Range(func(tab *builder.Table, idx int) {
-				db.ExecExpr(db.Dialect().DropTable(tab))
+				_, _ = db.ExecExpr(db.Dialect().DropTable(tab))
 			})
 		})
 	}

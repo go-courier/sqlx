@@ -25,7 +25,6 @@ type sqlErrType string
 var (
 	sqlErrTypeInvalidScanTarget sqlErrType = "InvalidScanTarget"
 	sqlErrTypeNotFound          sqlErrType = "NotFound"
-	sqlErrTypeSelectShouldOne   sqlErrType = "SelectShouldOne"
 	sqlErrTypeConflict          sqlErrType = "Conflict"
 )
 

@@ -91,7 +91,6 @@ type Ex struct {
 	args     []interface{}
 	err      error
 	rendered bool
-	ident    int
 }
 
 func (e *Ex) IsNil() bool {
