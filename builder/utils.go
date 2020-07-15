@@ -65,37 +65,43 @@ func ColumnsByStruct(v interface{}) *Ex {
 
 func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*StructField)) {
 	rv = reflect.Indirect(rv)
-
-	if t, ok := rv.Interface().(interface{ TableName() string }); ok {
-		ctx = WithTableName(t.TableName())(ctx)
-	}
-
 	structType := rv.Type()
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
 
-		if field.Type.Kind() == reflect.Interface {
-			continue
+	if structType.Kind() == reflect.Struct {
+
+		if m, ok := rv.Interface().(Model); ok {
+			ctx = WithTableName(m.TableName())(ctx)
 		}
 
-		if ast.IsExported(field.Name) {
-			fieldValue := rv.Field(i)
+		for i := 0; i < structType.NumField(); i++ {
+			field := structType.Field(i)
 
-			tagValue, exists := field.Tag.Lookup("db")
-			if exists {
-				if tagValue != "-" {
-					sf := &StructField{}
-					sf.Value = fieldValue
-					sf.Field = field
-					sf.TableName = TableNameFromContext(ctx)
-					sf.ColumnName = GetColumnName(field.Name, tagValue)
-					sf.TagValue = tagValue
-
-					fn(sf)
-				}
-			} else if field.Anonymous {
-				ForEachStructFieldValue(ctx, fieldValue, fn)
+			if field.Type.Kind() == reflect.Interface {
 				continue
+			}
+
+			if ast.IsExported(field.Name) {
+				fieldValue := rv.Field(i)
+
+				tagValue, exists := field.Tag.Lookup("db")
+				if exists {
+					if tagValue != "-" {
+						sf := &StructField{}
+						sf.Value = fieldValue
+						sf.Field = field
+						sf.TableName = TableNameFromContext(ctx)
+						sf.ColumnName = GetColumnName(field.Name, tagValue)
+						sf.TagValue = tagValue
+
+						fn(sf)
+					}
+				} else if field.Anonymous {
+					ForEachStructFieldValue(ctx, fieldValue, fn)
+				} else {
+					if _, ok := rv.Interface().(Model); ok {
+						ForEachStructFieldValue(ctx, fieldValue, fn)
+					}
+				}
 			}
 		}
 	}
