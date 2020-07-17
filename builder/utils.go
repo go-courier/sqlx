@@ -68,7 +68,6 @@ func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*Str
 	structType := rv.Type()
 
 	if structType.Kind() == reflect.Struct {
-
 		if m, ok := rv.Interface().(Model); ok {
 			ctx = WithTableName(m.TableName())(ctx)
 		}
@@ -98,7 +97,7 @@ func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*Str
 				} else if field.Anonymous {
 					ForEachStructFieldValue(ctx, fieldValue, fn)
 				} else {
-					if _, ok := rv.Interface().(Model); ok {
+					if _, ok := fieldValue.Interface().(Model); ok {
 						ForEachStructFieldValue(ctx, fieldValue, fn)
 					}
 				}
