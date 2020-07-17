@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.18.2](https://github.com/go-courier/sqlx/compare/v2.18.1...v2.18.2)
+
+### Bug Fixes
+
+* **fix(builder):** fieldValue fix ([ab91aec](https://github.com/go-courier/sqlx/commit/ab91aecbb684be35ec597eae670759039ac70c6b))
+
+
+
 # [2.18.1](https://github.com/go-courier/sqlx/compare/v2.18.0...v2.18.1)
 
 ### Bug Fixes
