@@ -7,7 +7,7 @@ require (
 	github.com/go-courier/codegen v1.1.2
 	github.com/go-courier/enumeration v1.0.1
 	github.com/go-courier/metax v1.2.1
-	github.com/go-courier/packagesx v1.0.1
+	github.com/go-courier/packagesx v1.0.2
 	github.com/go-courier/ptr v1.0.1
 	github.com/go-courier/reflectx v1.3.4
 	github.com/go-sql-driver/mysql v1.4.1
