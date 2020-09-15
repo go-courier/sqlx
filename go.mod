@@ -10,7 +10,7 @@ require (
 	github.com/go-courier/ptr v1.0.1
 	github.com/go-courier/reflectx v1.3.4
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/lib/pq v1.8.0
 	github.com/onsi/gomega v1.10.2
 	github.com/sirupsen/logrus v1.6.0
