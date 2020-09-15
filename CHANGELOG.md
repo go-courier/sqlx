@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.19.0](https://github.com/go-courier/sqlx/compare/v2.18.2...v2.19.0)
+
+### Features
+
+* **feat** alias tag for table join rename ([fc2ed04](https://github.com/go-courier/sqlx/commit/fc2ed0417fadb395d937b684bf31b1425051b924))
+
+
+
 # [2.18.2](https://github.com/go-courier/sqlx/compare/v2.18.1...v2.18.2)
 
 ### Bug Fixes
