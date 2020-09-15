@@ -56,7 +56,7 @@ func (c *Column) Ex(ctx context.Context) *Ex {
 
 	if c.Table != nil && (c.exactly || toggles.Is(ToggleMultiTable)) {
 		if toggles.Is(ToggleNeedAutoAlias) {
-			return Expr("(?.?) AS ?", c.Table, Expr(c.Name), Expr(c.Name)).Ex(ctx)
+			return Expr("?.? AS ?", c.Table, Expr(c.Name), Expr(c.Name)).Ex(ctx)
 		}
 		return Expr("?.?", c.Table, Expr(c.Name)).Ex(ctx)
 	}

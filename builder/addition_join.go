@@ -11,30 +11,30 @@ func (JoinAddition) AdditionType() AdditionType {
 	return AdditionJoin
 }
 
-func Join(table *Table, prefixes ...string) *join {
+func Join(table SqlExpr, prefixes ...string) *join {
 	return &join{
 		prefix: strings.Join(prefixes, " "),
 		target: table,
 	}
 }
 
-func InnerJoin(table *Table) *join {
+func InnerJoin(table SqlExpr) *join {
 	return Join(table, "INNER")
 }
 
-func LeftJoin(table *Table) *join {
+func LeftJoin(table SqlExpr) *join {
 	return Join(table, "LEFT")
 }
 
-func RightJoin(table *Table) *join {
+func RightJoin(table SqlExpr) *join {
 	return Join(table, "RIGHT")
 }
 
-func FullJoin(table *Table) *join {
+func FullJoin(table SqlExpr) *join {
 	return Join(table, "FULL")
 }
 
-func CrossJoin(table *Table) *join {
+func CrossJoin(table SqlExpr) *join {
 	return Join(table, "CROSS")
 }
 
@@ -42,7 +42,7 @@ var _ Addition = (*join)(nil)
 
 type join struct {
 	prefix         string
-	target         *Table
+	target         SqlExpr
 	joinCondition  SqlCondition
 	joinColumnList []*Column
 	JoinAddition

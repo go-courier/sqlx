@@ -20,6 +20,8 @@ func JSONScan(dbValue interface{}, value interface{}) error {
 			return nil
 		}
 		return json.Unmarshal([]byte(str), value)
+	case nil:
+		return nil
 	default:
 		return fmt.Errorf("cannot sql.Scan() from: %#v", value)
 	}

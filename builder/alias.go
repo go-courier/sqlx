@@ -21,7 +21,7 @@ func (alias *exAlias) IsNil() bool {
 }
 
 func (alias *exAlias) Ex(ctx context.Context) *Ex {
-	return Expr("(?) AS ?", alias.SqlExpr, Expr(alias.name)).Ex(ContextWithToggles(ctx, Toggles{
+	return Expr("? AS ?", alias.SqlExpr, Expr(alias.name)).Ex(ContextWithToggles(ctx, Toggles{
 		ToggleNeedAutoAlias: false,
 	}))
 }

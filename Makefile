@@ -6,7 +6,3 @@ test:
 
 cover:
 	go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-
-release:
-	git push
-	git push origin $(VERSION)

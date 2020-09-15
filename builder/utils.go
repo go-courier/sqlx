@@ -35,6 +35,21 @@ func TableNameFromContext(ctx context.Context) string {
 	return ""
 }
 
+type contextKeyTableAlias int
+
+func WithTableAlias(tableName string) func(ctx context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, contextKeyTableAlias(1), tableName)
+	}
+}
+
+func TableAliasFromContext(ctx context.Context) string {
+	if tableName, ok := ctx.Value(contextKeyTableAlias(1)).(string); ok {
+		return tableName
+	}
+	return ""
+}
+
 func ColumnsByStruct(v interface{}) *Ex {
 	e := Expr("")
 
@@ -64,7 +79,12 @@ func ColumnsByStruct(v interface{}) *Ex {
 }
 
 func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*StructField)) {
+	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+		rv.Set(reflect.New(rv.Type().Elem()))
+	}
+
 	rv = reflect.Indirect(rv)
+
 	structType := rv.Type()
 
 	if structType.Kind() == reflect.Struct {
@@ -79,6 +99,10 @@ func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*Str
 				continue
 			}
 
+			if tableAlias, ok := field.Tag.Lookup("alias"); ok {
+				ctx = WithTableAlias(tableAlias)(ctx)
+			}
+
 			if ast.IsExported(field.Name) {
 				fieldValue := rv.Field(i)
 
@@ -89,6 +113,11 @@ func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*Str
 						sf.Value = fieldValue
 						sf.Field = field
 						sf.TableName = TableNameFromContext(ctx)
+
+						if tableAlias := TableAliasFromContext(ctx); tableAlias != "" {
+							sf.TableName = tableAlias
+						}
+
 						sf.ColumnName = GetColumnName(field.Name, tagValue)
 						sf.TagValue = tagValue
 

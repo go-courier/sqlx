@@ -30,12 +30,12 @@ func TestJoin(t *testing.T) {
 			)).
 				From(
 					tUser,
-					Join(tOrg).On(tUser.Col("f_org_id").Eq(tOrg.Col("f_org_id"))),
+					Join(Alias(tOrg, "t_org")).On(tUser.Col("f_org_id").Eq(tOrg.Col("f_org_id"))),
 				)).
 			To(BeExpr(
 				`
-SELECT (t_user.f_id) AS f_id, (t_user.f_name) AS f_name, (t_user.f_org_id) AS f_org_id, (t_org.f_org_name) AS f_org_name FROM t_user
-JOIN t_org ON t_user.f_org_id = t_org.f_org_id
+SELECT t_user.f_id AS f_id, t_user.f_name AS f_name, t_user.f_org_id AS f_org_id, t_org.f_org_name AS f_org_name FROM t_user
+JOIN t_org AS t_org ON t_user.f_org_id = t_org.f_org_id
 `,
 			))
 	})
