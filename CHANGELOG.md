@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.19.1](https://github.com/go-courier/sqlx/compare/v2.19.0...v2.19.1)
+
+### Bug Fixes
+
+* **fix** enhance GetColumnName ([d7074af](https://github.com/go-courier/sqlx/commit/d7074af444c88c61f547a37636d294b18b94c0ee))
+
+
+
 # [2.19.0](https://github.com/go-courier/sqlx/compare/v2.18.2...v2.19.0)
 
 ### Features
