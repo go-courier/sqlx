@@ -136,11 +136,14 @@ func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*Str
 }
 
 func GetColumnName(fieldName, tagValue string) string {
-	columnName := strings.Split(tagValue, ",")[0]
-	if columnName == "" {
-		return "f_" + strings.ToLower(fieldName)
+	i := strings.Index(tagValue, ",")
+	if tagValue != "" && (i > 0 || i == -1) {
+		if i == -1 {
+			return strings.ToLower(tagValue)
+		}
+		return strings.ToLower(tagValue[0:i])
 	}
-	return strings.ToLower(columnName)
+	return "f_" + strings.ToLower(fieldName)
 }
 
 func ToMap(list []string) map[string]bool {

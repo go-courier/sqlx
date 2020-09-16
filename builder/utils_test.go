@@ -39,4 +39,11 @@ func TestValueMap(t *testing.T) {
 				"Username": user.Username,
 			}))
 	})
+
+	t.Run("#GetColumnName", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(GetColumnName("Text", "")).To(gomega.Equal("f_text"))
+		gomega.NewWithT(t).Expect(GetColumnName("Text", ",size=256")).To(gomega.Equal("f_text"))
+		gomega.NewWithT(t).Expect(GetColumnName("Text", "f_text2")).To(gomega.Equal("f_text2"))
+		gomega.NewWithT(t).Expect(GetColumnName("Text", "f_text2,default=''")).To(gomega.Equal("f_text2"))
+	})
 }
