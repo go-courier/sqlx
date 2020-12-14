@@ -5,15 +5,15 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"log"
-	"reflect"
-	"strconv"
-
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
+	"io"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 var _ interface {
@@ -42,7 +42,7 @@ func (c MysqlConnector) WithDBName(dbName string) driver.Connector {
 }
 
 func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error {
-	opts := migration.MigrationOptsFromContext(ctx)
+	output := migration.MigrationOutputFromContext(ctx)
 
 	// mysql without schema
 	d := db.D().WithSchema("")
@@ -75,9 +75,10 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 		exprList := table.Diff(prevTable, dialect)
 
 		for _, expr := range exprList {
-			if !expr.IsNil() {
-				if opts.DryRun {
-					log.Print(builder.ResolveExpr(expr).Query())
+			if !(expr == nil || expr.IsNil()) {
+				if output != nil {
+					_, _ = io.WriteString(output, builder.ResolveExpr(expr).Query())
+					_, _ = io.WriteString(output, "\n")
 				} else {
 					if _, err := db.ExecExpr(expr); err != nil {
 						return err
@@ -324,13 +325,18 @@ func (c *MysqlConnector) RenameColumn(col *builder.Column, target *builder.Colum
 	return e
 }
 
-func (c *MysqlConnector) ModifyColumn(col *builder.Column) builder.SqlExpr {
+func (c *MysqlConnector) ModifyColumn(col *builder.Column, prev *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 	e.WriteString(" MODIFY COLUMN ")
 	e.WriteExpr(col)
 	e.WriteByte(' ')
 	e.WriteExpr(c.DataType(col.ColumnType))
+
+	e.WriteString(" /* FROM")
+	e.WriteExpr(c.DataType(prev.ColumnType))
+	e.WriteString(" */")
+
 	e.WriteEnd()
 	return e
 }
@@ -345,10 +351,16 @@ func (c *MysqlConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 }
 
 func (c *MysqlConnector) DataType(columnType *builder.ColumnType) builder.SqlExpr {
-	return builder.Expr(c.dataType(columnType.Type, columnType) + c.dataTypeModify(columnType))
+	dbDataType := dealias(c.dbDataType(columnType.Type, columnType))
+	return builder.Expr(dbDataType + autocompleteSize(dbDataType, columnType) + c.dataTypeModify(columnType))
 }
 
 func (c *MysqlConnector) dataType(typ reflect.Type, columnType *builder.ColumnType) string {
+	dbDataType := dealias(c.dbDataType(typ, columnType))
+	return dbDataType + autocompleteSize(dbDataType, columnType)
+}
+
+func (c *MysqlConnector) dbDataType(typ reflect.Type, columnType *builder.ColumnType) string {
 	if columnType.GetDataType != nil {
 		return columnType.GetDataType(c.DriverName())
 	}
@@ -375,16 +387,13 @@ func (c *MysqlConnector) dataType(typ reflect.Type, columnType *builder.ColumnTy
 	case reflect.Uint64:
 		return "bigint unsigned"
 	case reflect.Float32:
-		return "float" + sizeModifier(columnType.Length, columnType.Decimal)
+		return "float"
 	case reflect.Float64:
-		return "double" + sizeModifier(columnType.Length, columnType.Decimal)
+		return "double"
 	case reflect.String:
 		size := columnType.Length
-		if size == 0 {
-			size = 255
-		}
 		if size < 65535/3 {
-			return "varchar" + sizeModifier(size, 0)
+			return "varchar"
 		}
 		return "text"
 	case reflect.Slice:
@@ -421,12 +430,32 @@ func (c *MysqlConnector) dataTypeModify(columnType *builder.ColumnType) string {
 		buf.WriteString(*columnType.Default)
 	}
 
-	if columnType.Comment != "" {
-		buf.WriteString(" COMMENT ")
-		buf.WriteString(strconv.Quote(columnType.Comment))
+	if columnType.OnUpdate != nil {
+		buf.WriteString(" ON UPDATE ")
+		buf.WriteString(*columnType.OnUpdate)
 	}
 
 	return buf.String()
+}
+
+func autocompleteSize(dataType string, columnType *builder.ColumnType) string {
+	switch strings.ToLower(dataType) {
+	case "varchar":
+		size := columnType.Length
+		if size == 0 {
+			size = 255
+		}
+		return sizeModifier(size, columnType.Decimal)
+	case "float", "double", "decimal":
+		if columnType.Length > 0 {
+			return sizeModifier(columnType.Length, columnType.Decimal)
+		}
+	}
+	return ""
+}
+
+func dealias(dataType string) string {
+	return dataType
 }
 
 func sizeModifier(length uint64, decimal uint64) string {

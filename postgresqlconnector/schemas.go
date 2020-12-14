@@ -1,6 +1,7 @@
 package postgresqlconnector
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -47,14 +48,16 @@ func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
 		panic(err)
 	}
 
-	for _, columnSchema := range columnSchemaList {
+	for i := range columnSchemaList {
+		columnSchema := columnSchemaList[i]
+
 		table := d.Table(columnSchema.TABLE_NAME)
 		if table == nil {
 			table = builder.T(columnSchema.TABLE_NAME)
 			d.AddTable(table)
 		}
-		col := builder.Col(columnSchema.COLUMN_NAME)
-		table.AddCol(col)
+
+		table.AddCol(colFromColumnSchema(&columnSchema))
 	}
 
 	if tableColumnSchema.Columns.Len() != 0 {
@@ -107,10 +110,61 @@ func init() {
 	SchemaDatabase.Register(&IndexSchema{})
 }
 
+func colFromColumnSchema(columnSchema *ColumnSchema) *builder.Column {
+	col := builder.Col(columnSchema.COLUMN_NAME)
+
+	defaultValue := columnSchema.COLUMN_DEFAULT
+
+	if defaultValue != "" {
+		col.AutoIncrement = strings.HasSuffix(columnSchema.COLUMN_DEFAULT, "_seq'::regclass)")
+
+		if !col.AutoIncrement {
+			if !strings.Contains(defaultValue, "'::") && '0' <= defaultValue[0] && defaultValue[0] <= '9' {
+				defaultValue = fmt.Sprintf("'%s'::integer", defaultValue)
+			}
+			col.Default = &defaultValue
+		}
+	}
+
+	dataType := columnSchema.DATA_TYPE
+
+	if col.AutoIncrement {
+		if strings.HasPrefix(dataType, "big") {
+			dataType = "bigserial"
+		} else {
+			dataType = "serial"
+		}
+	}
+
+	col.GetDataType = func(engine string) string {
+		return dataType
+	}
+
+	// numeric type
+	if columnSchema.NUMERIC_PRECISION > 0 {
+		col.Length = columnSchema.NUMERIC_PRECISION
+		col.Decimal = columnSchema.NUMERIC_SCALE
+	} else {
+		col.Length = columnSchema.CHARACTER_MAXIMUM_LENGTH
+	}
+
+	if columnSchema.IS_NULLABLE == "YES" {
+		col.Null = true
+	}
+
+	return col
+}
+
 type ColumnSchema struct {
-	TABLE_SCHEMA string `db:"table_schema"`
-	TABLE_NAME   string `db:"table_name"`
-	COLUMN_NAME  string `db:"column_name"`
+	TABLE_SCHEMA             string `db:"table_schema"`
+	TABLE_NAME               string `db:"table_name"`
+	COLUMN_NAME              string `db:"column_name"`
+	DATA_TYPE                string `db:"data_type"`
+	IS_NULLABLE              string `db:"is_nullable"`
+	COLUMN_DEFAULT           string `db:"column_default"`
+	CHARACTER_MAXIMUM_LENGTH uint64 `db:"character_maximum_length"`
+	NUMERIC_PRECISION        uint64 `db:"numeric_precision"`
+	NUMERIC_SCALE            uint64 `db:"numeric_scale"`
 }
 
 func (ColumnSchema) TableName() string {

@@ -86,11 +86,6 @@ func TestMysqlConnector(t *testing.T) {
 			c.AddColumn(table.Col("F_name"))).
 			To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"))
 	})
-	t.Run("ModifyColumn", func(t *testing.T) {
-		gomega.NewWithT(t).Expect(
-			c.ModifyColumn(table.Col("F_name")),
-		).To(buidertestingutils.BeExpr( /* language=MySQL */ "ALTER TABLE t MODIFY COLUMN f_name varchar(128) NOT NULL DEFAULT '';"))
-	})
 	t.Run("DropColumn", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			c.DropColumn(table.Col("F_name")),

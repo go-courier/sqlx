@@ -82,10 +82,6 @@ func TestPostgreSQLConnector(t *testing.T) {
 			c.AddColumn(table.Col("F_name")),
 			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t ADD COLUMN f_name varchar(128) NOT NULL DEFAULT '';"),
 		},
-		"ModifyColumn": {
-			c.ModifyColumn(table.Col("F_name")),
-			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t ALTER COLUMN f_name TYPE varchar(128), ALTER COLUMN f_name SET NOT NULL, ALTER COLUMN f_name SET DEFAULT '';"),
-		},
 		"DropColumn": {
 			c.DropColumn(table.Col("F_name")),
 			builder.Expr( /* language=PostgreSQL */ "ALTER TABLE t DROP COLUMN f_name;"),

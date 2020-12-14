@@ -191,9 +191,8 @@ func (t *Table) AssignmentsByFieldValues(fieldValues FieldValues) (assignments A
 
 func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 	// diff columns
-	t.Columns.Range(func(col *Column, idx int) {
-		if prevTable.Col(col.Name) != nil {
-			currentCol := t.Col(col.Name)
+	t.Columns.Range(func(currentCol *Column, idx int) {
+		if prevCol := prevTable.Col(currentCol.Name); prevCol != nil {
 			if currentCol != nil {
 				if currentCol.DeprecatedActions != nil {
 					renameTo := currentCol.DeprecatedActions.RenameTo
@@ -206,25 +205,28 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 						if targetCol == nil {
 							panic(fmt.Errorf("col `%s` is not declared", renameTo))
 						}
-
-						exprList = append(exprList, dialect.RenameColumn(col, targetCol))
+						exprList = append(exprList, dialect.RenameColumn(currentCol, targetCol))
 						prevTable.AddCol(targetCol)
 						return
 					}
-					exprList = append(exprList, dialect.DropColumn(col))
+					exprList = append(exprList, dialect.DropColumn(currentCol))
 					return
 				}
-				if ResolveExpr(col).Query() != ResolveExpr(currentCol).Query() {
-					exprList = append(exprList, dialect.ModifyColumn(col))
+
+				prevColType := dialect.DataType(prevCol.ColumnType).Ex(context.Background()).Query()
+				currentColType := dialect.DataType(currentCol.ColumnType).Ex(context.Background()).Query()
+
+				if currentColType != prevColType {
+					exprList = append(exprList, dialect.ModifyColumn(currentCol, prevCol))
 				}
 				return
 			}
-			exprList = append(exprList, dialect.DropColumn(col))
+			exprList = append(exprList, dialect.DropColumn(currentCol))
 			return
 		}
 
-		if col.DeprecatedActions == nil {
-			exprList = append(exprList, dialect.AddColumn(col))
+		if currentCol.DeprecatedActions == nil {
+			exprList = append(exprList, dialect.AddColumn(currentCol))
 		}
 	})
 

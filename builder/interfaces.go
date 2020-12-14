@@ -60,7 +60,7 @@ type Dialect interface {
 	TruncateTable(t *Table) SqlExpr
 	AddColumn(col *Column) SqlExpr
 	RenameColumn(col *Column, target *Column) SqlExpr
-	ModifyColumn(col *Column) SqlExpr
+	ModifyColumn(col *Column, prev *Column) SqlExpr
 	DropColumn(col *Column) SqlExpr
 	AddIndex(key *Key) SqlExpr
 	DropIndex(key *Key) SqlExpr

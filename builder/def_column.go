@@ -253,6 +253,11 @@ func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType
 					panic(fmt.Errorf("missing default value"))
 				}
 				ct.Default = &nameAndValue[1]
+			case "onupdate":
+				if len(nameAndValue) == 1 {
+					panic(fmt.Errorf("missing onupdate value"))
+				}
+				ct.OnUpdate = &nameAndValue[1]
 			}
 		}
 	}
@@ -267,7 +272,8 @@ type ColumnType struct {
 	Length  uint64
 	Decimal uint64
 
-	Default *string
+	Default  *string
+	OnUpdate *string
 
 	Null          bool
 	AutoIncrement bool

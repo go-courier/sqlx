@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"log"
+	"io"
 	"reflect"
 	"strconv"
 	"strings"
@@ -42,7 +42,7 @@ func (c PostgreSQLConnector) WithDBName(dbName string) driver.Connector {
 }
 
 func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error {
-	opts := migration.MigrationOptsFromContext(ctx)
+	output := migration.MigrationOutputFromContext(ctx)
 
 	prevDB := dbFromInformationSchema(db)
 
@@ -83,8 +83,9 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 
 		for _, expr := range exprList {
 			if !(expr == nil || expr.IsNil()) {
-				if opts.DryRun {
-					log.Print(builder.ResolveExpr(expr).Query())
+				if output != nil {
+					_, _ = io.WriteString(output, builder.ResolveExpr(expr).Query())
+					_, _ = io.WriteString(output, "\n")
 				} else {
 					if _, err := db.ExecExpr(expr); err != nil {
 						return err
@@ -330,7 +331,7 @@ func (c *PostgreSQLConnector) RenameColumn(col *builder.Column, target *builder.
 	return e
 }
 
-func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column) builder.SqlExpr {
+func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Column) builder.SqlExpr {
 	if col.AutoIncrement {
 		return nil
 	}
@@ -338,12 +339,21 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column) builder.SqlExpr 
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
 
-	e.WriteString(" ALTER COLUMN ")
-	e.WriteExpr(col)
-	e.WriteString(" TYPE ")
-	e.WriteString(c.dataType(col.ColumnType.Type, col.ColumnType))
+	dbDataType := c.dataType(col.ColumnType.Type, col.ColumnType)
+	prevDbDataType := c.dataType(prev.ColumnType.Type, prev.ColumnType)
 
-	{
+	if dbDataType != prevDbDataType {
+		e.WriteString(" ALTER COLUMN ")
+		e.WriteExpr(col)
+		e.WriteString(" TYPE ")
+		e.WriteString(dbDataType)
+
+		e.WriteString(" /* FROM ")
+		e.WriteString(prevDbDataType)
+		e.WriteString(" */")
+	}
+
+	if col.Null != prev.Null {
 		e.WriteString(", ALTER COLUMN ")
 		e.WriteExpr(col)
 		if !col.Null {
@@ -353,14 +363,19 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column) builder.SqlExpr 
 		}
 	}
 
-	{
-		e.WriteString(", ALTER COLUMN ")
-		e.WriteExpr(col)
-		if col.Default != nil {
-			e.WriteString(" SET DEFAULT ")
-			e.WriteString(*col.Default)
-		} else {
-			e.WriteString(" DROP DEFAULT")
+	defaultValue := normalizeDefaultValue(col.Default, dbDataType)
+	prevDefaultValue := normalizeDefaultValue(prev.Default, prevDbDataType)
+
+	if defaultValue != prevDefaultValue {
+		{
+			e.WriteString(", ALTER COLUMN ")
+			e.WriteExpr(col)
+			if col.Default != nil {
+				e.WriteString(" SET DEFAULT ")
+				e.WriteString(defaultValue)
+			} else {
+				e.WriteString(" DROP DEFAULT")
+			}
 		}
 	}
 
@@ -379,10 +394,16 @@ func (c *PostgreSQLConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 }
 
 func (c *PostgreSQLConnector) DataType(columnType *builder.ColumnType) builder.SqlExpr {
-	return builder.Expr(c.dataType(columnType.Type, columnType) + c.dataTypeModify(columnType))
+	dbDataType := dealias(c.dbDataType(columnType.Type, columnType))
+	return builder.Expr(dbDataType + autocompleteSize(dbDataType, columnType) + c.dataTypeModify(columnType, dbDataType))
 }
 
 func (c *PostgreSQLConnector) dataType(typ reflect.Type, columnType *builder.ColumnType) string {
+	dbDataType := dealias(c.dbDataType(columnType.Type, columnType))
+	return dbDataType + autocompleteSize(dbDataType, columnType)
+}
+
+func (c *PostgreSQLConnector) dbDataType(typ reflect.Type, columnType *builder.ColumnType) string {
 	if columnType.GetDataType != nil {
 		return columnType.GetDataType(c.DriverName())
 	}
@@ -412,11 +433,8 @@ func (c *PostgreSQLConnector) dataType(typ reflect.Type, columnType *builder.Col
 		}
 	case reflect.String:
 		size := columnType.Length
-		if size == 0 {
-			size = 255
-		}
 		if size < 65535/3 {
-			return "varchar" + sizeModifier(size, 0)
+			return "varchar"
 		}
 		return "text"
 	}
@@ -447,7 +465,7 @@ func (c *PostgreSQLConnector) dataType(typ reflect.Type, columnType *builder.Col
 	panic(fmt.Errorf("unsupport type %s", typ))
 }
 
-func (c *PostgreSQLConnector) dataTypeModify(columnType *builder.ColumnType) string {
+func (c *PostgreSQLConnector) dataTypeModify(columnType *builder.ColumnType, dataType string) string {
 	buf := bytes.NewBuffer(nil)
 
 	if !columnType.Null {
@@ -456,10 +474,52 @@ func (c *PostgreSQLConnector) dataTypeModify(columnType *builder.ColumnType) str
 
 	if columnType.Default != nil {
 		buf.WriteString(" DEFAULT ")
-		buf.WriteString(*columnType.Default)
+		buf.WriteString(normalizeDefaultValue(columnType.Default, dataType))
 	}
 
 	return buf.String()
+}
+
+func normalizeDefaultValue(defaultValue *string, dataType string) string {
+	if defaultValue == nil {
+		return ""
+	}
+
+	dv := *defaultValue
+
+	if dv[0] == '\'' {
+		if strings.Contains(dv, "'::") {
+			return dv
+		}
+		return dv + "::" + dataType
+	}
+	return dv
+}
+
+func autocompleteSize(dataType string, columnType *builder.ColumnType) string {
+	switch dataType {
+	case "character varying", "character":
+		size := columnType.Length
+		if size == 0 {
+			size = 255
+		}
+		return sizeModifier(size, columnType.Decimal)
+	case "decimal", "numeric", "real", "double precision":
+		if columnType.Length > 0 {
+			return sizeModifier(columnType.Length, columnType.Decimal)
+		}
+	}
+	return ""
+}
+
+func dealias(dataType string) string {
+	switch dataType {
+	case "varchar":
+		return "character varying"
+	case "timestamp":
+		return "timestamp without time zone"
+	}
+	return dataType
 }
 
 func sizeModifier(length uint64, decimal uint64) string {

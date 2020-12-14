@@ -1,8 +1,10 @@
 package mysqlconnector
 
 import (
+	"database/sql"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
+	"strings"
 )
 
 func toInterfaces(list ...string) []interface{} {
@@ -38,14 +40,14 @@ func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
 		panic(err)
 	}
 
-	for _, columnSchema := range columnSchemaList {
+	for i := range columnSchemaList {
+		columnSchema := columnSchemaList[i]
 		table := database.Table(columnSchema.TABLE_NAME)
 		if table == nil {
 			table = builder.T(columnSchema.TABLE_NAME)
 			database.AddTable(table)
 		}
-		col := builder.Col(columnSchema.COLUMN_NAME)
-		table.AddCol(col)
+		table.AddCol(colFromColumnSchema(&columnSchema))
 	}
 
 	if tableColumnSchema.Columns.Len() != 0 {
@@ -101,10 +103,79 @@ func init() {
 	SchemaDatabase.Register(&IndexSchema{})
 }
 
+func colFromColumnSchema(columnSchema *ColumnSchema) *builder.Column {
+	col := builder.Col(columnSchema.COLUMN_NAME)
+
+	col.AutoIncrement = strings.Contains(columnSchema.EXTRA, "auto_increment")
+
+	defaultValue := columnSchema.COLUMN_DEFAULT
+
+	if defaultValue.Valid {
+		v := normalizeDefaultValue(defaultValue.String)
+		col.Default = &v
+	}
+
+	if strings.Contains(columnSchema.EXTRA, "on update ") {
+		v := strings.Split(columnSchema.EXTRA, "on update ")[1]
+		col.OnUpdate = &v
+	}
+
+	dataType := columnSchema.DATA_TYPE
+
+	if strings.HasSuffix(columnSchema.COLUMN_TYPE, "unsigned") {
+		dataType = dataType + " unsigned"
+	}
+
+	col.GetDataType = func(engine string) string {
+		return dataType
+	}
+
+	// numeric type
+	if columnSchema.NUMERIC_PRECISION > 0 {
+		col.Length = columnSchema.NUMERIC_PRECISION
+		col.Decimal = columnSchema.NUMERIC_SCALE
+	} else {
+		col.Length = columnSchema.CHARACTER_MAXIMUM_LENGTH
+	}
+
+	if columnSchema.IS_NULLABLE == "YES" {
+		col.Null = true
+	}
+
+	return col
+}
+
+// https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html
+func normalizeDefaultValue(v string) string {
+	if len(v) == 0 {
+		return "''"
+	}
+
+	switch v {
+	case "CURRENT_TIMESTAMP", "CURRENT_DATE", "NULL":
+		return v
+	}
+
+	// functions
+	if strings.Contains(v, "(") && strings.Contains(v, ")") {
+		return v
+	}
+
+	return quoteWith(v, '\'', false, false)
+}
+
 type ColumnSchema struct {
-	TABLE_SCHEMA string `db:"TABLE_SCHEMA"`
-	TABLE_NAME   string `db:"TABLE_NAME"`
-	COLUMN_NAME  string `db:"COLUMN_NAME"`
+	TABLE_SCHEMA             string         `db:"TABLE_SCHEMA"`
+	TABLE_NAME               string         `db:"TABLE_NAME"`
+	COLUMN_NAME              string         `db:"COLUMN_NAME"`
+	DATA_TYPE                string         `db:"DATA_TYPE"`
+	COLUMN_TYPE              string         `db:"COLUMN_TYPE"`
+	EXTRA                    string         `db:"EXTRA"`
+	IS_NULLABLE              string         `db:"IS_NULLABLE"`
+	COLUMN_DEFAULT           sql.NullString `db:"COLUMN_DEFAULT"`
+	CHARACTER_MAXIMUM_LENGTH uint64         `db:"CHARACTER_MAXIMUM_LENGTH"`
+	NUMERIC_PRECISION        uint64         `db:"NUMERIC_PRECISION"`
+	NUMERIC_SCALE            uint64         `db:"NUMERIC_SCALE"`
 }
 
 func (ColumnSchema) TableName() string {

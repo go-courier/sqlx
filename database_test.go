@@ -170,7 +170,9 @@ func TestMigrate(t *testing.T) {
 			t.Run("create table", func(t *testing.T) {
 				dbTest.Register(&User{})
 				db := dbTest.OpenDB(connector).WithSchema(schema)
-				err := migration.Migrate(db, nil)
+				err := migration.Migrate(db, os.Stdout)
+				NewWithT(t).Expect(err).To(BeNil())
+				err = migration.Migrate(db, nil)
 				NewWithT(t).Expect(err).To(BeNil())
 			})
 			t.Run("no migrate", func(t *testing.T) {
@@ -194,7 +196,9 @@ func TestMigrate(t *testing.T) {
 			})
 			t.Run("migrate to user", func(t *testing.T) {
 				db := dbTest.OpenDB(connector).WithSchema(schema)
-				err := migration.Migrate(db, nil)
+				err := migration.Migrate(db, os.Stdout)
+				NewWithT(t).Expect(err).To(BeNil())
+				err = migration.Migrate(db, nil)
 				NewWithT(t).Expect(err).To(BeNil())
 			})
 			dbTest.Tables.Range(func(table *builder.Table, idx int) {
