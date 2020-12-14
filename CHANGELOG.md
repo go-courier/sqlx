@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.20.1](https://github.com/go-courier/sqlx/compare/v2.20.0...v2.20.1)
+
+### Bug Fixes
+
+* **fix(migration):** log prev default value ([1cce629](https://github.com/go-courier/sqlx/commit/1cce629042e1877fcdb9c3f8304b00af547444cc))
+
+
+
 # [2.20.0](https://github.com/go-courier/sqlx/compare/v2.19.1...v2.20.0)
 
 ### Features
