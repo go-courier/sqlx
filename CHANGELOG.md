@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.20.0](https://github.com/go-courier/sqlx/compare/v2.19.1...v2.20.0)
+
+### Features
+
+* **feat** migration enhancement ([1fa4a9e](https://github.com/go-courier/sqlx/commit/1fa4a9e92cf79f359f3820763eeaad36b8666ea1))
+
+
+
 # [2.19.1](https://github.com/go-courier/sqlx/compare/v2.19.0...v2.19.1)
 
 ### Bug Fixes
