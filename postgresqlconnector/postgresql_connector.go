@@ -373,6 +373,10 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 			if col.Default != nil {
 				e.WriteString(" SET DEFAULT ")
 				e.WriteString(defaultValue)
+
+				e.WriteString(" /* FROM ")
+				e.WriteString(prevDefaultValue)
+				e.WriteString(" */")
 			} else {
 				e.WriteString(" DROP DEFAULT")
 			}
