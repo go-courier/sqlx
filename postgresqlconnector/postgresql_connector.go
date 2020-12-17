@@ -510,6 +510,12 @@ func normalizeDefaultValue(defaultValue *string, dataType string) string {
 		}
 		return dv + "::" + dataType
 	}
+
+	_, err := strconv.ParseFloat(dv, 64)
+	if err == nil {
+		return "'" + dv + "'::" + dataType
+	}
+
 	return dv
 }
 
