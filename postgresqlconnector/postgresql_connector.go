@@ -342,7 +342,18 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	dbDataType := c.dataType(col.ColumnType.Type, col.ColumnType)
 	prevDbDataType := c.dataType(prev.ColumnType.Type, prev.ColumnType)
 
+	isFirstSub := true
+
+	addCommaIfNeed := func() {
+		if !isFirstSub {
+			e.WriteRune(',')
+		}
+		isFirstSub = false
+	}
+
 	if dbDataType != prevDbDataType {
+		addCommaIfNeed()
+
 		e.WriteString(" ALTER COLUMN ")
 		e.WriteExpr(col)
 		e.WriteString(" TYPE ")
@@ -354,7 +365,9 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	}
 
 	if col.Null != prev.Null {
-		e.WriteString(", ALTER COLUMN ")
+		addCommaIfNeed()
+
+		e.WriteString(" ALTER COLUMN ")
 		e.WriteExpr(col)
 		if !col.Null {
 			e.WriteString(" SET NOT NULL")
@@ -367,19 +380,19 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	prevDefaultValue := normalizeDefaultValue(prev.Default, prevDbDataType)
 
 	if defaultValue != prevDefaultValue {
-		{
-			e.WriteString(", ALTER COLUMN ")
-			e.WriteExpr(col)
-			if col.Default != nil {
-				e.WriteString(" SET DEFAULT ")
-				e.WriteString(defaultValue)
+		addCommaIfNeed()
 
-				e.WriteString(" /* FROM ")
-				e.WriteString(prevDefaultValue)
-				e.WriteString(" */")
-			} else {
-				e.WriteString(" DROP DEFAULT")
-			}
+		e.WriteString(" ALTER COLUMN ")
+		e.WriteExpr(col)
+		if col.Default != nil {
+			e.WriteString(" SET DEFAULT ")
+			e.WriteString(defaultValue)
+
+			e.WriteString(" /* FROM ")
+			e.WriteString(prevDefaultValue)
+			e.WriteString(" */")
+		} else {
+			e.WriteString(" DROP DEFAULT")
 		}
 	}
 
