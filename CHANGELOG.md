@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.20.3](https://github.com/go-courier/sqlx/compare/v2.20.2...v2.20.3)
+
+### Bug Fixes
+
+* **fix(pg):** default number should be with quote and dataType ([4c0575b](https://github.com/go-courier/sqlx/commit/4c0575bf3cc9a1b03ee4715dd0fc9ffabebeb4ed))
+
+
+
 # [2.20.2](https://github.com/go-courier/sqlx/compare/v2.20.1...v2.20.2)
 
 ### Bug Fixes
