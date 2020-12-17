@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.20.2](https://github.com/go-courier/sqlx/compare/v2.20.1...v2.20.2)
+
+### Bug Fixes
+
+* **fix** pg comma fix ([9b52cbe](https://github.com/go-courier/sqlx/commit/9b52cbebed06597a72fe5feff207aacc1b803583))
+
+
+
 # [2.20.1](https://github.com/go-courier/sqlx/compare/v2.20.0...v2.20.1)
 
 ### Bug Fixes
