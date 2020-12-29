@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.20.4](https://github.com/go-courier/sqlx/compare/v2.20.3...v2.20.4)
+
+### Bug Fixes
+
+* **fix(migration):** create table should dry run ([93c0b30](https://github.com/go-courier/sqlx/commit/93c0b304938fa4ef8971412891d77964f6c80f5a))
+
+
+
 # [2.20.3](https://github.com/go-courier/sqlx/compare/v2.20.2...v2.20.3)
 
 ### Bug Fixes
