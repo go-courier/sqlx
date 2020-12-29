@@ -49,17 +49,32 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 	d := db.D()
 	dialect := db.Dialect()
 
+	exec := func(expr builder.SqlExpr) error {
+		if expr == nil || expr.IsNil() {
+			return nil
+		}
+
+		if output != nil {
+			_, _ = io.WriteString(output, builder.ResolveExpr(expr).Query())
+			_, _ = io.WriteString(output, "\n")
+			return nil
+		}
+
+		_, err := db.ExecExpr(expr)
+		return err
+	}
+
 	if prevDB == nil {
 		prevDB = &sqlx.Database{
 			Name: d.Name,
 		}
-		if _, err := db.ExecExpr(dialect.CreateDatabase(d.Name)); err != nil {
+		if err := exec(dialect.CreateDatabase(d.Name)); err != nil {
 			return err
 		}
 	}
 
 	if d.Schema != "" {
-		if _, err := db.ExecExpr(dialect.CreateSchema(d.Schema)); err != nil {
+		if err := exec(dialect.CreateSchema(d.Schema)); err != nil {
 			return err
 		}
 		prevDB = prevDB.WithSchema(d.Schema)
@@ -72,7 +87,7 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 
 		if prevTable == nil {
 			for _, expr := range dialect.CreateTableIsNotExists(table) {
-				if _, err := db.ExecExpr(expr); err != nil {
+				if err := exec(expr); err != nil {
 					return err
 				}
 			}
@@ -82,15 +97,8 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 		exprList := table.Diff(prevTable, dialect)
 
 		for _, expr := range exprList {
-			if !(expr == nil || expr.IsNil()) {
-				if output != nil {
-					_, _ = io.WriteString(output, builder.ResolveExpr(expr).Query())
-					_, _ = io.WriteString(output, "\n")
-				} else {
-					if _, err := db.ExecExpr(expr); err != nil {
-						return err
-					}
-				}
+			if err := exec(expr); err != nil {
+				return err
 			}
 		}
 	}
