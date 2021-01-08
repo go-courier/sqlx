@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.20.5](https://github.com/go-courier/sqlx/compare/v2.20.4...v2.20.5)
+
+### Bug Fixes
+
+* **fix(pg):** avoid gen invalid cmd ([42e911f](https://github.com/go-courier/sqlx/commit/42e911fcdfcba0f5501fa5878e0b2e9654f23fcb))
+
+
+
 # [2.20.4](https://github.com/go-courier/sqlx/compare/v2.20.3...v2.20.4)
 
 ### Bug Fixes
