@@ -351,16 +351,18 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	prevDbDataType := c.dataType(prev.ColumnType.Type, prev.ColumnType)
 
 	isFirstSub := true
+	isEmpty := true
 
-	addCommaIfNeed := func() {
+	prepareAppendSubCmd := func() {
 		if !isFirstSub {
 			e.WriteRune(',')
 		}
 		isFirstSub = false
+		isEmpty = false
 	}
 
 	if dbDataType != prevDbDataType {
-		addCommaIfNeed()
+		prepareAppendSubCmd()
 
 		e.WriteString(" ALTER COLUMN ")
 		e.WriteExpr(col)
@@ -373,7 +375,7 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	}
 
 	if col.Null != prev.Null {
-		addCommaIfNeed()
+		prepareAppendSubCmd()
 
 		e.WriteString(" ALTER COLUMN ")
 		e.WriteExpr(col)
@@ -388,7 +390,7 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	prevDefaultValue := normalizeDefaultValue(prev.Default, prevDbDataType)
 
 	if defaultValue != prevDefaultValue {
-		addCommaIfNeed()
+		prepareAppendSubCmd()
 
 		e.WriteString(" ALTER COLUMN ")
 		e.WriteExpr(col)
@@ -402,6 +404,10 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 		} else {
 			e.WriteString(" DROP DEFAULT")
 		}
+	}
+
+	if isEmpty {
+		return nil
 	}
 
 	e.WriteEnd()
