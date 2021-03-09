@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.21.0](https://github.com/go-courier/sqlx/compare/v2.20.5...v2.21.0)
+
+### Features
+
+* **feat** drop logrus ([b4a9e7b](https://github.com/go-courier/sqlx/commit/b4a9e7ba17de52967d6d29064fa97cfee05a3383))
+
+
+
 # [2.20.5](https://github.com/go-courier/sqlx/compare/v2.20.4...v2.20.5)
 
 ### Bug Fixes
