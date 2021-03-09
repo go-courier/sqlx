@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.21.1](https://github.com/go-courier/sqlx/compare/v2.21.0...v2.21.1)
+
+### Bug Fixes
+
+* **fix** driver connect issue when ctx pass may be cancel ([da0dbe4](https://github.com/go-courier/sqlx/commit/da0dbe4cbbdea220082fa6a6fa64a7b04edf7c22))
+
+
+
 # [2.21.0](https://github.com/go-courier/sqlx/compare/v2.20.5...v2.21.0)
 
 ### Features
