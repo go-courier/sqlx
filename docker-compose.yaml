@@ -1,0 +1,16 @@
+version: "3.0"
+
+services:
+  postgres:
+    image: docker.io/mdillon/postgis:10
+    environment:
+      POSTGRES_PASSWORD: ""
+    ports:
+      - 5432:5432
+  mysql:
+    image: docker.io/library/mysql:5.7
+    platform: linux/amd64
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "1"
+    ports:
+      - 3306:3306

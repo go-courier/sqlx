@@ -3,8 +3,9 @@ package sqlx
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-courier/sqlx/v2/builder"
 )

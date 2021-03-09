@@ -92,7 +92,7 @@ var _ interface {
 } = (*Timestamp)(nil)
 
 func (dt Timestamp) MarshalText() ([]byte, error) {
-	return []byte( dt.String()), nil
+	return []byte(dt.String()), nil
 }
 
 func (dt *Timestamp) UnmarshalText(data []byte) (err error) {

@@ -2,9 +2,10 @@ package mysqlconnector
 
 import (
 	"database/sql"
+	"strings"
+
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
-	"strings"
 )
 
 func toInterfaces(list ...string) []interface{} {

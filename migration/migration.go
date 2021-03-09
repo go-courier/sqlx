@@ -2,10 +2,10 @@ package migration
 
 import (
 	"context"
-	"github.com/go-courier/sqlx/v2/enummeta"
 	"io"
 
 	"github.com/go-courier/sqlx/v2"
+	"github.com/go-courier/sqlx/v2/enummeta"
 )
 
 type contextKeyMigrationOutput int

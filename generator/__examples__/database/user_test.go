@@ -11,7 +11,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -26,10 +25,6 @@ var (
 		Extensions: []string{"postgis"},
 	}
 )
-
-func init() {
-	logrus.SetLevel(logrus.DebugLevel)
-}
 
 func TestUser(t *testing.T) {
 	t.Run("CRUD", func(t *testing.T) {

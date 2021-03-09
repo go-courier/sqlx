@@ -5,15 +5,15 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"github.com/go-courier/sqlx/v2"
-	"github.com/go-courier/sqlx/v2/builder"
-	"github.com/go-courier/sqlx/v2/migration"
-	"github.com/go-sql-driver/mysql"
-	"github.com/sirupsen/logrus"
 	"io"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/go-courier/sqlx/v2"
+	"github.com/go-courier/sqlx/v2/builder"
+	"github.com/go-courier/sqlx/v2/migration"
+	"github.com/go-sql-driver/mysql"
 )
 
 var _ interface {
@@ -101,16 +101,21 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 }
 
 func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	d := c.Driver()
-	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
+	d := &MySqlLoggingDriver{}
+
+	connector, err := d.OpenConnector(dsn(c.Host, c.DBName, c.Extra))
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := connector.Connect(ctx)
 	if err != nil {
 		if c.IsErrorUnknownDatabase(err) {
-			conn, err := d.Open(dsn(c.Host, "", c.Extra))
+			conn, err := c.WithDBName("").Connect(ctx)
 			if err != nil {
 				return nil, err
 			}
-			if _, err := conn.(driver.ExecerContext).
-				ExecContext(context.Background(), builder.ResolveExpr(c.CreateDatabase(c.DBName)).Query(), nil); err != nil {
+			if _, err := conn.(driver.ExecerContext).ExecContext(context.Background(), builder.ResolveExpr(c.CreateDatabase(c.DBName)).Query(), nil); err != nil {
 				return nil, err
 			}
 			if err := conn.Close(); err != nil {
@@ -124,7 +129,7 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 }
 
 func (MysqlConnector) Driver() driver.Driver {
-	return &MySqlLoggingDriver{Driver: &mysql.MySQLDriver{}, Logger: logrus.StandardLogger()}
+	return &MySqlLoggingDriver{}
 }
 
 func (MysqlConnector) DriverName() string {

@@ -14,7 +14,6 @@ import (
 	"github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/sqlx/v2/migration"
 	"github.com/lib/pq"
-	"github.com/sirupsen/logrus"
 )
 
 var _ interface {
@@ -27,6 +26,43 @@ type PostgreSQLConnector struct {
 	DBName     string
 	Extra      string
 	Extensions []string
+}
+
+func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) {
+	d := &PostgreSQLLoggingDriver{}
+
+	connector, err := d.OpenConnector(dsn(c.Host, c.DBName, c.Extra))
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := connector.Connect(ctx)
+	if err != nil {
+		if c.IsErrorUnknownDatabase(err) {
+			connectForCreateDB, err := c.WithDBName("").Connect(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := connectForCreateDB.(driver.ExecerContext).ExecContext(context.Background(), builder.ResolveExpr(c.CreateDatabase(c.DBName)).Query(), nil); err != nil {
+				return nil, err
+			}
+			if err := connectForCreateDB.Close(); err != nil {
+				return nil, err
+			}
+			return c.Connect(ctx)
+		}
+		return nil, err
+	}
+	for _, ex := range c.Extensions {
+		if _, err := conn.(driver.ExecerContext).ExecContext(context.Background(), "CREATE EXTENSION IF NOT EXISTS "+ex+";", nil); err != nil {
+			return nil, err
+		}
+	}
+	return conn, nil
+}
+
+func (PostgreSQLConnector) Driver() driver.Driver {
+	return &PostgreSQLLoggingDriver{}
 }
 
 func dsn(host string, dbName string, extra string) string {
@@ -104,39 +140,6 @@ func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) e
 	}
 
 	return nil
-}
-
-func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	d := c.Driver()
-	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
-	if err != nil {
-		if c.IsErrorUnknownDatabase(err) {
-			connectForCreateDB, err := d.Open(dsn(c.Host, "", c.Extra))
-			if err != nil {
-				return nil, err
-			}
-			if _, err := connectForCreateDB.(driver.ExecerContext).
-				ExecContext(context.Background(), builder.ResolveExpr(c.CreateDatabase(c.DBName)).Query(), nil); err != nil {
-				return nil, err
-			}
-			if err := connectForCreateDB.Close(); err != nil {
-				return nil, err
-			}
-			return c.Connect(ctx)
-		}
-		return nil, err
-	}
-	for _, ex := range c.Extensions {
-		if _, err := conn.(driver.ExecerContext).
-			ExecContext(context.Background(), "CREATE EXTENSION IF NOT EXISTS "+ex+";", nil); err != nil {
-			return nil, err
-		}
-	}
-	return conn, nil
-}
-
-func (PostgreSQLConnector) Driver() driver.Driver {
-	return &PostgreSQLLoggingDriver{Driver: &pq.Driver{}, Logger: logrus.StandardLogger()}
 }
 
 func (PostgreSQLConnector) DriverName() string {

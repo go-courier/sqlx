@@ -5,74 +5,58 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-courier/logr"
 	"github.com/lib/pq"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 )
 
 var _ interface {
 	driver.Driver
+	driver.DriverContext
 } = (*PostgreSQLLoggingDriver)(nil)
 
 type PostgreSQLLoggingDriver struct {
-	Logger *logrus.Logger
-	Driver *pq.Driver
+	config string
+	driver pq.Driver
 }
 
-func FromConfigString(s string) PostgreSQLOpts {
-	opts := PostgreSQLOpts{}
-	for _, kv := range strings.Split(s, " ") {
-		kvs := strings.Split(kv, "=")
-		if len(kvs) > 1 {
-			opts[kvs[0]] = kvs[1]
-		}
-	}
-	return opts
-}
-
-type PostgreSQLOpts map[string]string
-
-func (opts PostgreSQLOpts) String() string {
-	buf := bytes.NewBuffer(nil)
-
-	kvs := make([]string, 0)
-	for k := range opts {
-		kvs = append(kvs, k)
-	}
-	sort.Strings(kvs)
-
-	for i, k := range kvs {
-		if i > 0 {
-			buf.WriteByte(' ')
-		}
-		buf.WriteString(k)
-		buf.WriteByte('=')
-		buf.WriteString(opts[k])
-	}
-
-	return buf.String()
-}
-
-func (d *PostgreSQLLoggingDriver) Open(dsn string) (driver.Conn, error) {
-	conf, err := pq.ParseURL(dsn)
+func (d *PostgreSQLLoggingDriver) OpenConnector(dsn string) (driver.Connector, error) {
+	config, err := pq.ParseURL(dsn)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	opts := FromConfigString(conf)
+	return &PostgreSQLLoggingDriver{config: config}, nil
+}
+
+func (d *PostgreSQLLoggingDriver) Open(config string) (driver.Conn, error) {
+	return d.driver.Open(config)
+}
+
+func (d *PostgreSQLLoggingDriver) Connect(ctx context.Context) (driver.Conn, error) {
+	logger := logr.FromContext(ctx).WithValues("driver", "postgres")
+
+	opts := FromConfigString(d.config)
 	if pass, ok := opts["password"]; ok {
 		opts["password"] = strings.Repeat("*", len(pass))
 	}
-	conn, err := d.Driver.Open(conf)
+
+	conn, err := d.Open(d.config)
 	if err != nil {
-		d.Logger.Errorf("failed to open connection: %s %s", opts, err)
+		logger.Error(errors.Wrapf(err, "failed to open connection: %s", opts))
 		return nil, err
 	}
-	d.Logger.Debugf("connected %s", opts)
-	return &loggerConn{Conn: conn, cfg: opts, logger: d.Logger.WithField("driver", "postgres")}, nil
+
+	logger.Debug("connected %s", opts)
+
+	return &loggerConn{Conn: conn, cfg: opts}, nil
+}
+
+func (d *PostgreSQLLoggingDriver) Driver() driver.Driver {
+	return d
 }
 
 var _ interface {
@@ -82,17 +66,17 @@ var _ interface {
 } = (*loggerConn)(nil)
 
 type loggerConn struct {
-	logger *logrus.Entry
-	cfg    PostgreSQLOpts
+	cfg PostgreSQLOpts
 	driver.Conn
 }
 
 func (c *loggerConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
-	logger := c.logger.WithContext(ctx)
+	logger := logr.FromContext(ctx)
+
 	logger.Debug("=========== Beginning Transaction ===========")
 	tx, err := c.Conn.(driver.ConnBeginTx).BeginTx(ctx, opts)
 	if err != nil {
-		logger.Errorf("failed to begin transaction: %s", err)
+		logger.Error(errors.Wrap(err, "failed to begin transaction"))
 		return nil, err
 	}
 	return &loggingTx{tx: tx, logger: logger}, nil
@@ -100,7 +84,6 @@ func (c *loggerConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver
 
 func (c *loggerConn) Close() error {
 	if err := c.Conn.Close(); err != nil {
-		c.logger.Errorf("failed to close connection: %s", err)
 		return err
 	}
 	return nil
@@ -111,49 +94,53 @@ func (c *loggerConn) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (rows driver.Rows, err error) {
+	newCtx, logger := logr.Start(ctx, "Query")
 	cost := startTimer()
-	logger := c.logger.WithContext(ctx)
 
 	defer func() {
 		q := interpolateParams(query, args)
 
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); !ok {
-				logger.Errorf("failed query %s: %s", err, q)
+				logger.Error(errors.Wrapf(err, "failed query: %s", q))
 			} else {
-				logger.Warnf("failed query %s: %s", pgErr, q)
+				logger.Warn(errors.Wrapf(pgErr, "failed query: %s", q))
 			}
 		} else {
-			logger.WithField("cost", cost().String()).Debugf("%s", q)
+			logger.WithValues("cost", cost().String()).Debug("%s", q)
 		}
+
+		logger.End()
 	}()
 
-	rows, err = c.Conn.(driver.QueryerContext).QueryContext(ctx, replaceValueHolder(query), args)
+	rows, err = c.Conn.(driver.QueryerContext).QueryContext(newCtx, replaceValueHolder(query), args)
 	return
 }
 
 func (c *loggerConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (result driver.Result, err error) {
 	cost := startTimer()
-	logger := c.logger.WithContext(ctx)
+	newCtx, logger := logr.Start(ctx, "Exec")
 
 	defer func() {
 		q := interpolateParams(query, args)
 
 		if err != nil {
 			if pgError, ok := err.(*pq.Error); !ok {
-				logger.Errorf("failed exec %s: %s", err, q)
+				logger.Error(errors.Wrapf(err, "failed exec: %s", q))
 			} else if pgError.Code == "23505" {
-				logger.Warnf("failed exec %s: %s", err, q)
+				logger.Warn(errors.Wrapf(err, "failed exec: %s", q))
 			} else {
-				logger.Errorf("failed exec %s: %s", pgError, q)
+				logger.Error(errors.Wrapf(pgError, "failed exec: %s", q))
 			}
 			return
 		}
 
-		logger.WithField("cost", cost().String()).Debugf("%s", q)
+		logger.WithValues("cost", cost().String()).Debug(q.String())
+
+		logger.End()
 	}()
 
-	result, err = c.Conn.(driver.ExecerContext).ExecContext(ctx, replaceValueHolder(query), args)
+	result, err = c.Conn.(driver.ExecerContext).ExecContext(newCtx, replaceValueHolder(query), args)
 	return
 }
 
@@ -186,13 +173,13 @@ func startTimer() func() time.Duration {
 }
 
 type loggingTx struct {
-	logger *logrus.Entry
+	logger logr.Logger
 	tx     driver.Tx
 }
 
 func (tx *loggingTx) Commit() error {
 	if err := tx.tx.Commit(); err != nil {
-		tx.logger.Debugf("failed to commit transaction: %s", err)
+		tx.logger.Debug("failed to commit transaction: %s", err)
 		return err
 	}
 	tx.logger.Debug("=========== Committed Transaction ===========")
@@ -201,7 +188,7 @@ func (tx *loggingTx) Commit() error {
 
 func (tx *loggingTx) Rollback() error {
 	if err := tx.tx.Rollback(); err != nil {
-		tx.logger.Debugf("failed to rollback transaction: %s", err)
+		tx.logger.Debug("failed to rollback transaction: %s", err)
 		return err
 	}
 	tx.logger.Debug("=========== Rollback Transaction ===========")

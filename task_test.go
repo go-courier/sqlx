@@ -13,15 +13,16 @@ import (
 )
 
 func TestWithTasks(t *testing.T) {
-	dbTest := sqlx.NewDatabase("test_for_user")
+	dbTest := sqlx.NewDatabase("test_for_user_with_tasks")
 
-	t.Run("", func(t *testing.T) {
-		for _, connector := range []driver.Connector{
-			mysqlConnector,
-			postgresConnector,
-		} {
-			db := dbTest.OpenDB(connector)
-			driverName := db.Dialect().DriverName()
+	for _, connector := range []driver.Connector{
+		mysqlConnector,
+		postgresConnector,
+	} {
+		db := dbTest.OpenDB(connector)
+		driverName := db.Dialect().DriverName()
+
+		t.Run(driverName, func(t *testing.T) {
 
 			dbTest.Register(&User{})
 			err := migration.Migrate(db, nil)
@@ -169,6 +170,6 @@ func TestWithTasks(t *testing.T) {
 				_, err := db.ExecExpr(db.Dialect().DropTable(table))
 				gomega.NewWithT(t).Expect(err).To(gomega.BeNil())
 			})
-		}
-	})
+		})
+	}
 }

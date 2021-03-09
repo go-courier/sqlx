@@ -2,7 +2,8 @@ package builder
 
 import (
 	"context"
-	"errors"
+
+	"github.com/pkg/errors"
 )
 
 var (

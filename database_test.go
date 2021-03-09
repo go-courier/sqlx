@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-courier/logr"
+
 	"github.com/go-courier/metax"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
@@ -17,7 +19,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -33,26 +34,8 @@ var (
 	}
 )
 
-func init() {
-	logrus.SetLevel(logrus.DebugLevel)
-	logrus.AddHook(&MetaHook{})
-}
-
-type MetaHook struct {
-}
-
-func (hook *MetaHook) Fire(entry *logrus.Entry) error {
-	ctx := entry.Context
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	meta := metax.MetaFromContext(ctx)
-	entry.Data["meta"] = meta.String()
-	return nil
-}
-
-func (hook *MetaHook) Levels() []logrus.Level {
-	return logrus.AllLevels
+func Background() context.Context {
+	return logr.WithLogger(context.Background(), logr.StdLogger())
 }
 
 type TableOperateTime struct {
@@ -234,7 +217,7 @@ func TestCRUD(t *testing.T) {
 				}
 
 				t.Run("cancel", func(t *testing.T) {
-					ctx, cancel := context.WithCancel(context.Background())
+					ctx, cancel := context.WithCancel(Background())
 					db2 := db.WithContext(ctx)
 
 					go func() {
@@ -385,7 +368,7 @@ func TestSelect(t *testing.T) {
 			})
 
 			t.Run("canceled", func(t *testing.T) {
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(Background())
 				db2 := db.WithContext(ctx)
 
 				go func() {

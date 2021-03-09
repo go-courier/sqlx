@@ -2,10 +2,11 @@ package mysqlconnector
 
 import (
 	"database/sql/driver"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func namedValueToValue(named []driver.NamedValue) ([]driver.Value, error) {

@@ -159,7 +159,7 @@ func scanStruct(rows *sql.Rows, rv reflect.Value) error {
 				dest[i] = nullable.NewNullIgnoreScanner(sf.Value.Addr().Interface())
 			}
 		}
-		
+
 		if i, ok := columnIndexes[sf.ColumnName]; ok && i > -1 {
 			dest[i] = nullable.NewNullIgnoreScanner(sf.Value.Addr().Interface())
 		}

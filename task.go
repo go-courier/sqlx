@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/sirupsen/logrus"
+	"github.com/go-courier/logr"
+	"github.com/pkg/errors"
 )
 
 type Task func(db DBExecutor) error
@@ -41,6 +42,8 @@ func (tasks *Tasks) Do() (err error) {
 
 	db := tasks.db
 
+	log := logr.FromContext(db.Context())
+
 	if maybeTx, ok := db.(MaybeTxExecutor); ok {
 		inTxScope := false
 
@@ -57,9 +60,9 @@ func (tasks *Tasks) Do() (err error) {
 			if runErr := task.Run(db); runErr != nil {
 				if inTxScope {
 					// err will bubble up，just handle and rollback in outermost layer
-					logrus.Errorf("SQL FAILED: %s", runErr)
+					log.Error(errors.Wrap(err, "SQL FAILED"))
 					if rollBackErr := maybeTx.Rollback(); rollBackErr != nil {
-						logrus.Warnf("ROLLBACK FAILED: %s", rollBackErr)
+						log.Warn(errors.Wrap(rollBackErr, "ROLLBACK FAILED"))
 						err = rollBackErr
 						return
 					}
@@ -70,7 +73,7 @@ func (tasks *Tasks) Do() (err error) {
 
 		if inTxScope {
 			if commitErr := maybeTx.Commit(); commitErr != nil {
-				logrus.Warnf("TRANSACTION COMMIT FAILED: %s", commitErr.Error())
+				log.Warn(errors.Wrap(commitErr, "TRANSACTION COMMIT FAILED"))
 				return commitErr
 			}
 		}
