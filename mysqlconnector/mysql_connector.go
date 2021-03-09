@@ -48,7 +48,10 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 	d := db.D().WithSchema("")
 	dialect := db.Dialect()
 
-	prevDB := dbFromInformationSchema(db)
+	prevDB, err := dbFromInformationSchema(db)
+	if err != nil {
+		return err
+	}
 
 	exec := func(expr builder.SqlExpr) error {
 		if expr == nil || expr.IsNil() {
@@ -101,17 +104,12 @@ func (c *MysqlConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error 
 }
 
 func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	d := &MySqlLoggingDriver{}
+	d := c.Driver()
 
-	connector, err := d.OpenConnector(dsn(c.Host, c.DBName, c.Extra))
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := connector.Connect(ctx)
+	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
 	if err != nil {
 		if c.IsErrorUnknownDatabase(err) {
-			conn, err := c.WithDBName("").Connect(ctx)
+			conn, err := d.Open(dsn(c.Host, "", c.Extra))
 			if err != nil {
 				return nil, err
 			}
@@ -128,8 +126,8 @@ func (c *MysqlConnector) Connect(ctx context.Context) (driver.Conn, error) {
 	return conn, nil
 }
 
-func (MysqlConnector) Driver() driver.Driver {
-	return &MySqlLoggingDriver{}
+func (c MysqlConnector) Driver() driver.Driver {
+	return (&MySqlLoggingDriver{}).Driver()
 }
 
 func (MysqlConnector) DriverName() string {

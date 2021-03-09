@@ -16,7 +16,7 @@ func toInterfaces(list ...string) []interface{} {
 	return s
 }
 
-func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
+func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 	d := db.D()
 	tableNames := d.Tables.TableNames()
 
@@ -38,7 +38,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
 		&columnSchemaList,
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	for i := range columnSchemaList {
@@ -75,7 +75,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
 		)
 
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		for _, indexSchema := range indexList {
@@ -94,7 +94,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) *sqlx.Database {
 		}
 	}
 
-	return database
+	return database, nil
 }
 
 var SchemaDatabase = sqlx.NewDatabase("INFORMATION_SCHEMA")

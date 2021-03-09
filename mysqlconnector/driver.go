@@ -24,43 +24,24 @@ func (l *logger) Print(args ...interface{}) {
 
 var _ interface {
 	driver.Driver
-	driver.DriverContext
 } = (*MySqlLoggingDriver)(nil)
 
 type MySqlLoggingDriver struct {
-	cfg *mysql.Config
-	dsn string
-
 	driver mysql.MySQLDriver
 }
 
-func (d *MySqlLoggingDriver) OpenConnector(dsn string) (driver.Connector, error) {
+func (d *MySqlLoggingDriver) Open(dsn string) (driver.Conn, error) {
 	cfg, err := mysql.ParseDSN(dsn)
 	if err != nil {
 		return nil, err
 	}
-	return &MySqlLoggingDriver{dsn: dsn, cfg: cfg}, nil
-}
-
-func (d *MySqlLoggingDriver) Open(dsn string) (driver.Conn, error) {
-	return d.driver.Open(dsn)
-}
-
-func (d *MySqlLoggingDriver) Connect(ctx context.Context) (driver.Conn, error) {
-	log := logr.FromContext(ctx).WithValues("driver", "mysql")
-
-	cfg := *d.cfg
 	cfg.Passwd = strings.Repeat("*", len(cfg.Passwd))
 
-	conn, err := d.Open(d.cfg.FormatDSN())
+	conn, err := d.driver.Open(dsn)
 	if err != nil {
-		log.Error(errors.Wrapf(err, "failed to open connection: %s", cfg.FormatDSN()))
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to open connection: %s", cfg.FormatDSN())
 	}
-
-	log.Debug("connected %s", cfg.FormatDSN())
-
-	return &loggerConn{Conn: conn, cfg: d.cfg}, nil
+	return &loggerConn{Conn: conn, cfg: cfg}, nil
 }
 
 func (d *MySqlLoggingDriver) Driver() driver.Driver {
@@ -103,9 +84,9 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				logger.Error(errors.Wrapf(err, "failed query %s", q))
+				logger.Error(errors.Wrapf(err, "query failed: %s", q))
 			} else {
-				logger.Warn(errors.Wrapf(mysqlErr, "failed query %s", q))
+				logger.Warn(errors.Wrapf(mysqlErr, "query failed: %s", q))
 			}
 		} else {
 			logger.WithValues("cost", cost().String()).Debug(q.String())
@@ -127,11 +108,11 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 
 		if err != nil {
 			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				logger.Error(errors.Wrapf(err, "failed exec %s", q))
+				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
 			} else if mysqlErr.Number == DuplicateEntryErrNumber {
-				logger.Error(errors.Wrapf(err, "failed exec %s", q))
+				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
 			} else {
-				logger.Warn(errors.Wrapf(mysqlErr, "failed exec %s", q))
+				logger.Warn(errors.Wrapf(mysqlErr, "exec failed: %s", q))
 			}
 		} else {
 			logger.WithValues("cost", cost().String()).Debug(q.String())

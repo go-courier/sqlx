@@ -16,47 +16,29 @@ import (
 
 var _ interface {
 	driver.Driver
-	driver.DriverContext
 } = (*PostgreSQLLoggingDriver)(nil)
 
 type PostgreSQLLoggingDriver struct {
-	config string
 	driver pq.Driver
 }
 
-func (d *PostgreSQLLoggingDriver) OpenConnector(dsn string) (driver.Connector, error) {
+func (d *PostgreSQLLoggingDriver) Open(dsn string) (driver.Conn, error) {
 	config, err := pq.ParseURL(dsn)
 	if err != nil {
 		return nil, err
 	}
-	return &PostgreSQLLoggingDriver{config: config}, nil
-}
 
-func (d *PostgreSQLLoggingDriver) Open(config string) (driver.Conn, error) {
-	return d.driver.Open(config)
-}
-
-func (d *PostgreSQLLoggingDriver) Connect(ctx context.Context) (driver.Conn, error) {
-	logger := logr.FromContext(ctx).WithValues("driver", "postgres")
-
-	opts := FromConfigString(d.config)
+	opts := FromConfigString(config)
 	if pass, ok := opts["password"]; ok {
 		opts["password"] = strings.Repeat("*", len(pass))
 	}
 
-	conn, err := d.Open(d.config)
+	conn, err := d.driver.Open(config)
 	if err != nil {
-		logger.Error(errors.Wrapf(err, "failed to open connection: %s", opts))
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to open connection: %s", opts)
 	}
 
-	logger.Debug("connected %s", opts)
-
 	return &loggerConn{Conn: conn, cfg: opts}, nil
-}
-
-func (d *PostgreSQLLoggingDriver) Driver() driver.Driver {
-	return d
 }
 
 var _ interface {
@@ -102,9 +84,9 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); !ok {
-				logger.Error(errors.Wrapf(err, "failed query: %s", q))
+				logger.Error(errors.Wrapf(err, "query failed: %s", q))
 			} else {
-				logger.Warn(errors.Wrapf(pgErr, "failed query: %s", q))
+				logger.Warn(errors.Wrapf(pgErr, "query failed: %s", q))
 			}
 		} else {
 			logger.WithValues("cost", cost().String()).Debug("%s", q)
@@ -126,11 +108,11 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 
 		if err != nil {
 			if pgError, ok := err.(*pq.Error); !ok {
-				logger.Error(errors.Wrapf(err, "failed exec: %s", q))
+				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
 			} else if pgError.Code == "23505" {
-				logger.Warn(errors.Wrapf(err, "failed exec: %s", q))
+				logger.Warn(errors.Wrapf(err, "exec failed: %s", q))
 			} else {
-				logger.Error(errors.Wrapf(pgError, "failed exec: %s", q))
+				logger.Error(errors.Wrapf(pgError, "exec failed: %s", q))
 			}
 			return
 		}

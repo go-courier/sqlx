@@ -29,17 +29,12 @@ type PostgreSQLConnector struct {
 }
 
 func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) {
-	d := &PostgreSQLLoggingDriver{}
+	d := c.Driver()
 
-	connector, err := d.OpenConnector(dsn(c.Host, c.DBName, c.Extra))
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := connector.Connect(ctx)
+	conn, err := d.Open(dsn(c.Host, c.DBName, c.Extra))
 	if err != nil {
 		if c.IsErrorUnknownDatabase(err) {
-			connectForCreateDB, err := c.WithDBName("").Connect(ctx)
+			connectForCreateDB, err := d.Open(dsn(c.Host, "", c.Extra))
 			if err != nil {
 				return nil, err
 			}
@@ -58,6 +53,7 @@ func (c *PostgreSQLConnector) Connect(ctx context.Context) (driver.Conn, error) 
 			return nil, err
 		}
 	}
+
 	return conn, nil
 }
 
@@ -80,7 +76,10 @@ func (c PostgreSQLConnector) WithDBName(dbName string) driver.Connector {
 func (c *PostgreSQLConnector) Migrate(ctx context.Context, db sqlx.DBExecutor) error {
 	output := migration.MigrationOutputFromContext(ctx)
 
-	prevDB := dbFromInformationSchema(db)
+	prevDB, err := dbFromInformationSchema(db)
+	if err != nil {
+		return err
+	}
 
 	d := db.D()
 	dialect := db.Dialect()
