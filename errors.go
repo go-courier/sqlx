@@ -60,14 +60,14 @@ func (r dbErr) WithConflict(err error) *dbErr {
 }
 
 func (r *dbErr) IsNotFound() bool {
-	if sqlErr, ok := r.err.(*SqlError); ok {
+	if sqlErr, ok := UnwrapAll(r.err).(*SqlError); ok {
 		return sqlErr.Type == sqlErrTypeNotFound
 	}
 	return false
 }
 
 func (r *dbErr) IsConflict() bool {
-	if sqlErr, ok := r.err.(*SqlError); ok {
+	if sqlErr, ok := UnwrapAll(r.err).(*SqlError); ok {
 		return sqlErr.Type == sqlErrTypeConflict
 	}
 	return false
@@ -77,7 +77,7 @@ func (r *dbErr) Err() error {
 	if r.err == nil {
 		return nil
 	}
-	if sqlErr, ok := r.err.(*SqlError); ok {
+	if sqlErr, ok := UnwrapAll(r.err).(*SqlError); ok {
 		switch sqlErr.Type {
 		case sqlErrTypeNotFound:
 			if r.errNotFound != nil {

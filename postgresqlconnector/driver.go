@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-courier/sqlx/v2"
+
 	"github.com/go-courier/logr"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -83,8 +85,8 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 		q := interpolateParams(query, args)
 
 		if err != nil {
-			if pgErr, ok := err.(*pq.Error); !ok {
-				logger.Error(errors.Wrapf(err, "query failed: %s", q))
+			if pgErr, ok := sqlx.UnwrapAll(err).(*pq.Error); !ok {
+				logger.Error(errors.Wrapf(pgErr, "query failed: %s", q))
 			} else {
 				logger.Warn(errors.Wrapf(pgErr, "query failed: %s", q))
 			}
@@ -107,10 +109,10 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 		q := interpolateParams(query, args)
 
 		if err != nil {
-			if pgError, ok := err.(*pq.Error); !ok {
-				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
+			if pgError, ok := sqlx.UnwrapAll(err).(*pq.Error); !ok {
+				logger.Error(errors.Wrapf(pgError, "exec failed: %s", q))
 			} else if pgError.Code == "23505" {
-				logger.Warn(errors.Wrapf(err, "exec failed: %s", q))
+				logger.Warn(errors.Wrapf(pgError, "exec failed: %s", q))
 			} else {
 				logger.Error(errors.Wrapf(pgError, "exec failed: %s", q))
 			}

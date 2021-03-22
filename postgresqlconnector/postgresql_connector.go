@@ -150,14 +150,14 @@ func (PostgreSQLConnector) PrimaryKeyName() string {
 }
 
 func (PostgreSQLConnector) IsErrorUnknownDatabase(err error) bool {
-	if e, ok := err.(*pq.Error); ok && e.Code == "3D000" {
+	if e, ok := sqlx.UnwrapAll(err).(*pq.Error); ok && e.Code == "3D000" {
 		return true
 	}
 	return false
 }
 
 func (PostgreSQLConnector) IsErrorConflict(err error) bool {
-	if e, ok := err.(*pq.Error); ok && e.Code == "23505" {
+	if e, ok := sqlx.UnwrapAll(err).(*pq.Error); ok && e.Code == "23505" {
 		return true
 	}
 	return false

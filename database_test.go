@@ -138,7 +138,7 @@ func (user *User2) UniqueIndexes() builder.Indexes {
 }
 
 func TestMigrate(t *testing.T) {
-	os.Setenv("PROJECT_FEATURE", "test")
+	os.Setenv("PROJECT_FEATURE", "test1")
 	defer func() {
 		os.Remove("PROJECT_FEATURE")
 	}()

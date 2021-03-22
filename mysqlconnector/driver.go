@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-courier/sqlx/v2"
+
 	"github.com/go-courier/logr"
 	"github.com/pkg/errors"
 
@@ -83,8 +85,8 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 		q := c.interpolateParams(query, args)
 
 		if err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				logger.Error(errors.Wrapf(err, "query failed: %s", q))
+			if mysqlErr, ok := sqlx.UnwrapAll(err).(*mysql.MySQLError); !ok {
+				logger.Error(errors.Wrapf(mysqlErr, "query failed: %s", q))
 			} else {
 				logger.Warn(errors.Wrapf(mysqlErr, "query failed: %s", q))
 			}
@@ -107,10 +109,10 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 		q := c.interpolateParams(query, args)
 
 		if err != nil {
-			if mysqlErr, ok := err.(*mysql.MySQLError); !ok {
-				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
+			if mysqlErr, ok := sqlx.UnwrapAll(err).(*mysql.MySQLError); !ok {
+				logger.Error(errors.Wrapf(mysqlErr, "exec failed: %s", q))
 			} else if mysqlErr.Number == DuplicateEntryErrNumber {
-				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
+				logger.Error(errors.Wrapf(mysqlErr, "exec failed: %s", q))
 			} else {
 				logger.Warn(errors.Wrapf(mysqlErr, "exec failed: %s", q))
 			}

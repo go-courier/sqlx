@@ -139,14 +139,14 @@ func (MysqlConnector) PrimaryKeyName() string {
 }
 
 func (c MysqlConnector) IsErrorUnknownDatabase(err error) bool {
-	if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1049 {
+	if mysqlErr, ok := sqlx.UnwrapAll(err).(*mysql.MySQLError); ok && mysqlErr.Number == 1049 {
 		return true
 	}
 	return false
 }
 
 func (c MysqlConnector) IsErrorConflict(err error) bool {
-	if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+	if mysqlErr, ok := sqlx.UnwrapAll(err).(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 		return true
 	}
 	return false
