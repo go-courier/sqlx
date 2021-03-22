@@ -1,6 +1,5 @@
 .idea/
 .tmp/
 
-go.sum
 coverage.txt
 *.out
