@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.21.2](https://github.com/go-courier/sqlx/compare/v2.21.1...v2.21.2)
+
+### Bug Fixes
+
+* **fix** should UnwrapAll before db err check. ([6503ee0](https://github.com/go-courier/sqlx/commit/6503ee04c06eb296fcbc9c2e8b0abe5ad8ea263a))
+
+
+
 # [2.21.1](https://github.com/go-courier/sqlx/compare/v2.21.0...v2.21.1)
 
 ### Bug Fixes
