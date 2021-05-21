@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.21.4](https://github.com/go-courier/sqlx/compare/v2.21.3...v2.21.4)
+
+### Bug Fixes
+
+* **fix** should ignore deprecated field value ([9d393eb](https://github.com/go-courier/sqlx/commit/9d393eb782d773ae2c7bce4abdfde0401770a4c1))
+
+
+
 # [2.21.3](https://github.com/go-courier/sqlx/compare/v2.21.2...v2.21.3)
 
 ### Bug Fixes
