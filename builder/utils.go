@@ -108,7 +108,7 @@ func ForEachStructFieldValue(ctx context.Context, rv reflect.Value, fn func(*Str
 
 				tagValue, exists := field.Tag.Lookup("db")
 				if exists {
-					if tagValue != "-" || strings.Contains(tagValue, ",deprecated") {
+					if tagValue != "-" && !strings.Contains(tagValue, ",deprecated") {
 						sf := &StructField{}
 						sf.Value = fieldValue
 						sf.Field = field
