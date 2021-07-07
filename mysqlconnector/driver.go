@@ -86,7 +86,7 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 		if err != nil {
 			if mysqlErr, ok := sqlx.UnwrapAll(err).(*mysql.MySQLError); !ok {
-				logger.Error(errors.Wrapf(mysqlErr, "query failed: %s", q))
+				logger.Error(errors.Wrapf(err, "query failed: %s", q))
 			} else {
 				logger.Warn(errors.Wrapf(mysqlErr, "query failed: %s", q))
 			}
