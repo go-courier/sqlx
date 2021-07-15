@@ -110,7 +110,7 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 
 		if err != nil {
 			if pgError, ok := sqlx.UnwrapAll(err).(*pq.Error); !ok {
-				logger.Error(errors.Wrapf(pgError, "exec failed: %s", q))
+				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
 			} else if pgError.Code == "23505" {
 				logger.Warn(errors.Wrapf(pgError, "exec failed: %s", q))
 			} else {
