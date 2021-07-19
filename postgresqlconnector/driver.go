@@ -86,7 +86,7 @@ func (c *loggerConn) QueryContext(ctx context.Context, query string, args []driv
 
 		if err != nil {
 			if pgErr, ok := sqlx.UnwrapAll(err).(*pq.Error); !ok {
-				logger.Error(errors.Wrapf(pgErr, "query failed: %s", q))
+				logger.Error(errors.Wrapf(err, "query failed: %s", q))
 			} else {
 				logger.Warn(errors.Wrapf(pgErr, "query failed: %s", q))
 			}
