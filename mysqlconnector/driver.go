@@ -110,7 +110,7 @@ func (c *loggerConn) ExecContext(ctx context.Context, query string, args []drive
 
 		if err != nil {
 			if mysqlErr, ok := sqlx.UnwrapAll(err).(*mysql.MySQLError); !ok {
-				logger.Error(errors.Wrapf(mysqlErr, "exec failed: %s", q))
+				logger.Error(errors.Wrapf(err, "exec failed: %s", q))
 			} else if mysqlErr.Number == DuplicateEntryErrNumber {
 				logger.Error(errors.Wrapf(mysqlErr, "exec failed: %s", q))
 			} else {
