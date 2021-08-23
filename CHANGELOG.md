@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.22.0](https://github.com/go-courier/sqlx/compare/v2.21.6...v2.22.0)
+
+### Features
+
+* **feat** bump to golang 1.17 and deps updates ([17fcb58](https://github.com/go-courier/sqlx/commit/17fcb5811c03ca3ab2713030581586c5669115f6))
+
+
+
 # [2.21.4](https://github.com/go-courier/sqlx/compare/v2.21.3...v2.21.4)
 
 ### Bug Fixes
