@@ -4,14 +4,16 @@ import (
 	"context"
 	"io"
 
+	contextx "github.com/go-courier/x/context"
+
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/enummeta"
 )
 
-type contextKeyMigrationOutput int
+type contextKeyMigrationOutput struct{}
 
 func MigrationOutputFromContext(ctx context.Context) io.Writer {
-	if opts, ok := ctx.Value(contextKeyMigrationOutput(1)).(io.Writer); ok {
+	if opts, ok := ctx.Value(contextKeyMigrationOutput{}).(io.Writer); ok {
 		if opts != nil {
 			return opts
 		}
@@ -26,7 +28,7 @@ func MustMigrate(db sqlx.DBExecutor, w io.Writer) {
 }
 
 func Migrate(db sqlx.DBExecutor, output io.Writer) error {
-	ctx := context.WithValue(db.Context(), contextKeyMigrationOutput(1), output)
+	ctx := contextx.WithValue(db.Context(), contextKeyMigrationOutput{}, output)
 
 	if err := db.(sqlx.Migrator).Migrate(ctx, db); err != nil {
 		return err

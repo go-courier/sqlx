@@ -2,6 +2,8 @@ package builder
 
 import (
 	"context"
+
+	contextx "github.com/go-courier/x/context"
 )
 
 var (
@@ -39,17 +41,18 @@ func (toggles Toggles) Is(key string) bool {
 	return false
 }
 
-type contextKeyForToggles int
+type contextKeyForToggles struct {
+}
 
 func ContextWithToggles(ctx context.Context, toggles Toggles) context.Context {
-	return context.WithValue(ctx, contextKeyForToggles(1), TogglesFromContext(ctx).Merge(toggles))
+	return contextx.WithValue(ctx, contextKeyForToggles{}, TogglesFromContext(ctx).Merge(toggles))
 }
 
 func TogglesFromContext(ctx context.Context) Toggles {
 	if ctx == nil {
 		return Toggles{}
 	}
-	if toggles, ok := ctx.Value(contextKeyForToggles(1)).(Toggles); ok {
+	if toggles, ok := ctx.Value(contextKeyForToggles{}).(Toggles); ok {
 		return toggles
 	}
 	return Toggles{}

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-courier/ptr"
 	. "github.com/go-courier/sqlx/v2/builder"
+	"github.com/go-courier/x/ptr"
 	"github.com/onsi/gomega"
 )
 

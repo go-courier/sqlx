@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-courier/reflectx"
+	reflectx "github.com/go-courier/x/reflect"
 )
 
 func Col(name string) *Column {

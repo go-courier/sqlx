@@ -4,10 +4,12 @@ VERSION = v$(shell cat .version)
 
 fmt:
 	goimports -l -w .
-	gofmt -l -w .
 
-test:
+test: tidy
 	$(GO) test -v -race ./...
 
-cover:
+cover: tidy
 	$(GO) test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+tidy:
+	go mod tidy

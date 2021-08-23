@@ -7,7 +7,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-courier/reflectx"
+	contextx "github.com/go-courier/x/context"
+
+	reflectx "github.com/go-courier/x/reflect"
 )
 
 type FieldValues map[string]interface{}
@@ -20,16 +22,16 @@ type StructField struct {
 	TagValue   string
 }
 
-type contextKeyTableName int
+type contextKeyTableName struct{}
 
 func WithTableName(tableName string) func(ctx context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, contextKeyTableName(1), tableName)
+		return contextx.WithValue(ctx, contextKeyTableName{}, tableName)
 	}
 }
 
 func TableNameFromContext(ctx context.Context) string {
-	if tableName, ok := ctx.Value(contextKeyTableName(1)).(string); ok {
+	if tableName, ok := ctx.Value(contextKeyTableName{}).(string); ok {
 		return tableName
 	}
 	return ""
@@ -39,7 +41,7 @@ type contextKeyTableAlias int
 
 func WithTableAlias(tableName string) func(ctx context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, contextKeyTableAlias(1), tableName)
+		return contextx.WithValue(ctx, contextKeyTableAlias(1), tableName)
 	}
 }
 

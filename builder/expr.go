@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-courier/reflectx"
+	reflectx "github.com/go-courier/x/reflect"
 )
 
 type SqlExpr interface {
