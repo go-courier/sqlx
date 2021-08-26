@@ -2,7 +2,7 @@ GO = go
 PKG = $(shell cat go.mod | grep "^module " | sed -e "s/module //g")
 VERSION = v$(shell cat .version)
 
-fmt:
+fmt: install.goimports
 	goimports -l -w .
 
 test: tidy
@@ -11,5 +11,8 @@ test: tidy
 cover: tidy
 	$(GO) test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
-tidy:
+tidy: fmt
 	go mod tidy
+
+install.goimports:
+	go install golang.org/x/tools/cmd/goimports

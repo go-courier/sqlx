@@ -1,8 +1,9 @@
 package er
 
 import (
-	"reflect"
 	"strings"
+
+	typex "github.com/go-courier/x/types"
 
 	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx/v2"
@@ -32,7 +33,7 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 
 			c := &ERCol{
 				Name:     col.Name,
-				DataType: builder.ResolveExpr(dialect.DataType(col.ColumnType)).String(),
+				DataType: builder.ResolveExpr(dialect.DataType(col.ColumnType)).Query(),
 			}
 
 			if len(col.Description) > 0 {
@@ -43,20 +44,20 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 				}
 			}
 
-			rv := reflect.New(col.ColumnType.Type)
+			if rv, ok := typex.TryNew(col.ColumnType.Type); ok {
+				if rv.CanInterface() {
+					if emum, ok := rv.Interface().(enumeration.Enum); ok {
 
-			if rv.CanInterface() {
-				if emum, ok := rv.Interface().(enumeration.Enum); ok {
+						c.Enum = map[string]EREnum{}
 
-					c.Enum = map[string]EREnum{}
+						for _, e := range emum.ConstValues() {
+							em := EREnum{}
+							em.Value = e.Int()
+							em.Name = e.String()
+							em.Label = e.Label()
 
-					for _, e := range emum.ConstValues() {
-						em := EREnum{}
-						em.Value = e.Int()
-						em.Name = e.String()
-						em.Label = e.Label()
-
-						c.Enum[em.Name] = em
+							c.Enum[em.Name] = em
+						}
 					}
 				}
 			}

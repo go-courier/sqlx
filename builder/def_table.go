@@ -98,12 +98,13 @@ func (t *Table) Expr(query string, args ...interface{}) *Ex {
 		return nil
 	}
 
+	n := len(args)
 	e := Expr("")
+	e.Grow(n)
 
 	s := &scanner.Scanner{}
 	s.Init(bytes.NewBuffer([]byte(query)))
 
-	n := len(args)
 	queryCount := 0
 
 	for tok := s.Next(); tok != scanner.EOF; tok = s.Next() {
@@ -129,7 +130,7 @@ func (t *Table) Expr(query string, args ...interface{}) *Ex {
 					continue
 				}
 
-				e.WriteRune(tok)
+				e.WriteQueryByte(byte(tok))
 
 				break
 			}
@@ -147,13 +148,13 @@ func (t *Table) Expr(query string, args ...interface{}) *Ex {
 				e.AppendArgs(col)
 			}
 		case '?':
-			e.WriteRune(tok)
+			e.WriteQueryByte(byte(tok))
 			if queryCount < n {
 				e.AppendArgs(args[queryCount])
 				queryCount++
 			}
 		default:
-			e.WriteRune(tok)
+			e.WriteQueryByte(byte(tok))
 		}
 	}
 

@@ -26,7 +26,7 @@ const (
 )
 
 func WriteAdditions(e *Ex, additions ...Addition) {
-	finalAdditions := Additions{}
+	finalAdditions := make(Additions, 0, len(additions))
 	for i := range additions {
 		if IsNilExpr(additions[i]) {
 			continue
@@ -41,7 +41,7 @@ func WriteAdditions(e *Ex, additions ...Addition) {
 	sort.Sort(finalAdditions)
 
 	for i := range finalAdditions {
-		e.WriteByte('\n')
+		e.WriteQueryByte('\n')
 		e.WriteExpr(finalAdditions[i])
 	}
 }

@@ -37,13 +37,13 @@ func (l *limit) IsNil() bool {
 }
 
 func (l *limit) Ex(ctx context.Context) *Ex {
-	e := Expr("LIMIT ")
+	e := ExactlyExpr("LIMIT ")
 
-	e.WriteString(strconv.FormatInt(l.rowCount, 10))
+	e.WriteQuery(strconv.FormatInt(l.rowCount, 10))
 
 	if l.offsetCount > 0 {
-		e.WriteString(" OFFSET ")
-		e.WriteString(strconv.FormatInt(l.offsetCount, 10))
+		e.WriteQuery(" OFFSET ")
+		e.WriteQuery(strconv.FormatInt(l.offsetCount, 10))
 	}
 
 	return e.Ex(ctx)

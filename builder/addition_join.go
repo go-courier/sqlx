@@ -87,7 +87,7 @@ func (j *join) Ex(ctx context.Context) *Ex {
 			ex.WriteGroup(func(e *Ex) {
 				for i := range j.joinColumnList {
 					if i != 0 {
-						ex.WriteString(", ")
+						ex.WriteQuery(", ")
 					}
 					ex.WriteExpr(j.joinColumnList[i])
 				}

@@ -1,4 +1,4 @@
-package postgresqlconnector
+package postgresql
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	typex "github.com/go-courier/x/types"
 
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
@@ -165,21 +167,21 @@ func (PostgreSQLConnector) IsErrorConflict(err error) bool {
 
 func (c *PostgreSQLConnector) CreateDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("CREATE DATABASE ")
-	e.WriteString(dbName)
+	e.WriteQuery(dbName)
 	e.WriteEnd()
 	return e
 }
 
 func (c *PostgreSQLConnector) CreateSchema(schema string) builder.SqlExpr {
 	e := builder.Expr("CREATE SCHEMA IF NOT EXISTS ")
-	e.WriteString(schema)
+	e.WriteQuery(schema)
 	e.WriteEnd()
 	return e
 }
 
 func (c *PostgreSQLConnector) DropDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("DROP DATABASE IF EXISTS ")
-	e.WriteString(dbName)
+	e.WriteQuery(dbName)
 	e.WriteEnd()
 	return e
 }
@@ -188,7 +190,7 @@ func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 	if key.IsPrimary() {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
-		e.WriteString(" ADD PRIMARY KEY ")
+		e.WriteQuery(" ADD PRIMARY KEY ")
 		e.WriteGroup(func(e *builder.Ex) {
 			e.WriteExpr(key.Columns)
 		})
@@ -198,15 +200,15 @@ func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 
 	e := builder.Expr("CREATE ")
 	if key.IsUnique {
-		e.WriteString("UNIQUE ")
+		e.WriteQuery("UNIQUE ")
 	}
-	e.WriteString("INDEX ")
+	e.WriteQuery("INDEX ")
 
-	e.WriteString(key.Table.Name)
-	e.WriteString("_")
-	e.WriteString(key.Name)
+	e.WriteQuery(key.Table.Name)
+	e.WriteQuery("_")
+	e.WriteQuery(key.Name)
 
-	e.WriteString(" ON ")
+	e.WriteQuery(" ON ")
 	e.WriteExpr(key.Table)
 
 	if map[string]bool{
@@ -215,16 +217,16 @@ func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 		"SPATIAL": true,
 		"GIST":    true,
 	}[strings.ToUpper(key.Method)] {
-		e.WriteString(" USING ")
+		e.WriteQuery(" USING ")
 
 		if key.Method == "SPATIAL" {
-			e.WriteString("GIST")
+			e.WriteQuery("GIST")
 		} else {
-			e.WriteString(key.Method)
+			e.WriteQuery(key.Method)
 		}
 	}
 
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteGroup(func(e *builder.Ex) {
 		e.WriteExpr(key.Columns)
 	})
@@ -237,18 +239,18 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	if key.IsPrimary() {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
-		e.WriteString(" DROP CONSTRAINT ")
+		e.WriteQuery(" DROP CONSTRAINT ")
 		e.WriteExpr(key.Table)
-		e.WriteString("_pkey")
+		e.WriteQuery("_pkey")
 		e.WriteEnd()
 		return e
 	}
 	e := builder.Expr("DROP ")
 
-	e.WriteString("INDEX IF EXISTS ")
+	e.WriteQuery("INDEX IF EXISTS ")
 	e.WriteExpr(key.Table)
-	e.WriteByte('_')
-	e.WriteString(key.Name)
+	e.WriteQueryByte('_')
+	e.WriteQuery(key.Name)
 
 	return e
 }
@@ -256,7 +258,7 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []builder.SqlExpr) {
 	expr := builder.Expr("CREATE TABLE IF NOT EXISTS ")
 	expr.WriteExpr(t)
-	expr.WriteByte(' ')
+	expr.WriteQueryByte(' ')
 	expr.WriteGroup(func(e *builder.Ex) {
 		if t.Columns.IsNil() {
 			return
@@ -268,29 +270,29 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 			}
 
 			if idx > 0 {
-				e.WriteByte(',')
+				e.WriteQueryByte(',')
 			}
-			e.WriteByte('\n')
-			e.WriteByte('\t')
+			e.WriteQueryByte('\n')
+			e.WriteQueryByte('\t')
 
 			e.WriteExpr(col)
-			e.WriteByte(' ')
+			e.WriteQueryByte(' ')
 			e.WriteExpr(c.DataType(col.ColumnType))
 		})
 
 		t.Keys.Range(func(key *builder.Key, idx int) {
 			if key.IsPrimary() {
-				e.WriteByte(',')
-				e.WriteByte('\n')
-				e.WriteByte('\t')
-				e.WriteString("PRIMARY KEY ")
+				e.WriteQueryByte(',')
+				e.WriteQueryByte('\n')
+				e.WriteQueryByte('\t')
+				e.WriteQuery("PRIMARY KEY ")
 				e.WriteGroup(func(e *builder.Ex) {
 					e.WriteExpr(key.Columns)
 				})
 			}
 		})
 
-		expr.WriteByte('\n')
+		expr.WriteQueryByte('\n')
 	})
 
 	expr.WriteEnd()
@@ -322,9 +324,9 @@ func (c *PostgreSQLConnector) TruncateTable(t *builder.Table) builder.SqlExpr {
 func (c *PostgreSQLConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" ADD COLUMN ")
+	e.WriteQuery(" ADD COLUMN ")
 	e.WriteExpr(col)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(c.DataType(col.ColumnType))
 	e.WriteEnd()
 	return e
@@ -333,9 +335,9 @@ func (c *PostgreSQLConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 func (c *PostgreSQLConnector) RenameColumn(col *builder.Column, target *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" RENAME COLUMN ")
+	e.WriteQuery(" RENAME COLUMN ")
 	e.WriteExpr(col)
-	e.WriteString(" TO ")
+	e.WriteQuery(" TO ")
 	e.WriteExpr(target)
 	e.WriteEnd()
 	return e
@@ -357,7 +359,7 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 
 	prepareAppendSubCmd := func() {
 		if !isFirstSub {
-			e.WriteRune(',')
+			e.WriteQueryByte(',')
 		}
 		isFirstSub = false
 		isEmpty = false
@@ -366,25 +368,25 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	if dbDataType != prevDbDataType {
 		prepareAppendSubCmd()
 
-		e.WriteString(" ALTER COLUMN ")
+		e.WriteQuery(" ALTER COLUMN ")
 		e.WriteExpr(col)
-		e.WriteString(" TYPE ")
-		e.WriteString(dbDataType)
+		e.WriteQuery(" TYPE ")
+		e.WriteQuery(dbDataType)
 
-		e.WriteString(" /* FROM ")
-		e.WriteString(prevDbDataType)
-		e.WriteString(" */")
+		e.WriteQuery(" /* FROM ")
+		e.WriteQuery(prevDbDataType)
+		e.WriteQuery(" */")
 	}
 
 	if col.Null != prev.Null {
 		prepareAppendSubCmd()
 
-		e.WriteString(" ALTER COLUMN ")
+		e.WriteQuery(" ALTER COLUMN ")
 		e.WriteExpr(col)
 		if !col.Null {
-			e.WriteString(" SET NOT NULL")
+			e.WriteQuery(" SET NOT NULL")
 		} else {
-			e.WriteString(" DROP NOT NULL")
+			e.WriteQuery(" DROP NOT NULL")
 		}
 	}
 
@@ -394,17 +396,17 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 	if defaultValue != prevDefaultValue {
 		prepareAppendSubCmd()
 
-		e.WriteString(" ALTER COLUMN ")
+		e.WriteQuery(" ALTER COLUMN ")
 		e.WriteExpr(col)
 		if col.Default != nil {
-			e.WriteString(" SET DEFAULT ")
-			e.WriteString(defaultValue)
+			e.WriteQuery(" SET DEFAULT ")
+			e.WriteQuery(defaultValue)
 
-			e.WriteString(" /* FROM ")
-			e.WriteString(prevDefaultValue)
-			e.WriteString(" */")
+			e.WriteQuery(" /* FROM ")
+			e.WriteQuery(prevDefaultValue)
+			e.WriteQuery(" */")
 		} else {
-			e.WriteString(" DROP DEFAULT")
+			e.WriteQuery(" DROP DEFAULT")
 		}
 	}
 
@@ -420,8 +422,8 @@ func (c *PostgreSQLConnector) ModifyColumn(col *builder.Column, prev *builder.Co
 func (c *PostgreSQLConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" DROP COLUMN ")
-	e.WriteString(col.Name)
+	e.WriteQuery(" DROP COLUMN ")
+	e.WriteQuery(col.Name)
 	e.WriteEnd()
 	return e
 }
@@ -431,14 +433,20 @@ func (c *PostgreSQLConnector) DataType(columnType *builder.ColumnType) builder.S
 	return builder.Expr(dbDataType + autocompleteSize(dbDataType, columnType) + c.dataTypeModify(columnType, dbDataType))
 }
 
-func (c *PostgreSQLConnector) dataType(typ reflect.Type, columnType *builder.ColumnType) string {
+func (c *PostgreSQLConnector) dataType(typ typex.Type, columnType *builder.ColumnType) string {
 	dbDataType := dealias(c.dbDataType(columnType.Type, columnType))
 	return dbDataType + autocompleteSize(dbDataType, columnType)
 }
 
-func (c *PostgreSQLConnector) dbDataType(typ reflect.Type, columnType *builder.ColumnType) string {
-	if columnType.GetDataType != nil {
-		return columnType.GetDataType(c.DriverName())
+func (c *PostgreSQLConnector) dbDataType(typ typex.Type, columnType *builder.ColumnType) string {
+	if columnType.DataType != "" {
+		return columnType.DataType
+	}
+
+	if rv, ok := typex.TryNew(typ); ok {
+		if dtd, ok := rv.Interface().(builder.DataTypeDescriber); ok {
+			return dtd.DataType(c.DriverName())
+		}
 	}
 
 	switch typ.Kind() {
@@ -476,15 +484,15 @@ func (c *PostgreSQLConnector) dbDataType(typ reflect.Type, columnType *builder.C
 	case "Hstore":
 		return "hstore"
 	case "ByteaArray":
-		return c.dataType(reflect.TypeOf(pq.ByteaArray{[]byte("")}[0]), columnType) + "[]"
+		return c.dataType(typex.FromRType(reflect.TypeOf(pq.ByteaArray{[]byte("")}[0])), columnType) + "[]"
 	case "BoolArray":
-		return c.dataType(reflect.TypeOf(pq.BoolArray{true}[0]), columnType) + "[]"
+		return c.dataType(typex.FromRType(reflect.TypeOf(pq.BoolArray{true}[0])), columnType) + "[]"
 	case "Float64Array":
-		return c.dataType(reflect.TypeOf(pq.Float64Array{0}[0]), columnType) + "[]"
+		return c.dataType(typex.FromRType(reflect.TypeOf(pq.Float64Array{0}[0])), columnType) + "[]"
 	case "Int64Array":
-		return c.dataType(reflect.TypeOf(pq.Int64Array{0}[0]), columnType) + "[]"
+		return c.dataType(typex.FromRType(reflect.TypeOf(pq.Int64Array{0}[0])), columnType) + "[]"
 	case "StringArray":
-		return c.dataType(reflect.TypeOf(pq.StringArray{""}[0]), columnType) + "[]"
+		return c.dataType(typex.FromRType(reflect.TypeOf(pq.StringArray{""}[0])), columnType) + "[]"
 	case "NullInt64":
 		return "bigint"
 	case "NullFloat64":

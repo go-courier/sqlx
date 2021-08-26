@@ -28,7 +28,7 @@ func (c *comment) IsNil() bool {
 }
 
 func (c *comment) Ex(ctx context.Context) *Ex {
-	e := Expr("")
+	e := ExactlyExpr("")
 	e.WhiteComments(c.text)
 	return e.Ex(ctx)
 }

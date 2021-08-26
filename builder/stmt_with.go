@@ -41,13 +41,13 @@ func (w *WithStmt) Ex(ctx context.Context) *Ex {
 	e := Expr("WITH ")
 
 	if len(w.modifiers) > 0 {
-		e.WriteString(strings.Join(w.modifiers, " "))
-		e.WriteString(" ")
+		e.WriteQuery(strings.Join(w.modifiers, " "))
+		e.WriteQuery(" ")
 	}
 
 	for i := range w.tables {
 		if i > 0 {
-			e.WriteString(", ")
+			e.WriteQuery(", ")
 		}
 
 		table := w.tables[i]
@@ -57,18 +57,18 @@ func (w *WithStmt) Ex(ctx context.Context) *Ex {
 			e.WriteExpr(&table.Columns)
 		})
 
-		e.WriteString(" AS ")
+		e.WriteQuery(" AS ")
 
 		build := w.asList[i]
 
 		e.WriteGroup(func(e *Ex) {
-			e.WriteByte('\n')
+			e.WriteQueryByte('\n')
 			e.WriteExpr(build(table))
-			e.WriteByte('\n')
+			e.WriteQueryByte('\n')
 		})
 	}
 
-	e.WriteByte('\n')
+	e.WriteQueryByte('\n')
 	e.WriteExpr(w.statement(w.tables...))
 
 	return e.Ex(ctx)

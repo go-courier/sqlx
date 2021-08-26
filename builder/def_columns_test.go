@@ -6,6 +6,43 @@ import (
 	"github.com/onsi/gomega"
 )
 
+func BenchmarkCols(b *testing.B) {
+	columns := Columns{}
+
+	columns.Add(
+		Col("f_id").Field("ID").Type(1, `,autoincrement`),
+		Col("f_name").Field("Name").Type(1, ``),
+		Col("f_f1").Field("F1").Type(1, ``),
+		Col("f_f2").Field("F2").Type(1, ``),
+		Col("f_f3").Field("F3").Type(1, ``),
+		Col("f_f4").Field("F4").Type(1, ``),
+		Col("f_f5").Field("F5").Type(1, ``),
+		Col("f_f6").Field("F6").Type(1, ``),
+		Col("f_f7").Field("F7").Type(1, ``),
+		Col("f_f8").Field("F8").Type(1, ``),
+		Col("f_f9").Field("F9").Type(1, ``),
+	)
+
+	b.Run("pick", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_ = columns.F("F3")
+		}
+	})
+
+	b.Run("multi pick", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = columns.Fields("ID", "Name")
+		}
+	})
+
+	b.Run("multi pick all", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = columns.Fields()
+		}
+	})
+
+}
+
 func TestColumns(t *testing.T) {
 	columns := Columns{}
 
@@ -13,6 +50,7 @@ func TestColumns(t *testing.T) {
 		gomega.NewWithT(t).Expect(columns.Len()).To(gomega.Equal(0))
 		gomega.NewWithT(t).Expect(columns.AutoIncrement()).To(gomega.BeNil())
 	})
+
 	t.Run("added cols", func(t *testing.T) {
 		columns.Add(
 			Col("F_id").Field("ID").Type(1, `,autoincrement`),

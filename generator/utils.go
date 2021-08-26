@@ -114,12 +114,12 @@ func parseKeysFromDoc(doc string) (*Keys, []string) {
 				switch strings.ToLower(defs[0]) {
 				case "primary":
 					if len(defs) < 2 {
-						panic(fmt.Errorf("primary at lease 1 Field"))
+						panic(fmt.Errorf("primary at lease 1 StructField"))
 					}
 					ks.Primary = defs[1:]
 				case "unique_index":
 					if len(defs) < 3 {
-						panic(fmt.Errorf("unique indexes at lease 1 Field"))
+						panic(fmt.Errorf("unique indexes at lease 1 StructField"))
 					}
 					if ks.UniqueIndexes == nil {
 						ks.UniqueIndexes = builder.Indexes{}
@@ -127,7 +127,7 @@ func parseKeysFromDoc(doc string) (*Keys, []string) {
 					ks.UniqueIndexes[defs[1]] = defs[2:]
 				case "index":
 					if len(defs) < 3 {
-						panic(fmt.Errorf("index at lease 1 Field"))
+						panic(fmt.Errorf("index at lease 1 StructField"))
 					}
 					if ks.Indexes == nil {
 						ks.Indexes = builder.Indexes{}

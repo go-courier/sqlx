@@ -55,11 +55,12 @@ func (s *StmtSelect) Ex(ctx context.Context) *Ex {
 	}
 
 	e := Expr("SELECT")
+	e.Grow(len(s.additions) + 2)
 
 	if len(s.modifiers) > 0 {
 		for i := range s.modifiers {
-			e.WriteByte(' ')
-			e.WriteString(s.modifiers[i])
+			e.WriteQueryByte(' ')
+			e.WriteQuery(s.modifiers[i])
 		}
 	}
 
@@ -69,11 +70,11 @@ func (s *StmtSelect) Ex(ctx context.Context) *Ex {
 		sqlExpr = Expr("*")
 	}
 
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(sqlExpr)
 
 	if !IsNilExpr(s.table) {
-		e.WriteString(" FROM ")
+		e.WriteQuery(" FROM ")
 		e.WriteExpr(s.table)
 	}
 

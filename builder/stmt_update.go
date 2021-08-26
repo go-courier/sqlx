@@ -46,14 +46,14 @@ func (s *StmtUpdate) Ex(ctx context.Context) *Ex {
 
 	if len(s.modifiers) > 0 {
 		for i := range s.modifiers {
-			e.WriteByte(' ')
-			e.WriteString(s.modifiers[i])
+			e.WriteQueryByte(' ')
+			e.WriteQuery(s.modifiers[i])
 		}
 	}
 
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(s.table)
-	e.WriteString(" SET ")
+	e.WriteQuery(" SET ")
 
 	WriteAssignments(e, s.assignments...)
 	WriteAdditions(e, s.additions...)

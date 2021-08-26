@@ -1,4 +1,4 @@
-package postgresqlconnector
+package postgresql
 
 import (
 	"context"

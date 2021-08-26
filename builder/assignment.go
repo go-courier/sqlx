@@ -25,7 +25,7 @@ func WriteAssignments(e *Ex, assignments ...*Assignment) {
 		}
 
 		if count > 0 {
-			e.WriteString(", ")
+			e.WriteQuery(", ")
 		}
 
 		e.WriteExpr(a)
@@ -58,6 +58,7 @@ func (a *Assignment) IsNil() bool {
 
 func (a *Assignment) Ex(ctx context.Context) *Ex {
 	e := Expr("")
+	e.Grow(len(a.values))
 
 	useValues := TogglesFromContext(ctx).Is(ToggleUseValues)
 
@@ -72,19 +73,19 @@ func (a *Assignment) Ex(ctx context.Context) *Ex {
 
 		if len(a.values) == 1 {
 			if s, ok := a.values[0].(SelectStatement); ok {
-				e.WriteByte(' ')
+				e.WriteQueryByte(' ')
 				e.WriteExpr(s)
 				return e.Ex(ctx)
 			}
 		}
 
-		e.WriteString(" VALUES ")
+		e.WriteQuery(" VALUES ")
 
 		groupCount := int(math.Round(float64(len(a.values)) / float64(a.lenOfColumn)))
 
 		for i := 0; i < groupCount; i++ {
 			if i > 0 {
-				e.WriteByte(',')
+				e.WriteQueryByte(',')
 			}
 
 			e.WriteGroup(func(e *Ex) {
@@ -105,7 +106,7 @@ func (a *Assignment) Ex(ctx context.Context) *Ex {
 		}))
 	}))
 
-	e.WriteString(" = ?")
+	e.WriteQuery(" = ?")
 	e.AppendArgs(a.values[0])
 
 	return e.Ex(ctx)

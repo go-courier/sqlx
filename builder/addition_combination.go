@@ -55,12 +55,15 @@ func (c combination) Distinct(stmtSelect SelectStatement) *combination {
 }
 
 func (c *combination) Ex(ctx context.Context) *Ex {
-	e := Expr(c.operator)
-	e.WriteByte(' ')
+	e := Expr("")
+	e.Grow(1)
+
+	e.WriteQuery(c.operator)
+	e.WriteQueryByte(' ')
 
 	if c.method != "" {
-		e.WriteString(c.method)
-		e.WriteByte(' ')
+		e.WriteQuery(c.method)
+		e.WriteQueryByte(' ')
 	}
 
 	e.WriteExpr(c.stmtSelect)

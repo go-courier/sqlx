@@ -1,4 +1,4 @@
-package postgresqlconnector
+package postgresql
 
 import (
 	"fmt"
@@ -87,7 +87,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 			table := d.Table(indexSchema.TABLE_NAME)
 
 			key := &builder.Key{}
-			key.Name = indexSchema.INDEX_NAME[len(table.Name)+1:]
+			key.Name = strings.ToLower(indexSchema.INDEX_NAME[len(table.Name)+1:])
 			key.Method = strings.ToUpper(regexp.MustCompile(`USING ([^ ]+)`).FindString(indexSchema.INDEX_DEF)[6:])
 			key.IsUnique = strings.Contains(indexSchema.INDEX_DEF, "UNIQUE")
 
@@ -136,9 +136,7 @@ func colFromColumnSchema(columnSchema *ColumnSchema) *builder.Column {
 		}
 	}
 
-	col.GetDataType = func(engine string) string {
-		return dataType
-	}
+	col.DataType = dataType
 
 	// numeric type
 	if columnSchema.NUMERIC_PRECISION > 0 {

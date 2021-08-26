@@ -46,15 +46,15 @@ func (o *onConflict) Ex(ctx context.Context) *Ex {
 		e.WriteExpr(o.columns)
 	})
 
-	e.WriteString(" DO ")
+	e.WriteQuery(" DO ")
 
 	if o.doNothing {
-		e.WriteString("NOTHING")
+		e.WriteQuery("NOTHING")
 	} else {
-		e.WriteString("UPDATE SET ")
+		e.WriteQuery("UPDATE SET ")
 		for i := range o.assignments {
 			if i > 0 {
-				e.WriteString(", ")
+				e.WriteQuery(", ")
 			}
 			e.WriteExpr(o.assignments[i])
 		}

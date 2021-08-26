@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"container/list"
 	"context"
 	"fmt"
 	"strings"
@@ -16,9 +15,7 @@ func Cols(names ...string) *Columns {
 }
 
 type Columns struct {
-	l             *list.List
-	columns       map[string]*list.Element
-	fields        map[string]*list.Element
+	l             []*Column
 	autoIncrement *Column
 }
 
@@ -28,10 +25,11 @@ func (cols *Columns) IsNil() bool {
 
 func (cols *Columns) Ex(ctx context.Context) *Ex {
 	e := Expr("")
+	e.Grow(cols.Len())
 
 	cols.Range(func(col *Column, idx int) {
 		if idx > 0 {
-			e.WriteByte(',')
+			e.WriteQueryByte(',')
 		}
 		e.WriteExpr(col)
 	})
@@ -45,9 +43,15 @@ func (cols *Columns) AutoIncrement() (col *Column) {
 
 func (cols *Columns) Clone() *Columns {
 	c := &Columns{}
-	cols.Range(func(col *Column, idx int) {
-		c.Add(col)
-	})
+
+	n := len(cols.l)
+
+	c.l = make([]*Column, n)
+
+	for i := range c.l {
+		c.l[i] = cols.l[i]
+	}
+
 	return c
 }
 
@@ -55,56 +59,59 @@ func (cols *Columns) Len() int {
 	if cols == nil || cols.l == nil {
 		return 0
 	}
-	return cols.l.Len()
+	return len(cols.l)
 }
 
-func (cols *Columns) MustFields(fieldNames ...string) *Columns {
-	nextCols, err := cols.Fields(fieldNames...)
+func (cols *Columns) MustFields(structFieldNames ...string) *Columns {
+	nextCols, err := cols.Fields(structFieldNames...)
 	if err != nil {
 		panic(err)
 	}
 	return nextCols
 }
 
-func (cols *Columns) Fields(fieldNames ...string) (*Columns, error) {
-	if len(fieldNames) == 0 {
+func (cols *Columns) Fields(structFieldNames ...string) (*Columns, error) {
+	if len(structFieldNames) == 0 {
 		return cols.Clone(), nil
 	}
-	newCols := &Columns{}
-	for _, fieldName := range fieldNames {
+
+	c := &Columns{}
+	c.l = make([]*Column, len(structFieldNames))
+
+	for i, fieldName := range structFieldNames {
 		col := cols.F(fieldName)
 		if col == nil {
 			return nil, fmt.Errorf("unknown struct field %s", fieldName)
 		}
-		newCols.Add(col)
+		c.l[i] = col
 	}
-	return newCols, nil
+	return c, nil
 }
 
 func (cols *Columns) FieldNames() []string {
-	fieldNames := make([]string, 0)
+	fieldNames := make([]string, len(cols.l))
 	cols.Range(func(col *Column, idx int) {
-		fieldNames = append(fieldNames, col.FieldName)
+		fieldNames[idx] = col.FieldName
 	})
 	return fieldNames
 }
 
-func (cols *Columns) F(fileName string) (col *Column) {
-	if cols.fields != nil {
-		if c, ok := cols.fields[fileName]; ok {
-			return c.Value.(*Column)
+func (cols *Columns) F(structFieldName string) (col *Column) {
+	for i := range cols.l {
+		e := cols.l[i]
+
+		if structFieldName == e.FieldName {
+			return e
 		}
 	}
 	return nil
 }
 
 func (cols *Columns) List() (l []*Column) {
-	if cols != nil && cols.columns != nil {
-		cols.Range(func(col *Column, idx int) {
-			l = append(l, col)
-		})
+	if cols != nil && cols.l != nil {
+		return cols.l
 	}
-	return
+	return nil
 }
 
 func (cols *Columns) Cols(colNames ...string) (*Columns, error) {
@@ -124,52 +131,33 @@ func (cols *Columns) Cols(colNames ...string) (*Columns, error) {
 
 func (cols *Columns) Col(columnName string) (col *Column) {
 	columnName = strings.ToLower(columnName)
-	if cols.columns != nil {
-		if c, ok := cols.columns[columnName]; ok {
-			return c.Value.(*Column)
+	for i := range cols.l {
+		c := cols.l[i]
+		if columnName == c.Name {
+			return c
 		}
 	}
 	return nil
 }
 
 func (cols *Columns) Add(columns ...*Column) {
-	if cols.columns == nil {
-		cols.columns = map[string]*list.Element{}
-		cols.fields = map[string]*list.Element{}
-		cols.l = list.New()
-	}
-
-	for _, col := range columns {
-		if col != nil {
-			if col.ColumnType != nil && col.ColumnType.AutoIncrement {
-				if cols.autoIncrement != nil {
-					panic(fmt.Errorf("AutoIncrement field can only have one, now %s, but %s want to replace", cols.autoIncrement.Name, col.Name))
-				}
-				cols.autoIncrement = col
+	for i := range columns {
+		col := columns[i]
+		if col == nil {
+			continue
+		}
+		if col.ColumnType != nil && col.ColumnType.AutoIncrement {
+			if cols.autoIncrement != nil {
+				panic(fmt.Errorf("AutoIncrement field can only have one, now %s, but %s want to replace", cols.autoIncrement.Name, col.Name))
 			}
-			e := cols.l.PushBack(col)
-			cols.columns[col.Name] = e
-			cols.fields[col.FieldName] = e
+			cols.autoIncrement = col
 		}
-	}
-}
-
-func (cols *Columns) Remove(name string) {
-	name = strings.ToLower(name)
-	if cols.columns != nil {
-		if e, exists := cols.columns[name]; exists {
-			cols.l.Remove(e)
-			delete(cols.columns, name)
-		}
+		cols.l = append(cols.l, col)
 	}
 }
 
 func (cols *Columns) Range(cb func(col *Column, idx int)) {
-	if cols.l != nil {
-		i := 0
-		for e := cols.l.Front(); e != nil; e = e.Next() {
-			cb(e.Value.(*Column), i)
-			i++
-		}
+	for i := range cols.l {
+		cb(cols.l[i], i)
 	}
 }

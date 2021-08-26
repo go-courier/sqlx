@@ -2,12 +2,10 @@ package builder
 
 import (
 	"context"
-	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 
-	reflectx "github.com/go-courier/x/reflect"
+	"github.com/go-courier/x/types"
 )
 
 func Col(name string) *Column {
@@ -24,9 +22,6 @@ type Column struct {
 	FieldName string
 	Table     *Table
 	exactly   bool
-
-	Description []string
-	Relation    []string
 
 	*ColumnType
 }
@@ -53,34 +48,34 @@ func (c *Column) IsNil() bool {
 
 func (c *Column) Ex(ctx context.Context) *Ex {
 	toggles := TogglesFromContext(ctx)
-
 	if c.Table != nil && (c.exactly || toggles.Is(ToggleMultiTable)) {
 		if toggles.Is(ToggleNeedAutoAlias) {
 			return Expr("?.? AS ?", c.Table, Expr(c.Name), Expr(c.Name)).Ex(ctx)
 		}
 		return Expr("?.?", c.Table, Expr(c.Name)).Ex(ctx)
 	}
-	return Expr(c.Name).Ex(ctx)
+	return ExactlyExpr(c.Name).Ex(ctx)
 }
 
 func (c *Column) Expr(query string, args ...interface{}) *Ex {
+	n := len(args)
 	e := Expr("")
+	e.Grow(n)
 
 	qc := 0
-	n := len(args)
 
 	for _, key := range []byte(query) {
 		switch key {
 		case '#':
 			e.WriteExpr(c)
 		case '?':
-			e.WriteByte(key)
+			e.WriteQueryByte(key)
 			if n > qc {
 				e.AppendArgs(args[qc])
 				qc++
 			}
 		default:
-			e.WriteByte(key)
+			e.WriteQueryByte(key)
 		}
 	}
 
@@ -93,7 +88,7 @@ func (c Column) Field(fieldName string) *Column {
 }
 
 func (c Column) Type(v interface{}, tagValue string) *Column {
-	c.ColumnType = ColumnTypeFromTypeAndTag(reflect.TypeOf(v), tagValue)
+	c.ColumnType = ColumnTypeFromTypeAndTag(types.FromRType(reflect.TypeOf(v)), tagValue)
 	return &c
 }
 
@@ -111,178 +106,120 @@ func (c *Column) ValueBy(v interface{}) *Assignment {
 }
 
 func (c *Column) Incr(d int) SqlExpr {
-	return c.Expr("# + ?", d)
+	return Expr("? + ?", c, d)
 }
 
 func (c *Column) Desc(d int) SqlExpr {
-	return c.Expr("# - ?", d)
+	return Expr("? - ?", c, d)
 }
 
 func (c *Column) Like(v string) SqlCondition {
-	return AsCond(c.Expr("# LIKE ?", "%"+v+"%"))
+	return AsCond(Expr("? LIKE ?", c, "%"+v+"%"))
 }
 
 func (c *Column) LeftLike(v string) SqlCondition {
-	return AsCond(c.Expr("# LIKE ?", "%"+v))
+	return AsCond(Expr("? LIKE ?", c, "%"+v))
 }
 
 func (c *Column) RightLike(v string) SqlCondition {
-	return AsCond(c.Expr("# LIKE ?", v+"%"))
+	return AsCond(Expr("? LIKE ?", c, v+"%"))
 }
 
 func (c *Column) NotLike(v string) SqlCondition {
-	return AsCond(c.Expr("# NOT LIKE ?", "%"+v+"%"))
+	return AsCond(Expr("? NOT LIKE ?", c, "%"+v+"%"))
 }
 
 func (c *Column) IsNull() SqlCondition {
-	return AsCond(c.Expr("# IS NULL"))
+	return AsCond(Expr("? IS NULL", c))
 }
 
 func (c *Column) IsNotNull() SqlCondition {
-	return AsCond(c.Expr("# IS NOT NULL"))
+	return AsCond(Expr("? IS NOT NULL", c))
 }
 
 func (c *Column) Between(leftValue interface{}, rightValue interface{}) SqlCondition {
-	return AsCond(c.Expr("# BETWEEN ? AND ?", leftValue, rightValue))
+	return AsCond(Expr("? BETWEEN ? AND ?", c, leftValue, rightValue))
 }
 
 func (c *Column) NotBetween(leftValue interface{}, rightValue interface{}) SqlCondition {
-	return AsCond(c.Expr("# NOT BETWEEN ? AND ?", leftValue, rightValue))
+	return AsCond(Expr("? NOT BETWEEN ? AND ?", c, leftValue, rightValue))
+}
+
+type WithConditionFor interface {
+	ConditionFor(c *Column) SqlCondition
 }
 
 func (c *Column) In(args ...interface{}) SqlCondition {
-	length := len(args)
-	if length == 0 {
+	n := len(args)
+
+	switch n {
+	case 0:
 		return nil
+	case 1:
+		if withConditionFor, ok := args[0].(WithConditionFor); ok {
+			return withConditionFor.ConditionFor(c)
+		}
 	}
 
-	e := Expr("# IN ")
+	e := Expr("? IN ")
+
+	e.Grow(n + 1)
+	e.AppendArgs(c)
+
 	e.WriteGroup(func(e *Ex) {
-		for i := 0; i < length; i++ {
+		for i := 0; i < n; i++ {
 			e.WriteHolder(i)
 		}
 	})
 
-	return AsCond(c.Expr(e.String(), args...))
+	e.AppendArgs(args...)
+
+	return AsCond(e)
 }
 
 func (c *Column) NotIn(args ...interface{}) SqlCondition {
-	length := len(args)
-	if length == 0 {
+	n := len(args)
+	if n == 0 {
 		return nil
 	}
 
-	e := Expr("# NOT IN ")
+	e := Expr("")
+	e.Grow(n + 1)
+
+	e.WriteQuery("? NOT IN ")
+	e.AppendArgs(c)
+
 	e.WriteGroup(func(e *Ex) {
-		for i := 0; i < length; i++ {
+		for i := 0; i < n; i++ {
 			e.WriteHolder(i)
 		}
 	})
 
-	return AsCond(c.Expr(e.String(), args...))
+	e.AppendArgs(args...)
+
+	return AsCond(e)
 }
 
 func (c *Column) Eq(v interface{}) SqlCondition {
-	return AsCond(c.Expr("# = ?", v))
+	return AsCond(Expr("? = ?", c, v))
 }
 
 func (c *Column) Neq(v interface{}) SqlCondition {
-	return AsCond(c.Expr("# <> ?", v))
+	return AsCond(Expr("? <> ?", c, v))
 }
 
 func (c *Column) Gt(v interface{}) SqlCondition {
-	return AsCond(c.Expr("# > ?", v))
+	return AsCond(Expr("? > ?", c, v))
 }
 
 func (c *Column) Gte(v interface{}) SqlCondition {
-	return AsCond(c.Expr("# >= ?", v))
+	return AsCond(Expr("? >= ?", c, v))
 }
 
 func (c *Column) Lt(v interface{}) SqlCondition {
-	return AsCond(c.Expr("# < ?", v))
+	return AsCond(Expr("? < ?", c, v))
 }
 
 func (c *Column) Lte(v interface{}) SqlCondition {
-	return AsCond(c.Expr("# <= ?", v))
-}
-
-func ColumnTypeFromTypeAndTag(typ reflect.Type, nameAndFlags string) *ColumnType {
-	ct := &ColumnType{}
-	ct.Type = reflectx.Deref(typ)
-
-	v := reflect.New(ct.Type).Interface()
-
-	if dataTypeDescriber, ok := v.(DataTypeDescriber); ok {
-		ct.GetDataType = dataTypeDescriber.DataType
-	}
-
-	if strings.Contains(nameAndFlags, ",") {
-		for _, flag := range strings.Split(nameAndFlags, ",")[1:] {
-			nameAndValue := strings.Split(flag, "=")
-			switch strings.ToLower(nameAndValue[0]) {
-			case "null":
-				ct.Null = true
-			case "autoincrement":
-				ct.AutoIncrement = true
-			case "deprecated":
-				rename := ""
-				if len(nameAndValue) > 1 {
-					rename = nameAndValue[1]
-				}
-				ct.DeprecatedActions = &DeprecatedActions{RenameTo: rename}
-			case "size":
-				if len(nameAndValue) == 1 {
-					panic(fmt.Errorf("missing size value"))
-				}
-				length, err := strconv.ParseUint(nameAndValue[1], 10, 64)
-				if err != nil {
-					panic(fmt.Errorf("invalid size value: %s", err))
-				}
-				ct.Length = length
-			case "decimal":
-				if len(nameAndValue) == 1 {
-					panic(fmt.Errorf("missing size value"))
-				}
-				decimal, err := strconv.ParseUint(nameAndValue[1], 10, 64)
-				if err != nil {
-					panic(fmt.Errorf("invalid decimal value: %s", err))
-				}
-				ct.Decimal = decimal
-			case "default":
-				if len(nameAndValue) == 1 {
-					panic(fmt.Errorf("missing default value"))
-				}
-				ct.Default = &nameAndValue[1]
-			case "onupdate":
-				if len(nameAndValue) == 1 {
-					panic(fmt.Errorf("missing onupdate value"))
-				}
-				ct.OnUpdate = &nameAndValue[1]
-			}
-		}
-	}
-
-	return ct
-}
-
-type ColumnType struct {
-	Type        reflect.Type
-	GetDataType func(engine string) string
-
-	Length  uint64
-	Decimal uint64
-
-	Default  *string
-	OnUpdate *string
-
-	Null          bool
-	AutoIncrement bool
-
-	Comment string
-
-	DeprecatedActions *DeprecatedActions
-}
-
-type DeprecatedActions struct {
-	RenameTo string `name:"rename"`
+	return AsCond(Expr("? <= ?", c, v))
 }

@@ -21,7 +21,7 @@ type MySQLTimestamp = Timestamp
 // openapi:strfmt date-time
 type Timestamp time.Time
 
-func (dt *Timestamp) DataType(engine string) string {
+func (Timestamp) DataType(engine string) string {
 	return "bigint"
 }
 

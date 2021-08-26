@@ -42,10 +42,11 @@ func (alias *exMayAutoAlias) IsNil() bool {
 
 func (alias *exMayAutoAlias) Ex(ctx context.Context) *Ex {
 	e := Expr("")
+	e.Grow(1)
 
 	RangeNotNilExpr(alias.columns, func(expr SqlExpr, i int) {
 		if i > 0 {
-			e.WriteString(", ")
+			e.WriteQuery(", ")
 		}
 		e.WriteExpr(expr)
 	})

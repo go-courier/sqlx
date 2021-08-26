@@ -63,12 +63,12 @@ func (f *Function) Ex(ctx context.Context) *Ex {
 
 	e.WriteGroup(func(e *Ex) {
 		if len(f.exprs) == 0 {
-			e.WriteByte('*')
+			e.WriteQueryByte('*')
 		}
 
 		for i := range f.exprs {
 			if i > 0 {
-				e.WriteByte(',')
+				e.WriteQueryByte(',')
 			}
 			e.WriteExpr(f.exprs[i])
 		}

@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"container/list"
 	"strings"
 )
 
@@ -11,14 +10,14 @@ func PrimaryKey(columns *Columns) *Key {
 
 func Index(name string, columns *Columns) *Key {
 	return &Key{
-		Name:    name,
+		Name:    strings.ToLower(name),
 		Columns: columns,
 	}
 }
 
 func UniqueIndex(name string, columns *Columns) *Key {
 	return &Key{
-		Name:     name,
+		Name:     strings.ToLower(name),
 		IsUnique: true,
 		Columns:  columns,
 	}
@@ -50,12 +49,11 @@ func (key *Key) T() *Table {
 }
 
 func (key *Key) IsPrimary() bool {
-	return key.IsUnique && (strings.ToLower(key.Name) == "primary" || strings.HasSuffix(strings.ToLower(key.Name), "pkey"))
+	return key.IsUnique && key.Name == "primary" || strings.HasSuffix(key.Name, "pkey")
 }
 
 type Keys struct {
-	m map[string]*list.Element
-	l *list.List
+	l []*Key
 }
 
 func (keys *Keys) Clone() *Keys {
@@ -67,54 +65,39 @@ func (keys *Keys) Clone() *Keys {
 }
 
 func (keys *Keys) Len() int {
-	if keys.l == nil {
+	if keys == nil {
 		return 0
 	}
-	return keys.l.Len()
+	return len(keys.l)
 }
 
 func (keys *Keys) IsEmpty() bool {
-	return keys.l == nil || keys.l.Len() == 0
+	return keys.Len() == 0
 }
 
 func (keys *Keys) Key(keyName string) (key *Key) {
-	if keys.m != nil {
-		if c, ok := keys.m[strings.ToLower(keyName)]; ok {
-			return c.Value.(*Key)
+	keyName = strings.ToLower(keyName)
+	for i := range keys.l {
+		k := keys.l[i]
+		if keyName == k.Name {
+			return k
 		}
 	}
 	return nil
 }
 
 func (keys *Keys) Add(nextKeys ...*Key) {
-	if keys.m == nil {
-		keys.m = map[string]*list.Element{}
-		keys.l = list.New()
-	}
-	for _, key := range nextKeys {
+	for i := range nextKeys {
+		key := nextKeys[i]
 		if key == nil {
 			continue
 		}
-		key.Name = strings.ToLower(key.Name)
-		keys.m[key.Name] = keys.l.PushBack(key)
-	}
-}
-
-func (keys *Keys) Remove(name string) {
-	if keys.m != nil {
-		if e, exists := keys.m[name]; exists {
-			keys.l.Remove(e)
-			delete(keys.m, name)
-		}
+		keys.l = append(keys.l, key)
 	}
 }
 
 func (keys *Keys) Range(cb func(key *Key, idx int)) {
-	if keys.l != nil {
-		i := 0
-		for e := keys.l.Front(); e != nil; e = e.Next() {
-			cb(e.Value.(*Key), i)
-			i++
-		}
+	for i := range keys.l {
+		cb(keys.l[i], i)
 	}
 }

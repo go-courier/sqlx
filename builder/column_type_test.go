@@ -6,33 +6,34 @@ import (
 
 	. "github.com/go-courier/sqlx/v2/builder"
 	"github.com/go-courier/x/ptr"
+	"github.com/go-courier/x/types"
 	"github.com/onsi/gomega"
 )
 
 func TestColumnTypeFromTypeAndTag(t *testing.T) {
 	cases := map[string]*ColumnType{
 		`,deprecated=f_target_env_id`: &ColumnType{
-			Type:              reflect.TypeOf(1),
+			Type:              types.FromRType(reflect.TypeOf(1)),
 			DeprecatedActions: &DeprecatedActions{RenameTo: "f_target_env_id"},
 		},
 		`,autoincrement`: &ColumnType{
-			Type:          reflect.TypeOf(1),
+			Type:          types.FromRType(reflect.TypeOf(1)),
 			AutoIncrement: true,
 		},
 		`,null`: &ColumnType{
-			Type: reflect.TypeOf(float64(1.1)),
+			Type: types.FromRType(reflect.TypeOf(float64(1.1))),
 			Null: true,
 		},
 		`,size=2`: &ColumnType{
-			Type:   reflect.TypeOf(""),
+			Type:   types.FromRType(reflect.TypeOf("")),
 			Length: 2,
 		},
 		`,decimal=1`: &ColumnType{
-			Type:    reflect.TypeOf(float64(1.1)),
+			Type:    types.FromRType(reflect.TypeOf(float64(1.1))),
 			Decimal: 1,
 		},
 		`,default='1'`: &ColumnType{
-			Type:    reflect.TypeOf(""),
+			Type:    types.FromRType(reflect.TypeOf("")),
 			Default: ptr.String(`'1'`),
 		},
 	}

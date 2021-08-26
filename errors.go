@@ -23,9 +23,8 @@ func (e *SqlError) Error() string {
 type sqlErrType string
 
 var (
-	sqlErrTypeInvalidScanTarget sqlErrType = "InvalidScanTarget"
-	sqlErrTypeNotFound          sqlErrType = "NotFound"
-	sqlErrTypeConflict          sqlErrType = "Conflict"
+	sqlErrTypeNotFound sqlErrType = "NotFound"
+	sqlErrTypeConflict sqlErrType = "Conflict"
 )
 
 var DuplicateEntryErrNumber uint16 = 1062

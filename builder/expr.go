@@ -6,8 +6,11 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"strings"
 
 	reflectx "github.com/go-courier/x/reflect"
+
+	contextx "github.com/go-courier/x/context"
 )
 
 type SqlExpr interface {
@@ -32,8 +35,18 @@ func RangeNotNilExpr(exprs []SqlExpr, each func(e SqlExpr, i int)) {
 	}
 }
 
+func ExactlyExpr(query string, args ...interface{}) *Ex {
+	if query != "" {
+		return &Ex{b: *bytes.NewBufferString(query), args: args, exactly: true}
+	}
+	return &Ex{args: args, exactly: true}
+}
+
 func Expr(query string, args ...interface{}) *Ex {
-	return &Ex{Buffer: bytes.NewBufferString(query), args: args}
+	if query != "" {
+		return &Ex{b: *bytes.NewBufferString(query), args: args}
+	}
+	return &Ex{args: args}
 }
 
 func ResolveExpr(v interface{}) *Ex {
@@ -60,9 +73,11 @@ func Multi(exprs ...SqlExpr) SqlExpr {
 func MultiWith(connector string, exprs ...SqlExpr) SqlExpr {
 	return ExprBy(func(ctx context.Context) *Ex {
 		e := Expr("")
+		e.Grow(len(exprs))
+
 		for i := range exprs {
 			if i != 0 {
-				e.WriteString(connector)
+				e.WriteQuery(connector)
 			}
 			e.WriteExpr(exprs[i])
 		}
@@ -87,24 +102,27 @@ func (c *exBy) Ex(ctx context.Context) *Ex {
 }
 
 type Ex struct {
-	*bytes.Buffer
-	args     []interface{}
-	err      error
-	rendered bool
+	b       bytes.Buffer
+	args    []interface{}
+	err     error
+	exactly bool
 }
 
 func (e *Ex) IsNil() bool {
-	return e == nil || e.Len() == 0
+	return e == nil || e.b.Len() == 0
 }
 
 func (e *Ex) Query() string {
 	if e == nil {
 		return ""
 	}
-	return e.String()
+	return e.b.String()
 }
 
 func (e *Ex) Args() []interface{} {
+	if len(e.args) == 0 {
+		return nil
+	}
 	return e.args
 }
 
@@ -120,88 +138,44 @@ func (e *Ex) ArgsLen() int {
 	return len(e.args)
 }
 
-func (e Ex) Ex(ctx context.Context) *Ex {
-	if e.rendered {
-		return &e
+func (e *Ex) WriteString(s string) (int, error) {
+	return e.b.WriteString(s)
+}
+
+func (e *Ex) WriteByte(b byte) error {
+	return e.b.WriteByte(b)
+}
+
+func (e *Ex) QueryGrow(n int) {
+	e.b.Grow(n)
+}
+
+func (e *Ex) Grow(n int) {
+	if n > 0 && cap(e.args)-len(e.args) < n {
+		args := make([]interface{}, len(e.args), 2*cap(e.args)+n)
+		copy(args, e.args)
+		e.args = args
 	}
+}
 
-	if e.IsNil() {
-		return nil
-	}
+func (e *Ex) WriteQuery(s string) {
+	_, _ = e.b.WriteString(s)
+}
 
-	if e.ArgsLen() == 0 {
-		e.rendered = true
-		return &e
-	}
-
-	index := 0
-	expr := Expr("")
-	expr.rendered = true
-
-	query := e.Bytes()
-	n := len(e.args)
-
-	for i := range query {
-		c := query[i]
-		switch c {
-		case '?':
-			if index >= n {
-				panic(fmt.Errorf("missing arg %d of %s", index, query))
-			}
-
-			arg := e.args[index]
-
-			switch a := arg.(type) {
-			case ValuerExpr:
-				expr.WriteString(a.ValueEx())
-				expr.AppendArgs(arg)
-			case SqlExpr:
-				if !IsNilExpr(a) {
-					subEx := a.Ex(ctx)
-					if !IsNilExpr(subEx) {
-						expr.Write(subEx.Bytes())
-						expr.AppendArgs(subEx.Args()...)
-					}
-				}
-
-			case driver.Valuer:
-				expr.WriteHolder(0)
-				expr.AppendArgs(arg)
-			default:
-				typ := reflect.TypeOf(arg)
-
-				if !reflectx.IsBytes(typ) && typ.Kind() == reflect.Slice {
-					sliceRv := reflect.ValueOf(arg)
-					length := sliceRv.Len()
-
-					for i := 0; i < length; i++ {
-						expr.WriteHolder(i)
-						expr.AppendArgs(sliceRv.Index(i).Interface())
-					}
-				} else {
-					expr.WriteHolder(0)
-					expr.AppendArgs(arg)
-				}
-			}
-			index++
-		default:
-			expr.WriteByte(c)
-		}
-	}
-
-	return expr
+func (e *Ex) WriteQueryByte(b byte) {
+	_ = e.b.WriteByte(b)
 }
 
 func (e *Ex) WriteGroup(fn func(e *Ex)) {
-	e.WriteByte('(')
+	e.WriteQueryByte('(')
 	fn(e)
-	e.WriteByte(')')
+	e.WriteQueryByte(')')
 }
 
 func (e *Ex) WhiteComments(comments []byte) {
-	e.WriteString("/* ")
-	e.Write(comments)
-	e.WriteString(" */")
+	_, _ = e.b.WriteString("/* ")
+	_, _ = e.b.Write(comments)
+	_, _ = e.b.WriteString(" */")
 }
 
 func (e *Ex) WriteExpr(expr SqlExpr) {
@@ -214,12 +188,221 @@ func (e *Ex) WriteExpr(expr SqlExpr) {
 }
 
 func (e *Ex) WriteEnd() {
-	e.WriteByte(';')
+	e.WriteQueryByte(';')
 }
 
 func (e *Ex) WriteHolder(idx int) {
 	if idx > 0 {
-		e.WriteByte(',')
+		e.b.WriteByte(',')
 	}
-	e.WriteByte('?')
+	e.b.WriteByte('?')
+}
+
+func (e *Ex) SetExactly(exactly bool) {
+	e.exactly = exactly
+}
+
+func (e *Ex) Ex(ctx context.Context) *Ex {
+	if e.IsNil() {
+		return nil
+	}
+
+	args, n := e.args, len(e.args)
+
+	eb := exprBuilderFromContext(ctx)
+	eb.Grow(n)
+
+	query := e.Query()
+
+	if e.exactly {
+		eb.WriteQuery(query)
+		eb.AppendArgs(args...)
+		eb.exactly = true
+		return eb
+	}
+
+	shouldResolveArgs := preprocessArgs(args)
+
+	if !shouldResolveArgs {
+		eb.WriteQuery(query)
+		eb.AppendArgs(args...)
+		eb.SetExactly(true)
+		return eb
+	}
+
+	argIndex := 0
+
+	for i := range query {
+		switch c := query[i]; c {
+		case '?':
+			if argIndex >= n {
+				panic(fmt.Errorf("missing arg %d of %s", argIndex, query))
+			}
+
+			switch arg := args[argIndex].(type) {
+			case SqlExpr:
+				if !IsNilExpr(arg) {
+					subExpr := arg.Ex(contextWithExprBuilder(ctx, eb))
+
+					if subExpr != eb && !IsNilExpr(subExpr) {
+						eb.WriteQuery(subExpr.Query())
+						eb.AppendArgs(subExpr.Args()...)
+					}
+				}
+			default:
+				eb.WriteHolder(0)
+				eb.AppendArgs(arg)
+			}
+			argIndex++
+		default:
+			eb.WriteQueryByte(c)
+		}
+	}
+
+	eb.SetExactly(true)
+
+	return eb
+}
+
+func exactlyExprFromSlice(values []interface{}) *Ex {
+	if n := len(values); n > 0 {
+		return ExactlyExpr(strings.Repeat(",?", n)[1:], values...)
+	}
+	return ExactlyExpr("")
+}
+
+func preprocessArgs(args []interface{}) bool {
+	shouldResolve := false
+
+	for i := range args {
+		switch arg := args[i].(type) {
+		case ValuerExpr:
+			args[i] = ExactlyExpr(arg.ValueEx(), arg)
+			shouldResolve = true
+		case SqlExpr:
+			shouldResolve = true
+		case driver.Valuer:
+
+		case []interface{}:
+			args[i] = exactlyExprFromSlice(arg)
+			shouldResolve = true
+		default:
+			if typ := reflect.TypeOf(arg); !reflectx.IsBytes(typ) && typ.Kind() == reflect.Slice {
+				args[i] = exactlyExprFromSlice(toInterfaceSlice(arg))
+				shouldResolve = true
+			}
+		}
+	}
+
+	return shouldResolve
+}
+
+func toInterfaceSlice(arg interface{}) []interface{} {
+	switch x := (arg).(type) {
+	case []bool:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []string:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []float32:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []float64:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []int:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []int8:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []int16:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []int32:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []int64:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []uint:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []uint8:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []uint16:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []uint32:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []uint64:
+		values := make([]interface{}, len(x))
+		for i := range values {
+			values[i] = x[i]
+		}
+		return values
+	case []interface{}:
+		return x
+	}
+	sliceRv := reflect.ValueOf(arg)
+	values := make([]interface{}, sliceRv.Len())
+	for i := range values {
+		values[i] = sliceRv.Index(i).Interface()
+	}
+	return values
+}
+
+type contextKeyEx struct{}
+
+func contextWithExprBuilder(ctx context.Context, ex *Ex) context.Context {
+	return contextx.WithValue(ctx, contextKeyEx{}, ex)
+}
+
+func exprBuilderFromContext(ctx context.Context) *Ex {
+	if ex, ok := ctx.Value(contextKeyEx{}).(*Ex); ok {
+		return ex
+	}
+	return Expr("")
 }

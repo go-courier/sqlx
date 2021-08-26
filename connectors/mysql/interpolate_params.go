@@ -1,4 +1,4 @@
-package mysqlconnector
+package mysql
 
 import (
 	"database/sql/driver"

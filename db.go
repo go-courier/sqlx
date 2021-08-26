@@ -30,17 +30,21 @@ type Migrator interface {
 	Migrate(ctx context.Context, db DBExecutor) error
 }
 
+type TableResolver interface {
+	// T return table of the connecting database
+	T(model builder.Model) *builder.Table
+}
+
 type DBExecutor interface {
 	SqlxExecutor
+	TableResolver
 
-	// dialect of databases
+	// Dialect of databases
 	Dialect() builder.Dialect
-	// return database which is connecting
+	// D return database which is connecting
 	D() *Database
-	// switch database schema
+	// WithSchema switch database schema
 	WithSchema(schema string) DBExecutor
-	// return table of the connecting database
-	T(model builder.Model) *builder.Table
 
 	Context() context.Context
 	WithContext(ctx context.Context) DBExecutor

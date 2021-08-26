@@ -38,17 +38,18 @@ func (s *StmtInsert) Ex(ctx context.Context) *Ex {
 
 	if len(s.modifiers) > 0 {
 		for i := range s.modifiers {
-			e.WriteByte(' ')
-			e.WriteString(s.modifiers[i])
+			e.WriteQueryByte(' ')
+			e.WriteQuery(s.modifiers[i])
 		}
 	}
 
-	e.WriteString(" INTO ")
+	e.WriteQuery(" INTO ")
 	e.WriteExpr(s.table)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 
 	e.WriteExpr(ExprBy(func(ctx context.Context) *Ex {
 		e := Expr("")
+		e.Grow(len(s.assignments))
 
 		ctx = ContextWithToggles(ctx, Toggles{
 			ToggleUseValues: true,
@@ -74,7 +75,7 @@ func OnDuplicateKeyUpdate(assignments ...*Assignment) *OtherAddition {
 
 	for i := range assigns {
 		if i > 0 {
-			e.WriteString(", ")
+			e.WriteQuery(", ")
 		}
 		e.WriteExpr(assigns[i])
 	}
@@ -85,7 +86,7 @@ func OnDuplicateKeyUpdate(assignments ...*Assignment) *OtherAddition {
 func Returning(expr SqlExpr) *OtherAddition {
 	e := Expr("RETURNING ")
 	if expr == nil || expr.IsNil() {
-		e.WriteByte('*')
+		e.WriteQueryByte('*')
 	} else {
 		e.WriteExpr(expr)
 	}

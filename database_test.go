@@ -3,6 +3,7 @@ package sqlx_test
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -145,50 +146,68 @@ func TestMigrate(t *testing.T) {
 
 	dbTest := sqlx.NewFeatureDatabase("test_for_migrate")
 
-	for _, connector := range []driver.Connector{
+	for i, connector := range []driver.Connector{
 		mysqlConnector,
 		postgresConnector,
 	} {
-		for _, schema := range []string{"import", "public", "backup"} {
-			t.Run("create table", func(t *testing.T) {
-				dbTest.Register(&User{})
-				db := dbTest.OpenDB(connector).WithSchema(schema)
-				err := migration.Migrate(db, os.Stdout)
-				NewWithT(t).Expect(err).To(BeNil())
-				err = migration.Migrate(db, nil)
-				NewWithT(t).Expect(err).To(BeNil())
-			})
-			t.Run("no migrate", func(t *testing.T) {
-				dbTest.Register(&User{})
-				db := dbTest.OpenDB(connector).WithSchema(schema)
-				err := migration.Migrate(db, nil)
-				NewWithT(t).Expect(err).To(BeNil())
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			for _, schema := range []string{"import", "public", "backup"} {
+				dbTest.Tables.Range(func(table *builder.Table, idx int) {
+					db := dbTest.OpenDB(connector).WithSchema(schema)
+					_, _ = db.ExecExpr(db.Dialect().DropTable(table))
+				})
 
-				t.Run("migrate to user2", func(t *testing.T) {
-					dbTest.Register(&User2{})
+				t.Run("create table", func(t *testing.T) {
+					dbTest.Register(&User{})
+					db := dbTest.OpenDB(connector).WithSchema(schema)
+
+					t.Run("first migrate", func(t *testing.T) {
+						err := migration.Migrate(db, nil)
+						NewWithT(t).Expect(err).To(BeNil())
+					})
+
+					t.Run("again", func(t *testing.T) {
+						_ = migration.Migrate(db, os.Stdout)
+						err := migration.Migrate(db, nil)
+						NewWithT(t).Expect(err).To(BeNil())
+					})
+				})
+
+				t.Run("no migrate", func(t *testing.T) {
+					dbTest.Register(&User{})
 					db := dbTest.OpenDB(connector).WithSchema(schema)
 					err := migration.Migrate(db, nil)
 					NewWithT(t).Expect(err).To(BeNil())
+
+					t.Run("migrate to user2", func(t *testing.T) {
+						dbTest.Register(&User2{})
+						db := dbTest.OpenDB(connector).WithSchema(schema)
+						err := migration.Migrate(db, nil)
+						NewWithT(t).Expect(err).To(BeNil())
+					})
+
+					t.Run("migrate to user2 again", func(t *testing.T) {
+						dbTest.Register(&User2{})
+						db := dbTest.OpenDB(connector).WithSchema(schema)
+						err := migration.Migrate(db, nil)
+						NewWithT(t).Expect(err).To(BeNil())
+					})
 				})
-				t.Run("migrate to user2 again", func(t *testing.T) {
-					dbTest.Register(&User2{})
+
+				t.Run("migrate to user", func(t *testing.T) {
 					db := dbTest.OpenDB(connector).WithSchema(schema)
-					err := migration.Migrate(db, nil)
+					err := migration.Migrate(db, os.Stdout)
+					NewWithT(t).Expect(err).To(BeNil())
+					err = migration.Migrate(db, nil)
 					NewWithT(t).Expect(err).To(BeNil())
 				})
-			})
-			t.Run("migrate to user", func(t *testing.T) {
-				db := dbTest.OpenDB(connector).WithSchema(schema)
-				err := migration.Migrate(db, os.Stdout)
-				NewWithT(t).Expect(err).To(BeNil())
-				err = migration.Migrate(db, nil)
-				NewWithT(t).Expect(err).To(BeNil())
-			})
-			dbTest.Tables.Range(func(table *builder.Table, idx int) {
-				db := dbTest.OpenDB(connector).WithSchema(schema)
-				_, _ = db.ExecExpr(db.Dialect().DropTable(table))
-			})
-		}
+
+				dbTest.Tables.Range(func(table *builder.Table, idx int) {
+					db := dbTest.OpenDB(connector).WithSchema(schema)
+					_, _ = db.ExecExpr(db.Dialect().DropTable(table))
+				})
+			}
+		})
 	}
 }
 
@@ -381,19 +400,6 @@ func TestSelect(t *testing.T) {
 					builder.Select(nil).From(table, builder.Where(table.F("Gender").Eq(GenderMale))),
 					userSet,
 				)
-				NewWithT(t).Expect(err).NotTo(BeNil())
-			})
-
-			t.Run("unsupported scan error", func(t *testing.T) {
-				user := &User{}
-				err := db.QueryExprAndScan(
-					builder.Select(builder.Count()).From(
-						table,
-						builder.Where(table.F("Gender").Eq(GenderMale)),
-					),
-					&user,
-				)
-
 				NewWithT(t).Expect(err).NotTo(BeNil())
 			})
 

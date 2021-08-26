@@ -6,6 +6,14 @@ import (
 	"github.com/onsi/gomega"
 )
 
+func BenchmarkNewNullIgnoreScanner(b *testing.B) {
+	v := 0
+	for i := 0; i < b.N; i++ {
+		_ = NewNullIgnoreScanner(&v).Scan(2)
+	}
+	b.Log(v)
+}
+
 func TestNullIgnoreScanner(t *testing.T) {
 	t.Run("scan value", func(t *testing.T) {
 		v := 0

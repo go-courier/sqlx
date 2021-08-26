@@ -1,18 +1,18 @@
 package enummeta
 
 import (
-	"reflect"
-
 	"github.com/go-courier/enumeration"
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
+	typex "github.com/go-courier/x/types"
 )
 
 func SyncEnum(db sqlx.DBExecutor) error {
 	metaEnumTable := builder.T((&SqlMetaEnum{}).TableName())
-	builder.ScanDefToTable(reflect.ValueOf(&SqlMetaEnum{}), metaEnumTable)
 
 	dialect := db.Dialect()
+
+	builder.ScanDefToTable(metaEnumTable, &SqlMetaEnum{})
 
 	task := sqlx.NewTasks(db.WithSchema(""))
 
@@ -40,21 +40,22 @@ func SyncEnum(db sqlx.DBExecutor) error {
 
 		db.D().Tables.Range(func(table *builder.Table, idx int) {
 			table.Columns.Range(func(col *builder.Column, idx int) {
-				v := reflect.New(col.ColumnType.Type).Interface()
-				if enumValue, ok := v.(enumeration.Enum); ok {
-					for _, enum := range enumValue.ConstValues() {
-						sqlMetaEnum := &SqlMetaEnum{
-							TName: table.Name,
-							CName: col.Name,
-							Type:  enum.TypeName(),
-							Value: enum.Int(),
-							Key:   enum.String(),
-							Label: enum.Label(),
+				if rv, ok := typex.TryNew(col.ColumnType.Type); ok {
+					if enumValue, ok := rv.Interface().(enumeration.Enum); ok {
+						for _, enum := range enumValue.ConstValues() {
+							sqlMetaEnum := &SqlMetaEnum{
+								TName: table.Name,
+								CName: col.Name,
+								Type:  enum.TypeName(),
+								Value: enum.Int(),
+								Key:   enum.String(),
+								Label: enum.Label(),
+							}
+							fieldValues := builder.FieldValuesFromStructByNonZero(sqlMetaEnum, "Value")
+							cols, values := metaEnumTable.ColumnsAndValuesByFieldValues(fieldValues)
+							vals = append(vals, values...)
+							columns = cols
 						}
-						fieldValues := builder.FieldValuesFromStructByNonZero(sqlMetaEnum, "Value")
-						cols, values := metaEnumTable.ColumnsAndValuesByFieldValues(fieldValues)
-						vals = append(vals, values...)
-						columns = cols
 					}
 				}
 			})

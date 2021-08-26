@@ -41,7 +41,7 @@ func (o *orderBy) Ex(ctx context.Context) *Ex {
 	e := Expr("ORDER BY ")
 	for i := range o.orders {
 		if i > 0 {
-			e.WriteRune(',')
+			e.WriteQueryByte(',')
 		}
 		e.WriteExpr(o.orders[i])
 	}
@@ -69,14 +69,15 @@ func (o *Order) IsNil() bool {
 
 func (o *Order) Ex(ctx context.Context) *Ex {
 	e := Expr("")
+	e.Grow(1)
 
 	e.WriteGroup(func(e *Ex) {
 		e.WriteExpr(o.target)
 	})
 
 	if o.typ != "" {
-		e.WriteRune(' ')
-		e.WriteString(o.typ)
+		e.WriteQueryByte(' ')
+		e.WriteQuery(o.typ)
 	}
 
 	return e.Ex(ctx)

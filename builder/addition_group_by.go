@@ -41,13 +41,13 @@ func (g *groupBy) Ex(ctx context.Context) *Ex {
 
 	for i, group := range g.groups {
 		if i > 0 {
-			expr.WriteByte(',')
+			expr.WriteQueryByte(',')
 		}
 		expr.WriteExpr(group)
 	}
 
 	if !(IsNilExpr(g.havingCond)) {
-		expr.WriteString(" HAVING ")
+		expr.WriteQuery(" HAVING ")
 		expr.WriteExpr(g.havingCond)
 	}
 

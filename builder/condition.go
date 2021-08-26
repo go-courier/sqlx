@@ -42,61 +42,61 @@ func (c *Condition) IsNil() bool {
 }
 
 func (c *Condition) And(cond SqlCondition) SqlCondition {
+	if IsNilExpr(cond) {
+		return c
+	}
 	return And(c, cond)
 }
 
 func (c *Condition) Or(cond SqlCondition) SqlCondition {
+	if IsNilExpr(cond) {
+		return c
+	}
 	return Or(c, cond)
 }
 
 func (c *Condition) Xor(cond SqlCondition) SqlCondition {
+	if IsNilExpr(cond) {
+		return c
+	}
 	return Xor(c, cond)
 }
 
 func And(conditions ...SqlCondition) SqlCondition {
-	return composedCondition("AND", conditions...)
+	return composedCondition("AND", filterNilCondition(conditions)...)
 }
 
 func Or(conditions ...SqlCondition) SqlCondition {
-	return composedCondition("OR", conditions...)
+	return composedCondition("OR", filterNilCondition(conditions)...)
 }
 
 func Xor(conditions ...SqlCondition) SqlCondition {
-	return composedCondition("XOR", conditions...)
+	return composedCondition("XOR", filterNilCondition(conditions)...)
 }
 
-func composedCondition(op string, conditions ...SqlCondition) SqlCondition {
-	final := filterNilCondition(conditions...)
-
-	if len(final) == 0 {
-		return nil
-	}
-
-	if len(final) == 1 {
-		return final[0]
-	}
-
-	return &ComposedCondition{op: op, conditions: final}
-}
-
-func filterNilCondition(conditions ...SqlCondition) []SqlCondition {
-	finalConditions := make([]SqlCondition, 0)
+func filterNilCondition(conditions []SqlCondition) []SqlCondition {
+	finals := make([]SqlCondition, 0, len(conditions))
 
 	for i := range conditions {
 		condition := conditions[i]
 		if IsNilExpr(condition) {
 			continue
 		}
-		finalConditions = append(finalConditions, condition)
+		finals = append(finals, condition)
 	}
 
-	return finalConditions
+	return finals
+}
+
+func composedCondition(op string, conditions ...SqlCondition) SqlCondition {
+	return &ComposedCondition{op: op, conditions: conditions}
 }
 
 type ComposedCondition struct {
+	SqlConditionMarker
+
 	op         string
 	conditions []SqlCondition
-	SqlConditionMarker
 }
 
 func (c *ComposedCondition) And(cond SqlCondition) SqlCondition {
@@ -112,31 +112,41 @@ func (c *ComposedCondition) Xor(cond SqlCondition) SqlCondition {
 }
 
 func (c *ComposedCondition) IsNil() bool {
-	return c == nil || c.op == "" || len(c.conditions) == 0
+	if c == nil {
+		return true
+	}
+	if c.op == "" {
+		return true
+	}
+
+	isNil := true
+
+	for i := range c.conditions {
+		if !IsNilExpr(c.conditions[i]) {
+			isNil = false
+			continue
+		}
+	}
+
+	return isNil
 }
 
 func (c *ComposedCondition) Ex(ctx context.Context) *Ex {
 	e := Expr("")
-
-	count := 0
+	e.Grow(len(c.conditions))
 
 	for i := range c.conditions {
 		condition := c.conditions[i]
-		if condition == nil || condition.IsNil() {
-			continue
-		}
 
-		if count > 0 {
-			e.WriteByte(' ')
-			e.WriteString(c.op)
-			e.WriteByte(' ')
+		if i > 0 {
+			e.WriteQueryByte(' ')
+			e.WriteQuery(c.op)
+			e.WriteQueryByte(' ')
 		}
 
 		e.WriteGroup(func(e *Ex) {
 			e.WriteExpr(condition)
 		})
-
-		count++
 	}
 
 	return e.Ex(ctx)

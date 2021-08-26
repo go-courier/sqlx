@@ -1,4 +1,4 @@
-package mysqlconnector
+package mysql
 
 import (
 	"database/sql"
@@ -85,7 +85,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 				key.Columns.Add(table.Col(indexSchema.COLUMN_NAME))
 			} else {
 				key := &builder.Key{}
-				key.Name = indexSchema.INDEX_NAME
+				key.Name = strings.ToLower(indexSchema.INDEX_NAME)
 				key.Method = indexSchema.INDEX_TYPE
 				key.IsUnique = indexSchema.NON_UNIQUE == 0
 				key.Columns, _ = table.Cols(indexSchema.COLUMN_NAME)
@@ -127,9 +127,7 @@ func colFromColumnSchema(columnSchema *ColumnSchema) *builder.Column {
 		dataType = dataType + " unsigned"
 	}
 
-	col.GetDataType = func(engine string) string {
-		return dataType
-	}
+	col.DataType = dataType
 
 	// numeric type
 	if columnSchema.NUMERIC_PRECISION > 0 {

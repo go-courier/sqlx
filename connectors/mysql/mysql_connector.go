@@ -1,4 +1,4 @@
-package mysqlconnector
+package mysql
 
 import (
 	"bytes"
@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	typex "github.com/go-courier/x/types"
 
 	"github.com/go-courier/sqlx/v2"
 	"github.com/go-courier/sqlx/v2/builder"
@@ -154,21 +156,21 @@ func (c MysqlConnector) IsErrorConflict(err error) bool {
 
 func (c *MysqlConnector) CreateDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("CREATE DATABASE ")
-	e.WriteString(dbName)
+	e.WriteQuery(dbName)
 	e.WriteEnd()
 	return e
 }
 
 func (c *MysqlConnector) CreateSchema(schema string) builder.SqlExpr {
 	e := builder.Expr("CREATE SCHEMA ")
-	e.WriteString(schema)
+	e.WriteQuery(schema)
 	e.WriteEnd()
 	return e
 }
 
 func (c *MysqlConnector) DropDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("DROP DATABASE ")
-	e.WriteString(dbName)
+	e.WriteQuery(dbName)
 	e.WriteEnd()
 	return e
 }
@@ -177,7 +179,7 @@ func (c *MysqlConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 	if key.IsPrimary() {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
-		e.WriteString(" ADD PRIMARY KEY ")
+		e.WriteQuery(" ADD PRIMARY KEY ")
 		e.WriteGroup(func(e *builder.Ex) {
 			e.WriteExpr(key.Columns)
 		})
@@ -187,24 +189,24 @@ func (c *MysqlConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 
 	e := builder.Expr("CREATE ")
 	if key.Method == "SPATIAL" {
-		e.WriteString("SPATIAL ")
+		e.WriteQuery("SPATIAL ")
 	} else if key.IsUnique {
-		e.WriteString("UNIQUE ")
+		e.WriteQuery("UNIQUE ")
 	}
-	e.WriteString("INDEX ")
+	e.WriteQuery("INDEX ")
 
-	e.WriteString(key.Name)
+	e.WriteQuery(key.Name)
 
-	e.WriteString(" ON ")
+	e.WriteQuery(" ON ")
 	e.WriteExpr(key.Table)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteGroup(func(e *builder.Ex) {
 		e.WriteExpr(key.Columns)
 	})
 
 	if key.Method == "BTREE" || key.Method == "HASH" {
-		e.WriteString(" USING ")
-		e.WriteString(key.Method)
+		e.WriteQuery(" USING ")
+		e.WriteQuery(key.Method)
 	}
 
 	e.WriteEnd()
@@ -215,16 +217,16 @@ func (c *MysqlConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	if key.IsPrimary() {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
-		e.WriteString(" DROP PRIMARY KEY")
+		e.WriteQuery(" DROP PRIMARY KEY")
 		e.WriteEnd()
 		return e
 	}
 	e := builder.Expr("DROP ")
 
-	e.WriteString("INDEX ")
-	e.WriteString(key.Name)
+	e.WriteQuery("INDEX ")
+	e.WriteQuery(key.Name)
 
-	e.WriteString(" ON ")
+	e.WriteQuery(" ON ")
 	e.WriteExpr(key.Table)
 	e.WriteEnd()
 
@@ -234,7 +236,7 @@ func (c *MysqlConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 func (c *MysqlConnector) CreateTableIsNotExists(table *builder.Table) (exprs []builder.SqlExpr) {
 	expr := builder.Expr("CREATE TABLE IF NOT EXISTS ")
 	expr.WriteExpr(table)
-	expr.WriteByte(' ')
+	expr.WriteQueryByte(' ')
 	expr.WriteGroup(func(e *builder.Ex) {
 		if table.Columns.IsNil() {
 			return
@@ -246,45 +248,45 @@ func (c *MysqlConnector) CreateTableIsNotExists(table *builder.Table) (exprs []b
 			}
 
 			if idx > 0 {
-				e.WriteByte(',')
+				e.WriteQueryByte(',')
 			}
-			e.WriteByte('\n')
-			e.WriteByte('\t')
+			e.WriteQueryByte('\n')
+			e.WriteQueryByte('\t')
 
 			e.WriteExpr(col)
-			e.WriteByte(' ')
+			e.WriteQueryByte(' ')
 			e.WriteExpr(c.DataType(col.ColumnType))
 		})
 
 		table.Keys.Range(func(key *builder.Key, idx int) {
 			if key.IsPrimary() {
-				e.WriteByte(',')
-				e.WriteByte('\n')
-				e.WriteByte('\t')
-				e.WriteString("PRIMARY KEY ")
+				e.WriteQueryByte(',')
+				e.WriteQueryByte('\n')
+				e.WriteQueryByte('\t')
+				e.WriteQuery("PRIMARY KEY ")
 				e.WriteGroup(func(e *builder.Ex) {
 					e.WriteExpr(key.Columns)
 				})
 			}
 		})
 
-		expr.WriteByte('\n')
+		expr.WriteQueryByte('\n')
 	})
 
-	expr.WriteString(" ENGINE=")
+	expr.WriteQuery(" ENGINE=")
 
 	if c.Engine == "" {
-		expr.WriteString("InnoDB")
+		expr.WriteQuery("InnoDB")
 	} else {
-		expr.WriteString(c.Engine)
+		expr.WriteQuery(c.Engine)
 	}
 
-	expr.WriteString(" CHARSET=")
+	expr.WriteQuery(" CHARSET=")
 
 	if c.Charset == "" {
-		expr.WriteString("utf8mb4")
+		expr.WriteQuery("utf8mb4")
 	} else {
-		expr.WriteString(c.Charset)
+		expr.WriteQuery(c.Charset)
 	}
 
 	expr.WriteEnd()
@@ -301,14 +303,14 @@ func (c *MysqlConnector) CreateTableIsNotExists(table *builder.Table) (exprs []b
 
 func (c *MysqlConnector) DropTable(t *builder.Table) builder.SqlExpr {
 	e := builder.Expr("DROP TABLE IF EXISTS ")
-	e.WriteString(t.Name)
+	e.WriteQuery(t.Name)
 	e.WriteEnd()
 	return e
 }
 
 func (c *MysqlConnector) TruncateTable(t *builder.Table) builder.SqlExpr {
 	e := builder.Expr("TRUNCATE TABLE ")
-	e.WriteString(t.Name)
+	e.WriteQuery(t.Name)
 	e.WriteEnd()
 	return e
 }
@@ -316,9 +318,9 @@ func (c *MysqlConnector) TruncateTable(t *builder.Table) builder.SqlExpr {
 func (c *MysqlConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" ADD COLUMN ")
+	e.WriteQuery(" ADD COLUMN ")
 	e.WriteExpr(col)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(c.DataType(col.ColumnType))
 	e.WriteEnd()
 	return e
@@ -327,11 +329,11 @@ func (c *MysqlConnector) AddColumn(col *builder.Column) builder.SqlExpr {
 func (c *MysqlConnector) RenameColumn(col *builder.Column, target *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" CHANGE ")
+	e.WriteQuery(" CHANGE ")
 	e.WriteExpr(col)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(target)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(c.DataType(target.ColumnType))
 	e.WriteEnd()
 	return e
@@ -340,14 +342,14 @@ func (c *MysqlConnector) RenameColumn(col *builder.Column, target *builder.Colum
 func (c *MysqlConnector) ModifyColumn(col *builder.Column, prev *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" MODIFY COLUMN ")
+	e.WriteQuery(" MODIFY COLUMN ")
 	e.WriteExpr(col)
-	e.WriteByte(' ')
+	e.WriteQueryByte(' ')
 	e.WriteExpr(c.DataType(col.ColumnType))
 
-	e.WriteString(" /* FROM")
+	e.WriteQuery(" /* FROM")
 	e.WriteExpr(c.DataType(prev.ColumnType))
-	e.WriteString(" */")
+	e.WriteQuery(" */")
 
 	e.WriteEnd()
 	return e
@@ -356,8 +358,8 @@ func (c *MysqlConnector) ModifyColumn(col *builder.Column, prev *builder.Column)
 func (c *MysqlConnector) DropColumn(col *builder.Column) builder.SqlExpr {
 	e := builder.Expr("ALTER TABLE ")
 	e.WriteExpr(col.Table)
-	e.WriteString(" DROP COLUMN ")
-	e.WriteString(col.Name)
+	e.WriteQuery(" DROP COLUMN ")
+	e.WriteQuery(col.Name)
 	e.WriteEnd()
 	return e
 }
@@ -367,14 +369,20 @@ func (c *MysqlConnector) DataType(columnType *builder.ColumnType) builder.SqlExp
 	return builder.Expr(dbDataType + autocompleteSize(dbDataType, columnType) + c.dataTypeModify(columnType))
 }
 
-func (c *MysqlConnector) dataType(typ reflect.Type, columnType *builder.ColumnType) string {
+func (c *MysqlConnector) dataType(typ typex.Type, columnType *builder.ColumnType) string {
 	dbDataType := dealias(c.dbDataType(typ, columnType))
 	return dbDataType + autocompleteSize(dbDataType, columnType)
 }
 
-func (c *MysqlConnector) dbDataType(typ reflect.Type, columnType *builder.ColumnType) string {
-	if columnType.GetDataType != nil {
-		return columnType.GetDataType(c.DriverName())
+func (c *MysqlConnector) dbDataType(typ typex.Type, columnType *builder.ColumnType) string {
+	if columnType.DataType != "" {
+		return columnType.DataType
+	}
+
+	if rv, ok := typex.TryNew(typ); ok {
+		if dtd, ok := rv.Interface().(builder.DataTypeDescriber); ok {
+			return dtd.DataType(c.DriverName())
+		}
 	}
 
 	switch typ.Kind() {

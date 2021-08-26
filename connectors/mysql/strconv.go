@@ -1,4 +1,4 @@
-package mysqlconnector
+package mysql
 
 import _ "unsafe"
 
