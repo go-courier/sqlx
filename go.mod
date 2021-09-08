@@ -12,7 +12,7 @@ require (
 	github.com/go-courier/x v0.0.6
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.3.0
-	github.com/lib/pq v1.10.2
+	github.com/lib/pq v1.10.3
 	github.com/onsi/gomega v1.16.0
 	github.com/pkg/errors v0.9.1
 )
