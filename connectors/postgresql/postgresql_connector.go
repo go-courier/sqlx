@@ -217,6 +217,7 @@ func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 		e.WriteQuery(m)
 	}
 
+	e.WriteQueryByte(' ')
 	e.WriteExpr(key.Def.TableExpr(key.Table))
 
 	e.WriteEnd()

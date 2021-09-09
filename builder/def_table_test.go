@@ -59,12 +59,36 @@ WHERE t_user.f_id > 1
 			Col("f_name").Field("Name").Type("", ",size=128,default=''"),
 			Col("f_nickname").Field("Nickname").Type("", ",size=128,default=''"),
 			PrimaryKey(Cols("f_id")),
+			Index("f_name", nil, "(#Name DESC NULLS LAST)"),
 		)
 
-		exprList := tUser2.Diff(tUser, &postgresql.PostgreSQLConnector{})
+		t.Run("from user to user2", func(t *testing.T) {
+			exprList := tUser2.Diff(tUser, &postgresql.PostgreSQLConnector{})
 
-		for _, expr := range exprList {
-			t.Log(expr.Ex(context.Background()).Query())
-		}
+			exprs := make([]string, len(exprList))
+			for i, expr := range exprList {
+				exprs[i] = expr.Ex(context.Background()).Query()
+			}
+
+			gomega.NewWithT(t).Expect(exprs).To(gomega.Equal([]string{
+				"ALTER TABLE t_user ADD COLUMN f_nickname character varying(128) NOT NULL DEFAULT ''::character varying;",
+				"ALTER TABLE t_user ADD PRIMARY KEY (f_id);",
+				"CREATE INDEX t_user_f_name ON t_user (f_name DESC NULLS LAST);",
+			}))
+		})
+
+		t.Run("from user2 to user1", func(t *testing.T) {
+			exprList := tUser.Diff(tUser2, &postgresql.PostgreSQLConnector{})
+
+			exprs := make([]string, len(exprList))
+			for i, expr := range exprList {
+				exprs[i] = expr.Ex(context.Background()).Query()
+			}
+
+			gomega.NewWithT(t).Expect(exprs).To(gomega.Equal([]string{
+				"ALTER TABLE t_user DROP CONSTRAINT t_user_pkey;",
+				"DROP INDEX IF EXISTS t_user_f_name",
+			}))
+		})
 	})
 }

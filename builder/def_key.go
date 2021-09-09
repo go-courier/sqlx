@@ -8,25 +8,27 @@ func PrimaryKey(columns *Columns) *Key {
 	return UniqueIndex("PRIMARY", columns)
 }
 
-func Index(name string, columns *Columns) *Key {
-	return &Key{
-		Name: strings.ToLower(name),
-		Def: IndexDef{
-			FieldNames: columns.FieldNames(),
-			ColNames:   columns.ColNames(),
-		},
-	}
+func UniqueIndex(name string, columns *Columns, exprs ...string) *Key {
+	key := Index(name, columns, exprs...)
+	key.IsUnique = true
+	return key
 }
 
-func UniqueIndex(name string, columns *Columns) *Key {
-	return &Key{
-		Name:     strings.ToLower(name),
-		IsUnique: true,
-		Def: IndexDef{
-			FieldNames: columns.FieldNames(),
-			ColNames:   columns.ColNames(),
-		},
+func Index(name string, columns *Columns, exprs ...string) *Key {
+	k := &Key{
+		Name: strings.ToLower(name),
 	}
+
+	if columns != nil {
+		k.Def.FieldNames = columns.FieldNames()
+		k.Def.ColNames = columns.ColNames()
+	}
+
+	if len(exprs) > 0 {
+		k.Def.Expr = strings.Join(exprs, " ")
+	}
+
+	return k
 }
 
 var _ TableDefinition = (*Key)(nil)
