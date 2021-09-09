@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.1](https://github.com/go-courier/sqlx/compare/v2.23.0...v2.23.1)
+
+### Bug Fixes
+
+* **fix(connectors/postgresql):** should have blank before index def ([b2601de](https://github.com/go-courier/sqlx/commit/b2601de9620b73151dd103acb38107ab1b1678cf))
+
+
+
 # [2.23.0](https://github.com/go-courier/sqlx/compare/v2.22.0...v2.23.0)
 
 ### Features
