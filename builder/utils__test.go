@@ -47,3 +47,43 @@ func TestValueMap(t *testing.T) {
 		gomega.NewWithT(t).Expect(GetColumnName("Text", "f_text2,default=''")).To(gomega.Equal("f_text2"))
 	})
 }
+
+func TestParseDef(t *testing.T) {
+	t.Run("index with Field Names", func(t *testing.T) {
+
+		i := ParseIndexDefine("index i_xxx/BTREE Name")
+
+		gomega.NewWithT(t).Expect(i).To(gomega.Equal(&IndexDefine{
+			Kind:   "index",
+			Name:   "i_xxx",
+			Method: "BTREE",
+			IndexDef: IndexDef{
+				FieldNames: []string{"Name"},
+			},
+		}))
+	})
+
+	t.Run("primary with Field Names", func(t *testing.T) {
+
+		i := ParseIndexDefine("primary ID Name")
+
+		gomega.NewWithT(t).Expect(i).To(gomega.Equal(&IndexDefine{
+			Kind: "primary",
+			IndexDef: IndexDef{
+				FieldNames: []string{"ID", "Name"},
+			},
+		}))
+	})
+
+	t.Run("index with expr", func(t *testing.T) {
+		i := ParseIndexDefine("index i_xxx USING GIST (#TEST gist_trgm_ops)")
+
+		gomega.NewWithT(t).Expect(i).To(gomega.Equal(&IndexDefine{
+			Kind: "index",
+			Name: "i_xxx",
+			IndexDef: IndexDef{
+				Expr: "USING GIST (#TEST gist_trgm_ops)",
+			},
+		}))
+	})
+}

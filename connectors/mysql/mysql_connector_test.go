@@ -36,7 +36,7 @@ func TestMysqlConnector(t *testing.T) {
 	})
 	t.Run("AddIndex", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.AddIndex(table.Key("I_name"))).
-			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE UNIQUE INDEX i_name ON t (f_name) USING BTREE;`))
+			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE UNIQUE INDEX i_name USING BTREE ON t (f_name);`))
 	})
 	t.Run("AddPrimaryKey", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.AddIndex(table.Key("PRIMARY"))).

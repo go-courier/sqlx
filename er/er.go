@@ -1,6 +1,7 @@
 package er
 
 import (
+	"context"
 	"strings"
 
 	typex "github.com/go-courier/x/types"
@@ -86,9 +87,10 @@ func DatabaseERFromDB(database *sqlx.Database, dialect builder.Dialect) *ERDatab
 				IsPrimary: key.Name == "primary",
 			}
 
-			key.Columns.Range(func(col *builder.Column, idx int) {
-				k.Cols = append(k.Cols, col.Name)
-			})
+			if q := key.Def.TableExpr(table).Ex(context.Background()).Query(); q != "" {
+				// todo rename
+				k.Cols = []string{q}
+			}
 
 			t.Keys[k.Name] = k
 		})

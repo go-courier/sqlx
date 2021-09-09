@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"fmt"
 	"go/types"
 	"reflect"
 	"regexp"
@@ -32,35 +31,47 @@ func (ks *Keys) PatchUniqueIndexesWithSoftDelete(softDeleteField string) {
 
 func (ks *Keys) Bind(table *builder.Table) {
 	if len(ks.Primary) > 0 {
-		cols, err := table.Fields(ks.Primary...)
-		if err != nil {
-			panic(fmt.Errorf("%s, please check primary def", err))
+		key := &builder.Key{
+			Name:     "primary",
+			IsUnique: true,
+			Def:      *builder.ParseIndexDef(ks.Primary...),
 		}
-		ks.Primary = cols.FieldNames()
-		table.AddKey(builder.PrimaryKey(cols))
+
+		_ = key.Def.TableExpr(table)
+
+		table.AddKey(key)
 	}
 
 	if len(ks.UniqueIndexes) > 0 {
 		for indexNameAndMethod, fieldNames := range ks.UniqueIndexes {
 			indexName, method := builder.ResolveIndexNameAndMethod(indexNameAndMethod)
-			cols, err := table.Fields(fieldNames...)
-			if err != nil {
-				panic(fmt.Errorf("%s, please check unique_index def", err))
+
+			key := &builder.Key{
+				Name:     indexName,
+				Method:   method,
+				IsUnique: true,
+				Def:      *builder.ParseIndexDef(fieldNames...),
 			}
-			ks.UniqueIndexes[indexNameAndMethod] = cols.FieldNames()
-			table.AddKey(builder.UniqueIndex(indexName, cols).Using(method))
+
+			_ = key.Def.TableExpr(table)
+
+			table.AddKey(key)
 		}
 	}
 
 	if len(ks.Indexes) > 0 {
 		for indexNameAndMethod, fieldNames := range ks.Indexes {
 			indexName, method := builder.ResolveIndexNameAndMethod(indexNameAndMethod)
-			cols, err := table.Fields(fieldNames...)
-			if err != nil {
-				panic(fmt.Errorf("%s, please check index def", err))
+
+			key := &builder.Key{
+				Name:   indexName,
+				Method: method,
+				Def:    *builder.ParseIndexDef(fieldNames...),
 			}
-			ks.Indexes[indexNameAndMethod] = cols.FieldNames()
-			table.AddKey(builder.Index(indexName, cols).Using(method))
+
+			_ = key.Def.TableExpr(table)
+
+			table.AddKey(key)
 		}
 	}
 }
@@ -109,46 +120,27 @@ func parseKeysFromDoc(doc string) (*Keys, []string) {
 
 		for _, subMatch := range matches {
 			if len(subMatch) == 2 {
-				defs := defSplit(subMatch[1])
+				def := builder.ParseIndexDefine(subMatch[1])
 
-				switch strings.ToLower(defs[0]) {
+				switch def.Kind {
 				case "primary":
-					if len(defs) < 2 {
-						panic(fmt.Errorf("primary at lease 1 StructField"))
-					}
-					ks.Primary = defs[1:]
+					ks.Primary = def.ToDefs()
 				case "unique_index":
-					if len(defs) < 3 {
-						panic(fmt.Errorf("unique indexes at lease 1 StructField"))
-					}
 					if ks.UniqueIndexes == nil {
 						ks.UniqueIndexes = builder.Indexes{}
 					}
-					ks.UniqueIndexes[defs[1]] = defs[2:]
+					ks.UniqueIndexes[def.ID()] = def.ToDefs()
 				case "index":
-					if len(defs) < 3 {
-						panic(fmt.Errorf("index at lease 1 StructField"))
-					}
 					if ks.Indexes == nil {
 						ks.Indexes = builder.Indexes{}
 					}
-					ks.Indexes[defs[1]] = defs[2:]
+					ks.Indexes[def.ID()] = def.ToDefs()
 				}
 			}
 		}
 	}
 
 	return ks, others
-}
-
-func defSplit(def string) (defs []string) {
-	vs := strings.Split(def, " ")
-	for _, s := range vs {
-		if s != "" {
-			defs = append(defs, s)
-		}
-	}
-	return
 }
 
 func toDefaultTableName(name string) string {

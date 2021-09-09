@@ -204,7 +204,7 @@ From(
 
 func (m *Model) WriteByKey(file *codegen.File) {
 	m.Table.Keys.Range(func(key *builder.Key, idx int) {
-		fieldNames := key.Columns.FieldNames()
+		fieldNames := key.Def.FieldNames
 
 		fieldNamesWithoutEnabled := stringFilter(fieldNames, func(item string, i int) bool {
 			if m.HasDeletedAt {

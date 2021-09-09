@@ -135,8 +135,6 @@ func (t *Table) Expr(query string, args ...interface{}) *Ex {
 				break
 			}
 
-			//spew.Dump(fieldNameBuf.String())
-
 			if fieldNameBuf.Len() == 0 {
 				e.AppendArgs(t)
 			} else {
@@ -245,9 +243,14 @@ func (t *Table) Diff(prevTable *Table, dialect Dialect) (exprList []SqlExpr) {
 		if prevKey == nil {
 			exprList = append(exprList, dialect.AddIndex(key))
 		} else {
-			if !key.IsPrimary() && ResolveExpr(key.Columns).Query() != ResolveExpr(prevKey.Columns).Query() {
-				exprList = append(exprList, dialect.DropIndex(key))
-				exprList = append(exprList, dialect.AddIndex(key))
+			if !key.IsPrimary() {
+				indexDef := key.Def.TableExpr(key.Table).Ex(context.Background()).Query()
+				prevIndexDef := prevKey.Def.TableExpr(prevKey.Table).Ex(context.Background()).Query()
+
+				if !strings.EqualFold(indexDef, prevIndexDef) {
+					exprList = append(exprList, dialect.DropIndex(key))
+					exprList = append(exprList, dialect.AddIndex(key))
+				}
 			}
 		}
 	})

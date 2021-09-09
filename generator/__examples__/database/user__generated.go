@@ -17,25 +17,25 @@ func (User) PrimaryKey() []string {
 
 func (User) Indexes() github_com_go_courier_sqlx_v2_builder.Indexes {
 	return github_com_go_courier_sqlx_v2_builder.Indexes{
-		"I_geom/SPATIAL": []string{
-			"Geom",
+		"i_geom/SPATIAL": []string{
+			"(#Geom)",
 		},
-		"I_nickname/BTREE": []string{
+		"i_nickname/BTREE": []string{
 			"Nickname",
 		},
-		"I_username": []string{
+		"i_username": []string{
 			"Username",
 		},
 	}
 }
 
 func (User) UniqueIndexIName() string {
-	return "I_name"
+	return "i_name"
 }
 
 func (User) UniqueIndexes() github_com_go_courier_sqlx_v2_builder.Indexes {
 	return github_com_go_courier_sqlx_v2_builder.Indexes{
-		"I_name": []string{
+		"i_name": []string{
 			"Name",
 			"DeletedAt",
 		},
@@ -163,7 +163,6 @@ func (User) ColRelations() map[string][]string {
 
 func (m *User) IndexFieldNames() []string {
 	return []string{
-		"Geom",
 		"ID",
 		"Name",
 		"Nickname",
@@ -606,20 +605,6 @@ func (m *User) Count(db github_com_go_courier_sqlx_v2.DBExecutor, condition gith
 	)
 
 	return count, err
-
-}
-
-func (m *User) BatchFetchByGeomList(db github_com_go_courier_sqlx_v2.DBExecutor, values []GeomString) ([]User, error) {
-
-	if len(values) == 0 {
-		return nil, nil
-	}
-
-	table := db.T(m)
-
-	condition := table.F("Geom").In(values)
-
-	return m.List(db, condition)
 
 }
 

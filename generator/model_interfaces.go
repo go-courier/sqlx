@@ -11,7 +11,7 @@ func (m *Model) IndexFieldNames() []string {
 	indexedFields := make([]string, 0)
 
 	m.Table.Keys.Range(func(key *builder.Key, idx int) {
-		fieldNames := key.Columns.FieldNames()
+		fieldNames := key.Def.FieldNames
 		indexedFields = append(indexedFields, fieldNames...)
 	})
 

@@ -82,13 +82,14 @@ func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 			table := database.Table(indexSchema.TABLE_NAME)
 
 			if key := table.Keys.Key(indexSchema.INDEX_NAME); key != nil {
-				key.Columns.Add(table.Col(indexSchema.COLUMN_NAME))
+				key.Def.ColNames = append(key.Def.ColNames, indexSchema.COLUMN_NAME)
 			} else {
 				key := &builder.Key{}
 				key.Name = strings.ToLower(indexSchema.INDEX_NAME)
 				key.Method = indexSchema.INDEX_TYPE
 				key.IsUnique = indexSchema.NON_UNIQUE == 0
-				key.Columns, _ = table.Cols(indexSchema.COLUMN_NAME)
+				key.Def.ColNames = []string{indexSchema.COLUMN_NAME}
+
 				table.AddKey(key)
 			}
 		}
@@ -188,6 +189,7 @@ type IndexSchema struct {
 	INDEX_NAME   string `db:"INDEX_NAME"`
 	SEQ_IN_INDEX int32  `db:"SEQ_IN_INDEX"`
 	COLUMN_NAME  string `db:"COLUMN_NAME"`
+	SUB_PART     string `db:"SUB_PART"`
 	INDEX_TYPE   string `db:"INDEX_TYPE"`
 }
 

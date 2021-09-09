@@ -180,9 +180,7 @@ func (c *MysqlConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
 		e.WriteQuery(" ADD PRIMARY KEY ")
-		e.WriteGroup(func(e *builder.Ex) {
-			e.WriteExpr(key.Columns)
-		})
+		e.WriteExpr(key.Def.TableExpr(key.Table))
 		e.WriteEnd()
 		return e
 	}
@@ -197,17 +195,16 @@ func (c *MysqlConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 
 	e.WriteQuery(key.Name)
 
-	e.WriteQuery(" ON ")
-	e.WriteExpr(key.Table)
-	e.WriteQueryByte(' ')
-	e.WriteGroup(func(e *builder.Ex) {
-		e.WriteExpr(key.Columns)
-	})
-
 	if key.Method == "BTREE" || key.Method == "HASH" {
 		e.WriteQuery(" USING ")
 		e.WriteQuery(key.Method)
 	}
+
+	e.WriteQuery(" ON ")
+	e.WriteExpr(key.Table)
+
+	e.WriteQueryByte(' ')
+	e.WriteExpr(key.Def.TableExpr(key.Table))
 
 	e.WriteEnd()
 	return e
@@ -264,9 +261,7 @@ func (c *MysqlConnector) CreateTableIsNotExists(table *builder.Table) (exprs []b
 				e.WriteQueryByte('\n')
 				e.WriteQueryByte('\t')
 				e.WriteQuery("PRIMARY KEY ")
-				e.WriteGroup(func(e *builder.Ex) {
-					e.WriteExpr(key.Columns)
-				})
+				e.WriteExpr(key.Def.TableExpr(key.Table))
 			}
 		})
 

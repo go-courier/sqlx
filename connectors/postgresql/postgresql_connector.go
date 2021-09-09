@@ -191,9 +191,7 @@ func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 		e := builder.Expr("ALTER TABLE ")
 		e.WriteExpr(key.Table)
 		e.WriteQuery(" ADD PRIMARY KEY ")
-		e.WriteGroup(func(e *builder.Ex) {
-			e.WriteExpr(key.Columns)
-		})
+		e.WriteExpr(key.Def.TableExpr(key.Table))
 		e.WriteEnd()
 		return e
 	}
@@ -211,25 +209,15 @@ func (c *PostgreSQLConnector) AddIndex(key *builder.Key) builder.SqlExpr {
 	e.WriteQuery(" ON ")
 	e.WriteExpr(key.Table)
 
-	if map[string]bool{
-		"BTREE":   true,
-		"HASH":    true,
-		"SPATIAL": true,
-		"GIST":    true,
-	}[strings.ToUpper(key.Method)] {
-		e.WriteQuery(" USING ")
-
-		if key.Method == "SPATIAL" {
-			e.WriteQuery("GIST")
-		} else {
-			e.WriteQuery(key.Method)
+	if m := strings.ToUpper(key.Method); m != "" {
+		if m == "SPATIAL" {
+			m = "GIST"
 		}
+		e.WriteQuery(" USING ")
+		e.WriteQuery(m)
 	}
 
-	e.WriteQueryByte(' ')
-	e.WriteGroup(func(e *builder.Ex) {
-		e.WriteExpr(key.Columns)
-	})
+	e.WriteExpr(key.Def.TableExpr(key.Table))
 
 	e.WriteEnd()
 	return e
@@ -286,9 +274,7 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 				e.WriteQueryByte('\n')
 				e.WriteQueryByte('\t')
 				e.WriteQuery("PRIMARY KEY ")
-				e.WriteGroup(func(e *builder.Ex) {
-					e.WriteExpr(key.Columns)
-				})
+				e.WriteExpr(key.Def.TableExpr(key.Table))
 			}
 		})
 

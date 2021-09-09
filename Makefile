@@ -16,3 +16,6 @@ tidy: fmt
 
 install.goimports:
 	go install golang.org/x/tools/cmd/goimports
+
+install.go-mod-outdated:
+	go install github.com/psampaz/go-mod-outdated@v0.8.0

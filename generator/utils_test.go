@@ -35,8 +35,8 @@ desc
 `)
 		gomega.NewWithT(t).Expect(keys).To(gomega.Equal(&Keys{
 			Indexes: builder.Indexes{
-				"I_name":          []string{"Name"},
-				"I_nickname/HASH": []string{"Nickname", "Name"},
+				"i_name":          []string{"Name"},
+				"i_nickname/HASH": []string{"Nickname", "Name"},
 			},
 		}))
 	})
@@ -51,12 +51,12 @@ desc
 		gomega.NewWithT(t).Expect(keys).To(gomega.Equal(&Keys{
 			Primary: []string{"ID"},
 			Indexes: builder.Indexes{
-				"I_nickname/BTREE": []string{"Nickname"},
-				"I_username":       []string{"Username"},
-				"I_geom/SPATIAL":   []string{"Geom"},
+				"i_nickname/BTREE": []string{"Nickname"},
+				"i_username":       []string{"Username"},
+				"i_geom/SPATIAL":   []string{"Geom"},
 			},
 			UniqueIndexes: builder.Indexes{
-				"I_name": []string{"Name"},
+				"i_name": []string{"Name"},
 			},
 		}))
 	})

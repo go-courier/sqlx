@@ -9,7 +9,7 @@ import (
 // @def primary ID
 // @def index I_nickname/BTREE Nickname
 // @def index I_username Username
-// @def index I_geom/SPATIAL Geom
+// @def index I_geom/SPATIAL (#Geom)
 // @def unique_index I_name Name
 type User struct {
 	ID uint64 `db:"f_id,autoincrement"`

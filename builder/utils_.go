@@ -234,41 +234,85 @@ func ScanDefToTable(table *Table, i interface{}) {
 	}
 
 	if primaryKeyHook, ok := i.(WithPrimaryKey); ok {
-		cols, err := table.Fields(primaryKeyHook.PrimaryKey()...)
-		if err != nil {
-			panic(fmt.Errorf("invalid primary key of table %s: %s", table.Name, err))
-		}
-		table.AddKey(PrimaryKey(cols))
+		table.AddKey(&Key{
+			Name:     "primary",
+			IsUnique: true,
+			Def:      *ParseIndexDef(primaryKeyHook.PrimaryKey()...),
+		})
 	}
 
 	if uniqueIndexesHook, ok := i.(WithUniqueIndexes); ok {
 		for indexNameAndMethod, fieldNames := range uniqueIndexesHook.UniqueIndexes() {
 			indexName, method := ResolveIndexNameAndMethod(indexNameAndMethod)
-			cols, err := table.Fields(fieldNames...)
-			if err != nil {
-				panic(fmt.Errorf("invalid unique index %s of table %s: %s", indexName, table.Name, err))
-			}
-			table.AddKey(UniqueIndex(indexName, cols).Using(method))
+
+			table.AddKey(&Key{
+				Name:     indexName,
+				Method:   method,
+				IsUnique: true,
+				Def:      *ParseIndexDef(fieldNames...),
+			})
 		}
 	}
 
 	if indexesHook, ok := i.(WithIndexes); ok {
 		for indexNameAndMethod, fieldNames := range indexesHook.Indexes() {
 			indexName, method := ResolveIndexNameAndMethod(indexNameAndMethod)
-			cols, err := table.Fields(fieldNames...)
-			if err != nil {
-				panic(fmt.Errorf("invalid index %s of table %s: %s", indexName, table.Name, err))
-			}
-			table.AddKey(Index(indexName, cols).Using(method))
+
+			table.AddKey(&Key{
+				Name:   indexName,
+				Method: method,
+				Def:    *ParseIndexDef(fieldNames...),
+			})
 		}
 	}
 }
 
 func ResolveIndexNameAndMethod(n string) (name string, method string) {
 	nameAndMethod := strings.Split(n, "/")
-	name = nameAndMethod[0]
+	name = strings.ToLower(nameAndMethod[0])
 	if len(nameAndMethod) > 1 {
 		method = nameAndMethod[1]
 	}
 	return
+}
+
+// ParseIndexDefine
+// @def index i_xxx/BTREE Name
+// @def index i_xxx USING GIST (#TEST gist_trgm_ops)
+func ParseIndexDefine(def string) *IndexDefine {
+	d := IndexDefine{}
+
+	for i := strings.Index(def, " "); i != -1; i = strings.Index(def, " ") {
+		part := def[0:i]
+
+		if part != "" {
+			if d.Kind == "" {
+				d.Kind = part
+			} else if d.Name == "" && d.Kind != "primary" {
+				d.Name, d.Method = ResolveIndexNameAndMethod(part)
+			} else {
+				break
+			}
+		}
+
+		def = def[i+1:]
+	}
+
+	d.IndexDef = *ParseIndexDef(strings.TrimSpace(def))
+
+	return &d
+}
+
+type IndexDefine struct {
+	Kind   string
+	Name   string
+	Method string
+	IndexDef
+}
+
+func (i IndexDefine) ID() string {
+	if i.Method != "" {
+		return i.Name + "/" + i.Method
+	}
+	return i.Name
 }

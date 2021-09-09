@@ -10,8 +10,11 @@ func PrimaryKey(columns *Columns) *Key {
 
 func Index(name string, columns *Columns) *Key {
 	return &Key{
-		Name:    strings.ToLower(name),
-		Columns: columns,
+		Name: strings.ToLower(name),
+		Def: IndexDef{
+			FieldNames: columns.FieldNames(),
+			ColNames:   columns.ColNames(),
+		},
 	}
 }
 
@@ -19,19 +22,71 @@ func UniqueIndex(name string, columns *Columns) *Key {
 	return &Key{
 		Name:     strings.ToLower(name),
 		IsUnique: true,
-		Columns:  columns,
+		Def: IndexDef{
+			FieldNames: columns.FieldNames(),
+			ColNames:   columns.ColNames(),
+		},
 	}
 }
 
 var _ TableDefinition = (*Key)(nil)
 
+func ParseIndexDef(parts ...string) *IndexDef {
+	fe := IndexDef{}
+
+	if len(parts) == 1 {
+		s := parts[0]
+
+		if strings.Contains(s, "#") || strings.Contains(s, "(") {
+			fe.Expr = s
+		} else {
+			fe.FieldNames = strings.Split(s, " ")
+		}
+	} else {
+		fe.FieldNames = parts
+	}
+
+	return &fe
+}
+
+type IndexDef struct {
+	FieldNames []string
+	ColNames   []string
+	Expr       string
+}
+
+func (e IndexDef) ToDefs() []string {
+	if e.Expr != "" {
+		return []string{e.Expr}
+	}
+	return e.FieldNames
+}
+
+func (e IndexDef) TableExpr(t *Table) *Ex {
+	if len(e.Expr) != 0 {
+		return t.Expr(e.Expr)
+	}
+	if len(e.ColNames) != 0 {
+		ex := Expr("")
+		ex.WriteGroup(func(ex *Ex) {
+			ex.WriteExpr(t.MustCols(e.ColNames...))
+		})
+		return ex
+	}
+	ex := Expr("")
+	ex.WriteGroup(func(ex *Ex) {
+		ex.WriteExpr(t.MustFields(e.FieldNames...))
+	})
+	return ex
+}
+
 type Key struct {
-	Columns *Columns
-	Table   *Table
+	Table *Table
 
 	Name     string
 	IsUnique bool
 	Method   string
+	Def      IndexDef
 }
 
 func (key Key) On(table *Table) *Key {

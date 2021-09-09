@@ -17,6 +17,8 @@ func toInterfaces(list ...string) []interface{} {
 	return s
 }
 
+var reUsing = regexp.MustCompile(`USING ([^ ]+)`)
+
 func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 	d := db.D()
 
@@ -88,14 +90,11 @@ func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 
 			key := &builder.Key{}
 			key.Name = strings.ToLower(indexSchema.INDEX_NAME[len(table.Name)+1:])
-			key.Method = strings.ToUpper(regexp.MustCompile(`USING ([^ ]+)`).FindString(indexSchema.INDEX_DEF)[6:])
+			key.Method = strings.ToUpper(reUsing.FindString(indexSchema.INDEX_DEF)[6:])
 			key.IsUnique = strings.Contains(indexSchema.INDEX_DEF, "UNIQUE")
 
-			fields := regexp.MustCompile(`\([^\)]+\)`).FindString(indexSchema.INDEX_DEF)
-			if len(fields) > 0 {
-				fields = fields[1 : len(fields)-1]
-			}
-			key.Columns, _ = table.Cols(strings.Split(fields, ", ")...)
+			key.Def.Expr = strings.TrimSpace(reUsing.Split(indexSchema.INDEX_DEF, 2)[1])
+
 			table.AddKey(key)
 		}
 	}

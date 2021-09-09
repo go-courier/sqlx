@@ -22,7 +22,7 @@ func TestPostgreSQLConnector(t *testing.T) {
 		builder.Col("F_created_at").Type(int64(0), ",default='0'"),
 		builder.Col("F_updated_at").Type(int64(0), ",default='0'"),
 		builder.PrimaryKey(builder.Cols("F_id")),
-		builder.UniqueIndex("I_name", builder.Cols("F_name")).Using("BTREE"),
+		builder.UniqueIndex("I_name", builder.Cols("F_id", "F_name")).Using("BTREE"),
 		builder.Index("I_created_at", builder.Cols("F_created_at")).Using("BTREE"),
 		builder.Index("I_geo", builder.Cols("F_geo")).Using("SPATIAL"),
 	)
@@ -41,7 +41,7 @@ func TestPostgreSQLConnector(t *testing.T) {
 		},
 		"AddIndex": {
 			c.AddIndex(table.Key("I_name")),
-			builder.Expr( /* language=PostgreSQL */ "CREATE UNIQUE INDEX t_i_name ON t USING BTREE (f_name);"),
+			builder.Expr( /* language=PostgreSQL */ "CREATE UNIQUE INDEX t_i_name ON t USING BTREE (f_id, f_name);"),
 		},
 		"AddPrimaryKey": {
 			c.AddIndex(table.Key("PRIMARY")),

@@ -89,11 +89,23 @@ func (cols *Columns) Fields(structFieldNames ...string) (*Columns, error) {
 }
 
 func (cols *Columns) FieldNames() []string {
-	fieldNames := make([]string, len(cols.l))
+	fieldNames := make([]string, 0, len(cols.l))
 	cols.Range(func(col *Column, idx int) {
-		fieldNames[idx] = col.FieldName
+		if col.FieldName != "" {
+			fieldNames = append(fieldNames, col.FieldName)
+		}
 	})
 	return fieldNames
+}
+
+func (cols *Columns) ColNames() []string {
+	colNames := make([]string, 0, len(cols.l))
+	cols.Range(func(col *Column, idx int) {
+		if col.Name != "" {
+			colNames = append(colNames, col.Name)
+		}
+	})
+	return colNames
 }
 
 func (cols *Columns) F(structFieldName string) (col *Column) {
@@ -112,6 +124,14 @@ func (cols *Columns) List() (l []*Column) {
 		return cols.l
 	}
 	return nil
+}
+
+func (cols *Columns) MustCols(colNames ...string) *Columns {
+	nextCols, err := cols.Cols(colNames...)
+	if err != nil {
+		panic(err)
+	}
+	return nextCols
 }
 
 func (cols *Columns) Cols(colNames ...string) (*Columns, error) {
