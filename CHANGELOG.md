@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.0](https://github.com/go-courier/sqlx/compare/v2.22.0...v2.23.0)
+
+### Features
+
+* **feat** custom index def ([e5a928c](https://github.com/go-courier/sqlx/commit/e5a928c666d0234ecc5f1868afc7885e6477c94e))
+
+
+
 # [2.22.0](https://github.com/go-courier/sqlx/compare/v2.21.6...v2.22.0)
 
 ### Features
