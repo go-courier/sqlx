@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.4](https://github.com/go-courier/sqlx/compare/v2.23.3...v2.23.4)
+
+### Bug Fixes
+
+* **fix(builder):** TableFiels should store loc of model value ([41843c2](https://github.com/go-courier/sqlx/commit/41843c2b8d86f4354355efc1ecc68e7e93f83bb8))
+
+
+
 # [2.23.3](https://github.com/go-courier/sqlx/compare/v2.23.2...v2.23.3)
 
 ### Bug Fixes
