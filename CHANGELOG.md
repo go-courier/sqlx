@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.5](https://github.com/go-courier/sqlx/compare/v2.23.4...v2.23.5)
+
+### Bug Fixes
+
+* **fix(builder):** reflectx should use x/reflect ([7d69bea](https://github.com/go-courier/sqlx/commit/7d69bea5f35b39862a0cc1fde4d980ee7476d148))
+
+
+
 # [2.23.4](https://github.com/go-courier/sqlx/compare/v2.23.3...v2.23.4)
 
 ### Bug Fixes
