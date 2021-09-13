@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.7](https://github.com/go-courier/sqlx/compare/v2.23.6...v2.23.7)
+
+### Bug Fixes
+
+* **fix(builder):** EachStructField fix ([1b71e9b](https://github.com/go-courier/sqlx/commit/1b71e9bdc7c9f37643b6322f357e635d907c3066))
+
+
+
 # [2.23.6](https://github.com/go-courier/sqlx/compare/v2.23.5...v2.23.6)
 
 ### Bug Fixes
