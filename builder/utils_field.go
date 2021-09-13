@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"go/ast"
 	"reflect"
@@ -47,6 +48,7 @@ func (tf *StructFieldsFactory) TableFieldsFor(ctx context.Context, typ typesx.Ty
 }
 
 var typeModel = reflect.TypeOf((*Model)(nil)).Elem()
+var driverValuer = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 
 func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructField) bool) {
 	if tpe.Kind() != reflect.Struct {
@@ -88,9 +90,7 @@ func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructFi
 			if (f.Anonymous() || f.Type().Name() == f.Name()) && (!hasDB) {
 				fieldType := f.Type()
 
-				_, ok := typesx.EncodingTextMarshalerTypeReplacer(fieldType)
-
-				if !ok {
+				if !fieldType.Implements(typesx.FromRType(driverValuer)) {
 					for fieldType.Kind() == reflect.Ptr {
 						fieldType = fieldType.Elem()
 					}
