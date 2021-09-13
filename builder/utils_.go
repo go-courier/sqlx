@@ -6,10 +6,9 @@ import (
 	"reflect"
 	"strings"
 
-	typesx "github.com/go-courier/x/types"
-
 	contextx "github.com/go-courier/x/context"
 	reflectx "github.com/go-courier/x/reflect"
+	typesx "github.com/go-courier/x/types"
 )
 
 type FieldValues map[string]interface{}
@@ -111,12 +110,22 @@ func ForEachStructFieldValue(ctx context.Context, v interface{}, fn func(*Struct
 
 		if tableAlias, ok := f.Tags["alias"]; ok {
 			ctx = WithTableAlias(tableAlias.Name())(ctx)
+		} else {
+			if len(f.ModelLoc) > 0 {
+				fpv := f.FieldModelValue(rv)
+				if fpv.IsValid() {
+					if m, ok := fpv.Interface().(Model); ok {
+						ctx = WithTableName(m.TableName())(ctx)
+					}
+				}
+			}
 		}
 
 		sf := &StructFieldValue{}
 
 		sf.Field = *f
 		sf.Value = f.FieldValue(rv)
+
 		sf.TableName = TableNameFromContext(ctx)
 
 		if tableAlias := TableAliasFromContext(ctx); tableAlias != "" {

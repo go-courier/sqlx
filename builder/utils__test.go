@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -8,9 +10,9 @@ import (
 
 func TestValueMap(t *testing.T) {
 	type User struct {
-		ID       uint64 `db:"F_id"`
-		Name     string `db:"F_name"`
-		Username string `db:"F_username"`
+		ID       uint64 `db:"f_id"`
+		Name     string `db:"f_name"`
+		Username string `db:"f_username"`
 	}
 
 	user := User{
@@ -85,5 +87,56 @@ func TestParseDef(t *testing.T) {
 				Expr: "USING GIST (#TEST gist_trgm_ops)",
 			},
 		}))
+	})
+}
+
+type User struct {
+	ID       uint64 `db:"f_id"`
+	Name     string `db:"f_name"`
+	Username string `db:"f_username"`
+}
+
+func (User) TableName() string {
+	return "t_user"
+}
+
+type OrgUser struct {
+	OrgID  uint64 `db:"f_org_id"`
+	UserID uint64 `db:"f_user_id"`
+}
+
+func (OrgUser) TableName() string {
+	return "t_org_user"
+}
+
+type Org struct {
+	ID   uint64 `db:"f_id"`
+	Name string `db:"f_name"`
+}
+
+func (Org) TableName() string {
+	return "t_org"
+}
+
+type OrgUserAll struct {
+	OrgUser
+	User User `json:"user"`
+	Org  Org  `json:"org"`
+}
+
+func TestColumnsByStruct(t *testing.T) {
+	t.Run("simple", func(t *testing.T) {
+		q := ColumnsByStruct(&User{}).Ex(context.Background()).Query()
+		gomega.NewWithT(t).Expect(q).To(gomega.Equal("t_user.f_id AS t_user__f_id, t_user.f_name AS t_user__f_name, t_user.f_username AS t_user__f_username"))
+	})
+
+	t.Run("joined", func(t *testing.T) {
+		q := ColumnsByStruct(&OrgUserAll{}).Ex(context.Background()).Query()
+
+		for _, g := range strings.Split(q, ", ") {
+			t.Log(g)
+		}
+
+		gomega.NewWithT(t).Expect(q).To(gomega.Equal("t_org_user.f_org_id AS t_org_user__f_org_id, t_org_user.f_user_id AS t_org_user__f_user_id, t_user.f_id AS t_user__f_id, t_user.f_name AS t_user__f_name, t_user.f_username AS t_user__f_username, t_org.f_id AS t_org__f_id, t_org.f_name AS t_org__f_name"))
 	})
 }

@@ -43,14 +43,20 @@ func (tf *StructFieldsFactory) TableFieldsFor(ctx context.Context, typ typesx.Ty
 	return tfs
 }
 
+var typeModel = reflect.TypeOf((*Model)(nil)).Elem()
+
 func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructField) bool) {
 	if tpe.Kind() != reflect.Struct {
 		panic(fmt.Errorf("model %s must be a struct", tpe.Name()))
 	}
 
-	var walk func(tpe typesx.Type, parents ...int)
+	var walk func(tpe typesx.Type, modelLoc []int, parents ...int)
 
-	walk = func(tpe typesx.Type, parents ...int) {
+	walk = func(tpe typesx.Type, modelLoc []int, parents ...int) {
+		if ok := tpe.Implements(typesx.FromRType(typeModel)); ok {
+			modelLoc = parents
+		}
+
 		for i := 0; i < tpe.NumField(); i++ {
 			f := tpe.Field(i)
 
@@ -76,7 +82,7 @@ func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructFi
 				}
 			}
 
-			if f.Anonymous() && (!hasDB) {
+			if (f.Anonymous() || f.Type().Name() == f.Name()) && (!hasDB) {
 				fieldType := f.Type()
 
 				_, ok := typesx.EncodingTextMarshalerTypeReplacer(fieldType)
@@ -87,7 +93,7 @@ func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructFi
 					}
 
 					if fieldType.Kind() == reflect.Struct {
-						walk(fieldType, loc...)
+						walk(fieldType, modelLoc, loc...)
 						continue
 					}
 				}
@@ -100,6 +106,7 @@ func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructFi
 			p.Tags = tags
 			p.Name = strings.ToLower(displayName)
 			p.Loc = loc
+			p.ModelLoc = modelLoc
 			p.ColumnType = *ColumnTypeFromTypeAndTag(p.Type, string(tagDB))
 
 			if !each(p) {
@@ -108,7 +115,7 @@ func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructFi
 		}
 	}
 
-	walk(tpe)
+	walk(tpe, []int{})
 }
 
 type StructField struct {
@@ -118,13 +125,22 @@ type StructField struct {
 	Field      typesx.StructField
 	Tags       map[string]reflectx.StructTag
 	Loc        []int
+	ModelLoc   []int
 	ColumnType ColumnType
 }
 
-func (p *StructField) FieldValue(structReflectValue reflect.Value) reflect.Value {
-	structReflectValue = reflectx.Indirect(structReflectValue)
+func (p *StructField) fieldValue(structReflectValue reflect.Value, loc []int) reflect.Value {
+	n := len(loc)
 
-	n := len(p.Loc)
+	if n == 0 {
+		return structReflectValue
+	}
+
+	if n < 0 {
+		return reflect.Value{}
+	}
+
+	structReflectValue = reflectx.Indirect(structReflectValue)
 
 	fieldValue := structReflectValue
 
@@ -145,4 +161,12 @@ func (p *StructField) FieldValue(structReflectValue reflect.Value) reflect.Value
 	}
 
 	return fieldValue
+}
+
+func (p *StructField) FieldValue(structReflectValue reflect.Value) reflect.Value {
+	return p.fieldValue(structReflectValue, p.Loc)
+}
+
+func (p *StructField) FieldModelValue(structReflectValue reflect.Value) reflect.Value {
+	return p.fieldValue(structReflectValue, p.ModelLoc)
 }
