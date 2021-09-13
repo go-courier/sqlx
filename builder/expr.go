@@ -8,9 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	reflectx "github.com/go-courier/x/reflect"
-
-	contextx "github.com/go-courier/x/context"
+	"github.com/go-courier/reflectx"
 )
 
 type SqlExpr interface {
@@ -209,7 +207,7 @@ func (e *Ex) Ex(ctx context.Context) *Ex {
 
 	args, n := e.args, len(e.args)
 
-	eb := exprBuilderFromContext(ctx)
+	eb := Expr("")
 	eb.Grow(n)
 
 	query := e.Query()
@@ -242,7 +240,7 @@ func (e *Ex) Ex(ctx context.Context) *Ex {
 			switch arg := args[argIndex].(type) {
 			case SqlExpr:
 				if !IsNilExpr(arg) {
-					subExpr := arg.Ex(contextWithExprBuilder(ctx, eb))
+					subExpr := arg.Ex(ctx)
 
 					if subExpr != eb && !IsNilExpr(subExpr) {
 						eb.WriteQuery(subExpr.Query())
@@ -392,17 +390,4 @@ func toInterfaceSlice(arg interface{}) []interface{} {
 		values[i] = sliceRv.Index(i).Interface()
 	}
 	return values
-}
-
-type contextKeyEx struct{}
-
-func contextWithExprBuilder(ctx context.Context, ex *Ex) context.Context {
-	return contextx.WithValue(ctx, contextKeyEx{}, ex)
-}
-
-func exprBuilderFromContext(ctx context.Context) *Ex {
-	if ex, ok := ctx.Value(contextKeyEx{}).(*Ex); ok {
-		return ex
-	}
-	return Expr("")
 }
