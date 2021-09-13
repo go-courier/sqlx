@@ -287,7 +287,7 @@ func preprocessArgs(args []interface{}) bool {
 			args[i] = exactlyExprFromSlice(arg)
 			shouldResolve = true
 		default:
-			if typ := reflect.TypeOf(arg); !reflectx.IsBytes(typ) && typ.Kind() == reflect.Slice {
+			if typ := reflect.TypeOf(arg); typ.Kind() == reflect.Slice && !reflectx.IsBytes(typ) {
 				args[i] = exactlyExprFromSlice(toInterfaceSlice(arg))
 				shouldResolve = true
 			}
