@@ -5,6 +5,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.6](https://github.com/go-courier/sqlx/compare/v2.23.5...v2.23.6)
+
+### Bug Fixes
+
+* **fix(builder):** loc pollution fix ([ad35502](https://github.com/go-courier/sqlx/commit/ad355029c3a8816bdee796c5c382d0efaa69c0f5))
+
+
+
 # [2.23.5](https://github.com/go-courier/sqlx/compare/v2.23.4...v2.23.5)
 
 ### Bug Fixes
