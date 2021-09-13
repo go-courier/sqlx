@@ -5,7 +5,16 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.3](https://github.com/go-courier/sqlx/compare/v2.23.2...v2.23.3)
+
+### Bug Fixes
+
+* **fix** revert expr from context ([8c9f485](https://github.com/go-courier/sqlx/commit/8c9f48583a347156d1d7d5b5f713f3cceca4a229))
+
+
+
 # [2.23.2](https://github.com/go-courier/sqlx/compare/v2.23.1...v2.23.2)
+
 
 
 # [2.23.1](https://github.com/go-courier/sqlx/compare/v2.23.0...v2.23.1)
