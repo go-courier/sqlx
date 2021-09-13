@@ -34,7 +34,10 @@ func (tf *StructFieldsFactory) TableFieldsFor(ctx context.Context, typ typesx.Ty
 	tfs := make([]*StructField, 0)
 
 	EachStructField(ctx, typ, func(f *StructField) bool {
-		tfs = append(tfs, f)
+		tagDB := f.Tags["db"]
+		if tagDB != "" && tagDB != "-" {
+			tfs = append(tfs, f)
+		}
 		return true
 	})
 
@@ -105,8 +108,13 @@ func EachStructField(ctx context.Context, tpe typesx.Type, each func(p *StructFi
 			p.Field = f
 			p.Tags = tags
 			p.Name = strings.ToLower(displayName)
-			p.Loc = loc
-			p.ModelLoc = modelLoc
+
+			p.Loc = make([]int, len(loc))
+			copy(p.Loc, loc)
+
+			p.ModelLoc = make([]int, len(modelLoc))
+			copy(p.ModelLoc, modelLoc)
+
 			p.ColumnType = *ColumnTypeFromTypeAndTag(p.Type, string(tagDB))
 
 			if !each(p) {
@@ -129,8 +137,8 @@ type StructField struct {
 	ColumnType ColumnType
 }
 
-func (p *StructField) fieldValue(structReflectValue reflect.Value, loc []int) reflect.Value {
-	n := len(loc)
+func (p *StructField) fieldValue(structReflectValue reflect.Value, locs []int) reflect.Value {
+	n := len(locs)
 
 	if n == 0 {
 		return structReflectValue
@@ -145,7 +153,7 @@ func (p *StructField) fieldValue(structReflectValue reflect.Value, loc []int) re
 	fieldValue := structReflectValue
 
 	for i := 0; i < n; i++ {
-		loc := p.Loc[i]
+		loc := locs[i]
 		fieldValue = fieldValue.Field(loc)
 
 		// last loc should keep ptr value
