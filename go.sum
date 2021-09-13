@@ -20,8 +20,8 @@ github.com/go-courier/ptr v1.0.1/go.mod h1:oBnPUcGul7WHILdX53pcWGzGUUJ4GoZ/YaDTn
 github.com/go-courier/reflectx v1.3.4 h1:H5GD34mL2MlVU3cnrg/HiUhBfO+Ztorm4PHQFOvH60M=
 github.com/go-courier/reflectx v1.3.4/go.mod h1:UP/ivAcgLD61WD44dpJlEudkcYN37Tlc5eL1e2E96SQ=
 github.com/go-courier/x v0.0.4/go.mod h1:UggWZeG7AOVXphLfpltal0Kq8Bn1MHcr6uPiyjEaCBg=
-github.com/go-courier/x v0.0.8 h1:ZN4b0dz7lAgAVfsVBh0/C9GU3HnwWQle/lGdmd5DwqM=
-github.com/go-courier/x v0.0.8/go.mod h1:UggWZeG7AOVXphLfpltal0Kq8Bn1MHcr6uPiyjEaCBg=
+github.com/go-courier/x v0.0.9 h1:YcG++zdcFmg956RUYGVTCvr0FFXLkTEMGTDIYt0Uboo=
+github.com/go-courier/x v0.0.9/go.mod h1:g5jBzOxZz4QqG9NfU9VzhXdEWmOrwhnkZ+Nrln7/cpw=
 github.com/go-sql-driver/mysql v1.6.0 h1:BCTh4TKNUYmOmMUcQ3IipzF5prigylS7XXjEkfCHuOE=
 github.com/go-sql-driver/mysql v1.6.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
