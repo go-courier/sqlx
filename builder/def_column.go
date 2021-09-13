@@ -164,6 +164,7 @@ func (c *Column) In(args ...interface{}) SqlCondition {
 	e := Expr("? IN ")
 
 	e.Grow(n + 1)
+
 	e.AppendArgs(c)
 
 	e.WriteGroup(func(e *Ex) {

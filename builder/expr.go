@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-courier/reflectx"
+	reflectx "github.com/go-courier/x/reflect"
 )
 
 type SqlExpr interface {
@@ -285,9 +285,11 @@ func preprocessArgs(args []interface{}) bool {
 			args[i] = exactlyExprFromSlice(arg)
 			shouldResolve = true
 		default:
-			if typ := reflect.TypeOf(arg); typ.Kind() == reflect.Slice && !reflectx.IsBytes(typ) {
-				args[i] = exactlyExprFromSlice(toInterfaceSlice(arg))
-				shouldResolve = true
+			if typ := reflect.TypeOf(arg); typ.Kind() == reflect.Slice {
+				if !reflectx.IsBytes(typ) {
+					args[i] = exactlyExprFromSlice(toInterfaceSlice(arg))
+					shouldResolve = true
+				}
 			}
 		}
 	}

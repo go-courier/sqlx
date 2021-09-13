@@ -17,6 +17,8 @@ func TestResolveExpr(t *testing.T) {
 	})
 }
 
+type Byte uint8
+
 func TestEx(t *testing.T) {
 	t.Run("empty query", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(
@@ -28,6 +30,15 @@ func TestEx(t *testing.T) {
 		gomega.NewWithT(t).Expect(
 			Expr(`#ID IN (?)`, []int{28, 29, 30}),
 		).To(BeExpr("#ID IN (?,?,?)", 28, 29, 30))
+	})
+
+	t.Run("flatten slice for slice with named byte", func(t *testing.T) {
+		gomega.NewWithT(t).Expect(
+			And(
+				And(nil, Col("f_id").In([]int{28})),
+				Col("f_id").In([]Byte{28}),
+			),
+		).To(BeExpr("((f_id IN (?))) AND (f_id IN (?))", 28, Byte(28)))
 	})
 
 	t.Run("flatten should skip for bytes", func(t *testing.T) {
