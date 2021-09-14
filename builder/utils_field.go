@@ -137,7 +137,7 @@ type StructField struct {
 	ColumnType ColumnType
 }
 
-func (p *StructField) fieldValue(structReflectValue reflect.Value, locs []int) reflect.Value {
+func fieldValue(structReflectValue reflect.Value, locs []int) reflect.Value {
 	n := len(locs)
 
 	if n == 0 {
@@ -150,31 +150,31 @@ func (p *StructField) fieldValue(structReflectValue reflect.Value, locs []int) r
 
 	structReflectValue = reflectx.Indirect(structReflectValue)
 
-	fieldValue := structReflectValue
+	fv := structReflectValue
 
 	for i := 0; i < n; i++ {
 		loc := locs[i]
-		fieldValue = fieldValue.Field(loc)
+		fv = fv.Field(loc)
 
 		// last loc should keep ptr value
 		if i < n-1 {
-			for fieldValue.Kind() == reflect.Ptr {
+			for fv.Kind() == reflect.Ptr {
 				// notice the ptr struct ensure only for Ptr Anonymous StructField
-				if fieldValue.IsNil() {
-					fieldValue.Set(reflectx.New(fieldValue.Type()))
+				if fv.IsNil() {
+					fv.Set(reflectx.New(fv.Type()))
 				}
-				fieldValue = fieldValue.Elem()
+				fv = fv.Elem()
 			}
 		}
 	}
 
-	return fieldValue
+	return fv
 }
 
 func (p *StructField) FieldValue(structReflectValue reflect.Value) reflect.Value {
-	return p.fieldValue(structReflectValue, p.Loc)
+	return fieldValue(structReflectValue, p.Loc)
 }
 
 func (p *StructField) FieldModelValue(structReflectValue reflect.Value) reflect.Value {
-	return p.fieldValue(structReflectValue, p.ModelLoc)
+	return fieldValue(structReflectValue, p.ModelLoc)
 }

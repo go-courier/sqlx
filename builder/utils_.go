@@ -97,11 +97,6 @@ func ForEachStructFieldValue(ctx context.Context, v interface{}, fn func(*Struct
 
 	fields := StructFieldsFor(ctx, typesx.FromRType(reflect.TypeOf(v)))
 
-	for i := range fields {
-		f := fields[i]
-		fmt.Println(f.FieldName, f.Name)
-	}
-
 	rv = reflectx.Indirect(reflect.ValueOf(v))
 
 	for i := range fields {
