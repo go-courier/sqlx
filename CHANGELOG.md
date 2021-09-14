@@ -5,6 +5,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+# [2.23.8](https://github.com/go-courier/sqlx/compare/v2.23.7...v2.23.8)
+
+
 # [2.23.7](https://github.com/go-courier/sqlx/compare/v2.23.6...v2.23.7)
 
 ### Bug Fixes
