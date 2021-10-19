@@ -240,6 +240,7 @@ func (c *PostgreSQLConnector) DropIndex(key *builder.Key) builder.SqlExpr {
 	e.WriteExpr(key.Table)
 	e.WriteQueryByte('_')
 	e.WriteQuery(key.Name)
+	e.WriteEnd()
 
 	return e
 }
