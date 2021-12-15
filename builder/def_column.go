@@ -109,7 +109,7 @@ func (c *Column) Incr(d int) SqlExpr {
 	return Expr("? + ?", c, d)
 }
 
-func (c *Column) Desc(d int) SqlExpr {
+func (c *Column) Dec(d int) SqlExpr {
 	return Expr("? - ?", c, d)
 }
 
