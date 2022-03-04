@@ -154,9 +154,18 @@ func (c MysqlConnector) IsErrorConflict(err error) bool {
 	return false
 }
 
+func quoteString(name string) string {
+	if len(name) < 2 ||
+		(name[0] == '`' && name[len(name)-1] == '`') {
+		return name
+	}
+
+	return "`" + name + "`"
+}
+
 func (c *MysqlConnector) CreateDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("CREATE DATABASE ")
-	e.WriteQuery(dbName)
+	e.WriteQuery(quoteString(dbName))
 	e.WriteEnd()
 	return e
 }
@@ -170,7 +179,7 @@ func (c *MysqlConnector) CreateSchema(schema string) builder.SqlExpr {
 
 func (c *MysqlConnector) DropDatabase(dbName string) builder.SqlExpr {
 	e := builder.Expr("DROP DATABASE ")
-	e.WriteQuery(dbName)
+	e.WriteQuery(quoteString(dbName))
 	e.WriteEnd()
 	return e
 }
