@@ -211,6 +211,33 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
+func TestMysqlDBNameWithReservedWord(t *testing.T) {
+	dbTest := sqlx.NewDatabase("test-name-reserved")
+	d := dbTest.OpenDB(mysqlConnector)
+
+	db := d.WithContext(metax.ContextWithMeta(d.Context(), metax.ParseMeta("_id=11111")))
+	err := migration.Migrate(db, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		dialect := db.Dialect()
+		exec := func(expr builder.SqlExpr) error {
+			if expr == nil || expr.IsNil() {
+				return nil
+			}
+
+			_, err := db.ExecExpr(expr)
+			return err
+		}
+
+		if err := exec(dialect.DropDatabase(d.Name)); err != nil {
+			t.Fatal(err)
+		}
+	}()
+}
+
 func TestCRUD(t *testing.T) {
 	dbTest := sqlx.NewDatabase("test_crud")
 
