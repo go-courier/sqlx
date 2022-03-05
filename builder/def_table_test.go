@@ -87,7 +87,7 @@ WHERE t_user.f_id > 1
 
 			gomega.NewWithT(t).Expect(exprs).To(gomega.Equal([]string{
 				"ALTER TABLE t_user DROP CONSTRAINT t_user_pkey;",
-				"DROP INDEX IF EXISTS t_user_f_name",
+				"DROP INDEX IF EXISTS t_user_f_name;",
 			}))
 		})
 	})
