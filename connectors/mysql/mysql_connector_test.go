@@ -28,11 +28,11 @@ func TestMysqlConnector(t *testing.T) {
 
 	t.Run("CreateDatabase", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.CreateDatabase("db")).
-			To(buidertestingutils.BeExpr( /* language=MySQL */ `CREATE DATABASE db;`))
+			To(buidertestingutils.BeExpr( /* language=MySQL */ "CREATE DATABASE `db`;"))
 	})
 	t.Run("DropDatabase", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.DropDatabase("db")).
-			To(buidertestingutils.BeExpr( /* language=MySQL */ `DROP DATABASE db;`))
+			To(buidertestingutils.BeExpr( /* language=MySQL */ "DROP DATABASE `db`;"))
 	})
 	t.Run("AddIndex", func(t *testing.T) {
 		gomega.NewWithT(t).Expect(c.AddIndex(table.Key("I_name"))).
