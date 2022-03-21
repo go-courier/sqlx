@@ -162,14 +162,13 @@ case "postgres":
 				DoUpdateSet(table.AssignmentsByFieldValues(fieldValues)...))
 }
 
-additions = append(additions, `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`("User.CreateOnDuplicateWithUpdateFields"))
+additions = append(additions, `+file.Use("github.com/go-courier/sqlx/v2/builder", "Comment")+`(?))
 
 expr := `+file.Use("github.com/go-courier/sqlx/v2/builder", "Insert")+`().Into(table, additions...).Values(cols, vals...)
 
 _, err := db.ExecExpr(expr)
 return err
 `,
-						file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields"),
 						file.Val(m.StructName+".CreateOnDuplicateWithUpdateFields"),
 					),
 				),
