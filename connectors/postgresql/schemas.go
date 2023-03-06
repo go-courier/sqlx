@@ -93,7 +93,7 @@ func dbFromInformationSchema(db sqlx.DBExecutor) (*sqlx.Database, error) {
 			key.Method = strings.ToUpper(reUsing.FindString(indexSchema.INDEX_DEF)[6:])
 			key.IsUnique = strings.Contains(indexSchema.INDEX_DEF, "UNIQUE")
 
-			key.Def.Expr = strings.TrimSpace(reUsing.Split(indexSchema.INDEX_DEF, 2)[1])
+			key.Def.Expr = strings.Replace(strings.TrimSpace(reUsing.Split(indexSchema.INDEX_DEF, 2)[1]), ", ", ",", -1)
 
 			table.AddKey(key)
 		}
