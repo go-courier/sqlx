@@ -36,7 +36,7 @@ var (
 )
 
 func Background() context.Context {
-	return logr.WithLogger(context.Background(), logr.StdLogger())
+	return logr.WithLogger(context.Background(), logr.Discard())
 }
 
 type TableOperateTime struct {

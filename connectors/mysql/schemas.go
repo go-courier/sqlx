@@ -161,7 +161,7 @@ func normalizeDefaultValue(v string) string {
 		return v
 	}
 
-	return quoteWith(v, '\'', false, false)
+	return "'" + strings.ReplaceAll(v, "'", "''") + "'"
 }
 
 type ColumnSchema struct {
