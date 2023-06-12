@@ -18,6 +18,10 @@ var _ interface {
 	json.Marshaler
 } = (*Bool)(nil)
 
+func (Bool) OpenAPISchemaType() []string {
+	return []string{"boolean"}
+}
+
 func (v Bool) MarshalText() ([]byte, error) {
 	switch v {
 	case BOOL_FALSE:
