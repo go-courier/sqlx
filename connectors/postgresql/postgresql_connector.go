@@ -288,6 +288,7 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 			expr.WriteQueryByte(' ')
 			expr.WriteQuery("PARTITION BY ")
 			expr.WriteQuery(key.Method)
+			expr.WriteQueryByte(' ')
 			expr.WriteExpr(key.Def.TableExpr(key.Table))
 		}
 	})
