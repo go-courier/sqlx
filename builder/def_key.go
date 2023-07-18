@@ -109,6 +109,10 @@ func (key *Key) IsPrimary() bool {
 	return key.IsUnique && key.Name == "primary" || strings.HasSuffix(key.Name, "pkey")
 }
 
+func (key *Key) IsPartition() bool {
+	return key.Name == "partition"
+}
+
 type Keys struct {
 	l []*Key
 }
