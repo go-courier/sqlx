@@ -279,7 +279,7 @@ func ScanDefToTable(table *Table, i interface{}) {
 		args := partitionHook.Partition()
 		table.AddKey(&Key{
 			Name:   "partition",
-			Method: args[0],
+			Method: strings.ToUpper(args[0]),
 			Def:    *ParseIndexDef(args[1:]...),
 		})
 	}

@@ -19,6 +19,7 @@ type Keys struct {
 	Primary       []string
 	Indexes       builder.Indexes
 	UniqueIndexes builder.Indexes
+	Partition     []string
 }
 
 func (ks *Keys) PatchUniqueIndexesWithSoftDelete(softDeleteField string) {
@@ -135,6 +136,8 @@ func parseKeysFromDoc(doc string) (*Keys, []string) {
 						ks.Indexes = builder.Indexes{}
 					}
 					ks.Indexes[def.ID()] = def.ToDefs()
+				case "partition":
+					ks.Partition = append([]string{def.Name}, def.ToDefs()...)
 				}
 			}
 		}

@@ -88,6 +88,19 @@ func TestParseDef(t *testing.T) {
 			},
 		}))
 	})
+
+	t.Run("partition with Field Names", func(t *testing.T) {
+
+		i := ParseIndexDefine("partition list Name")
+
+		gomega.NewWithT(t).Expect(i).To(gomega.Equal(&IndexDefine{
+			Kind: "partition",
+			Name: "list",
+			IndexDef: IndexDef{
+				FieldNames: []string{"Name"},
+			},
+		}))
+	})
 }
 
 type User struct {
