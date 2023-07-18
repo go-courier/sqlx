@@ -4,7 +4,6 @@ package builder
 //
 // examples:
 // ? => ST_GeomFromText(?)
-//
 type ValuerExpr interface {
 	ValueEx() string
 }
@@ -33,6 +32,10 @@ type WithUniqueIndexes interface {
 
 type WithIndexes interface {
 	Indexes() Indexes
+}
+
+type WithPartition interface {
+	Partition() []string
 }
 
 type WithComments interface {

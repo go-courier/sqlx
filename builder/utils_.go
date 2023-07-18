@@ -274,6 +274,15 @@ func ScanDefToTable(table *Table, i interface{}) {
 			})
 		}
 	}
+
+	if partitionHook, ok := i.(WithPartition); ok {
+		args := partitionHook.Partition()
+		table.AddKey(&Key{
+			Name:   "partition",
+			Method: strings.ToUpper(args[0]),
+			Def:    *ParseIndexDef(args[1:]...),
+		})
+	}
 }
 
 func ResolveIndexNameAndMethod(n string) (name string, method string) {

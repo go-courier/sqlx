@@ -283,11 +283,21 @@ func (c *PostgreSQLConnector) CreateTableIsNotExists(t *builder.Table) (exprs []
 		expr.WriteQueryByte('\n')
 	})
 
+	t.Keys.Range(func(key *builder.Key, idx int) {
+		if key.IsPartition() {
+			expr.WriteQueryByte(' ')
+			expr.WriteQuery("PARTITION BY ")
+			expr.WriteQuery(key.Method)
+			expr.WriteQueryByte(' ')
+			expr.WriteExpr(key.Def.TableExpr(key.Table))
+		}
+	})
+
 	expr.WriteEnd()
 	exprs = append(exprs, expr)
 
 	t.Keys.Range(func(key *builder.Key, idx int) {
-		if !key.IsPrimary() {
+		if !key.IsPrimary() && !key.IsPartition() {
 			exprs = append(exprs, c.AddIndex(key))
 		}
 	})

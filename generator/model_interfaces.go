@@ -210,6 +210,19 @@ func (m *Model) WriteTableKeyInterfaces(file *codegen.File) {
 		)
 	}
 
+	// 增加分区表支持
+	if len(m.Keys.Partition) > 0 {
+		file.WriteBlock(
+			codegen.Func().
+				Named("Partition").
+				MethodOf(codegen.Var(m.Type())).
+				Return(codegen.Var(codegen.Slice(codegen.String))).
+				Do(
+					codegen.Return(file.Val(m.Keys.Partition)),
+				),
+		)
+	}
+
 	if len(m.Keys.Indexes) > 0 {
 
 		file.WriteBlock(
