@@ -10,7 +10,7 @@ require (
 	github.com/go-courier/metax v1.3.0
 	github.com/go-courier/packagesx v1.0.2
 	github.com/go-courier/x v0.0.10
-	github.com/go-sql-driver/mysql v1.6.0
+	github.com/go-sql-driver/mysql v1.7.0
 	github.com/google/uuid v1.3.0
 	github.com/lib/pq v1.10.3
 	github.com/onsi/gomega v1.16.0
